@@ -29,58 +29,40 @@ export const TuningModal: React.FC<TuningModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
       <div className="relative w-full max-w-lg max-h-[85vh] bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
           <div>
-            <h2 className="text-lg font-bold text-white">INSTRUMENTS & TUNINGS</h2>
+            <h2 className="text-base font-bold text-white">INSTRUMENTS & TUNINGS</h2>
             <p className="text-xs text-slate-400">Choose your instrument & custom tuning preset</p>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-1 rounded-full hover:bg-slate-800 transition"
+            className="text-slate-400 hover:text-white p-1 rounded-full hover:bg-slate-800 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Reference Pitch Calibration (A4 = 440 Hz) */}
-        <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 my-3 flex items-center justify-between">
-          <div>
-            <div className="text-xs font-semibold text-slate-300">CONCERT REFERENCE PITCH</div>
-            <div className="text-[11px] text-slate-500">Standard: 440 Hz • Healing/Solfege: 432 Hz</div>
+        {/* 1. Instrument Selector Tabs (Placed at the very top with clear spacing) */}
+        <div className="pt-3 pb-2.5 shrink-0 border-b border-slate-800/80">
+          <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 mb-2">
+            SELECT INSTRUMENT:
           </div>
-          <div className="flex items-center gap-2">
-            {[432, 440, 442].map((freq) => (
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {INSTRUMENTS.map((inst) => (
               <button
-                key={freq}
-                onClick={() => onSetReferenceA4(freq)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition ${
-                  referenceA4 === freq
-                    ? 'bg-emerald-500 text-black'
-                    : 'bg-slate-800 text-slate-400 hover:text-white'
+                key={inst.id}
+                onClick={() => setSelectedInstrument(inst.id)}
+                className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-1.5 transition cursor-pointer shrink-0 ${
+                  selectedInstrument === inst.id
+                    ? 'bg-emerald-500 text-black font-extrabold shadow-sm'
+                    : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
                 }`}
               >
-                {freq}Hz
+                <span>{inst.icon}</span>
+                <span>{inst.name}</span>
               </button>
             ))}
           </div>
-        </div>
-
-        {/* Instrument Selector Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-800/80">
-          {INSTRUMENTS.map((inst) => (
-            <button
-              key={inst.id}
-              onClick={() => setSelectedInstrument(inst.id)}
-              className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-1.5 transition ${
-                selectedInstrument === inst.id
-                  ? 'bg-emerald-500 text-black font-extrabold shadow-sm'
-                  : 'bg-slate-800/80 text-slate-400 hover:text-white'
-              }`}
-            >
-              <span>{inst.icon}</span>
-              <span>{inst.name}</span>
-            </button>
-          ))}
         </div>
 
         {/* Tuning Presets List */}
@@ -128,6 +110,29 @@ export const TuningModal: React.FC<TuningModalProps> = ({
               </button>
             );
           })}
+        </div>
+
+        {/* 3. Reference Pitch Calibration (A4 = 440 Hz) - Clean Footer Bar */}
+        <div className="pt-3 mt-1 border-t border-slate-800 shrink-0 flex items-center justify-between text-xs">
+          <div>
+            <div className="text-[11px] font-bold text-slate-300">CONCERT REFERENCE PITCH</div>
+            <div className="text-[10px] text-slate-500">Standard A4 = 440 Hz • Healing/Solfege = 432 Hz</div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            {[432, 440, 442].map((freq) => (
+              <button
+                key={freq}
+                onClick={() => onSetReferenceA4(freq)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition cursor-pointer ${
+                  referenceA4 === freq
+                    ? 'bg-emerald-500 text-black font-extrabold shadow-sm'
+                    : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700'
+                }`}
+              >
+                {freq}Hz
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>

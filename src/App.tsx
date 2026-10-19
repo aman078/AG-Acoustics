@@ -16,7 +16,9 @@ import {
   CheckCircle2,
   Guitar,
   Download,
-  Smartphone
+  Smartphone,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { detectPitchMPM, frequencyToNote, calculateCents, getRMSVolume } from './audio/pitchDetection';
 import { playGuitarStringTone, playInTuneChime } from './audio/toneGenerator';
@@ -32,6 +34,31 @@ import { InstallModal } from './components/InstallModal';
 type ActiveTab = 'tuner' | 'songs' | 'metronome' | 'chords';
 
 export const App: React.FC = () => {
+  // Theme Mode: 'clean' (clean light modern studio) vs 'dark' (obsidian stage)
+  const [theme, setTheme] = useState<'clean' | 'dark'>(() => {
+    try {
+      const saved = localStorage.getItem('agsoft_theme');
+      return (saved as 'clean' | 'dark') || 'clean';
+    } catch {
+      return 'clean';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('agsoft_theme', theme);
+      if (theme === 'clean') {
+        document.documentElement.classList.add('clean-theme');
+        document.body.classList.add('clean-theme');
+      } else {
+        document.documentElement.classList.remove('clean-theme');
+        document.body.classList.remove('clean-theme');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, [theme]);
+
   // Navigation Dock
   const [activeTab, setActiveTab] = useState<ActiveTab>('tuner');
 
@@ -177,7 +204,7 @@ export const App: React.FC = () => {
     setRmsVolume(volume);
 
     // Noise gate threshold
-    const NOISE_GATE = 0.015;
+    const NOISE_GATE = 0.005;
     if (volume < NOISE_GATE) {
       setDetectedClarity(0);
       inTuneDurationRef.current = 0;
@@ -185,8 +212,8 @@ export const App: React.FC = () => {
       return;
     }
 
-    // Run MPM (McLeod Pitch Method)
-    const pitchResult = detectPitchMPM(buffer, sampleRate, 0.70);
+    // Run MPM (McLeod Pitch Method) with clarity 0.60, minFreq 50, maxFreq 1200
+    const pitchResult = detectPitchMPM(buffer, sampleRate, 0.60, 50, 1200);
 
     if (pitchResult) {
       const { frequency, clarity } = pitchResult;
@@ -210,15 +237,15 @@ export const App: React.FC = () => {
         const currentTarget = currentTuning.strings[closestIndex].targetFreq;
         setTargetFreq(currentTarget);
 
-        const cents = calculateCents(frequency, currentTarget);
-        setCentsOffset(cents);
+        const rawCents = calculateCents(frequency, currentTarget);
+        setCentsOffset((prev) => Number((prev * 0.3 + rawCents * 0.7).toFixed(1)));
 
         const { noteName, octave } = frequencyToNote(frequency, referenceA4);
         setDetectedNote(noteName);
         setDetectedOctave(octave);
 
         // Check if string is in tune (within +/- 3 cents)
-        if (Math.abs(cents) <= 3) {
+        if (Math.abs(rawCents) <= 3) {
           inTuneDurationRef.current += 1;
           const now = Date.now();
           if (inTuneDurationRef.current > 8 && now - lastChimeTimeRef.current > 2500) {
@@ -233,14 +260,14 @@ export const App: React.FC = () => {
         const currentTarget = currentTuning.strings[activeStringIndex].targetFreq;
         setTargetFreq(currentTarget);
 
-        const cents = calculateCents(frequency, currentTarget);
-        setCentsOffset(cents);
+        const rawCents = calculateCents(frequency, currentTarget);
+        setCentsOffset((prev) => Number((prev * 0.3 + rawCents * 0.7).toFixed(1)));
 
         const { noteName, octave } = frequencyToNote(frequency, referenceA4);
         setDetectedNote(noteName);
         setDetectedOctave(octave);
 
-        if (Math.abs(cents) <= 3) {
+        if (Math.abs(rawCents) <= 3) {
           inTuneDurationRef.current += 1;
           const now = Date.now();
           if (inTuneDurationRef.current > 8 && now - lastChimeTimeRef.current > 2500) {
@@ -319,6 +346,20 @@ export const App: React.FC = () => {
 
           {/* Header Controls: Tuning Preset + Dual Engine Switch */}
           <div className="flex items-center gap-2">
+            {/* Theme Toggle: Clean Studio Light vs Stage Dark */}
+            <button
+              onClick={() => setTheme(theme === 'clean' ? 'dark' : 'clean')}
+              className={`p-2 rounded-xl border transition cursor-pointer flex items-center gap-1.5 text-xs font-bold ${
+                theme === 'clean'
+                  ? 'bg-amber-100 text-amber-900 border-amber-300 hover:bg-amber-200'
+                  : 'bg-white/[0.04] text-slate-300 border-white/[0.08] hover:bg-white/[0.08]'
+              }`}
+              title={theme === 'clean' ? 'Switch to Stage Dark Mode' : 'Switch to Clean Light Mode'}
+            >
+              {theme === 'clean' ? <Sun className="w-4 h-4 text-amber-600" /> : <Moon className="w-4 h-4 text-cyan-400" />}
+              <span className="hidden sm:inline">{theme === 'clean' ? 'CLEAN' : 'DARK'}</span>
+            </button>
+
             {activeTab === 'tuner' && (
               <div className="flex items-center p-1 bg-white/[0.04] border border-white/[0.08] rounded-xl text-xs">
                 <button

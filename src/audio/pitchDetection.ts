@@ -74,14 +74,15 @@ let cachedNSDF: Float32Array | null = null;
 export function detectPitchMPM(
   buffer: Float32Array<ArrayBufferLike>,
   sampleRate: number,
-  minFreq = 65,   // Covers Guitar Low E (82Hz) and Drop D/C/B down to 65Hz
-  maxFreq = 1100, // Covers high guitar fret notes
-  clarityThreshold = 0.85
+  clarityThreshold = 0.60,
+  minFreq = 55,   // Covers Guitar Low E (82Hz), Drop Tunings, and Bass
+  maxFreq = 1200  // Covers high guitar fret notes
 ): { frequency: number; clarity: number } | null {
-  const maxLag = Math.floor(sampleRate / minFreq);
-  const minLag = Math.floor(sampleRate / maxFreq);
+  const desiredMaxLag = Math.floor(sampleRate / minFreq);
+  const maxLag = Math.min(desiredMaxLag, Math.floor(buffer.length / 2) - 1);
+  const minLag = Math.max(1, Math.floor(sampleRate / maxFreq));
 
-  if (buffer.length < maxLag * 2) {
+  if (maxLag <= minLag) {
     return null;
   }
 
@@ -107,7 +108,7 @@ export function detectPitchMPM(
 
     if (isRising && curr >= prev && curr >= next) {
       isRising = false;
-      if (curr > clarityThreshold && curr > maxVal) {
+      if (curr > clarityThreshold) {
         maxVal = curr;
         maxIndex = tau;
         // Take the first strong peak to avoid octave errors

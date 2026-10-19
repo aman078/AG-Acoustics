@@ -45,3 +45,87 @@
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
+
+/* Clean Studio Light Mode Overrides */
+body.clean-theme {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+body.clean-theme .studio-surface {
+  background: radial-gradient(circle at 50% 20%, #ffffff 0%, #f1f5f9 70%, #e2e8f0 100%) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+body.clean-theme .glass-panel {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+body.clean-theme header {
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  border-bottom-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+body.clean-theme nav {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+  border-top-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+body.clean-theme .text-white {
+  color: #0f172a !important;
+}
+
+body.clean-theme .text-slate-200,
+body.clean-theme .text-slate-300 {
+  color: #1e293b !important;
+}
+
+body.clean-theme .text-slate-400 {
+  color: #475569 !important;
+}
+
+body.clean-theme .text-slate-500 {
+  color: #64748b !important;
+}
+
+body.clean-theme .bg-slate-900,
+body.clean-theme .bg-slate-950,
+body.clean-theme .bg-\[\#07090E\],
+body.clean-theme .bg-\[\#08090D\],
+body.clean-theme .bg-\[\#0A0D15\] {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+body.clean-theme .bg-slate-900\/40,
+body.clean-theme .bg-slate-950\/40,
+body.clean-theme .bg-slate-950\/60,
+body.clean-theme .bg-slate-950\/70,
+body.clean-theme .bg-slate-950\/80 {
+  background-color: #f1f5f9 !important;
+}
+
+body.clean-theme .border-slate-800,
+body.clean-theme .border-slate-800\/80,
+body.clean-theme .border-slate-800\/90,
+body.clean-theme .border-slate-700,
+body.clean-theme .border-white\/10,
+body.clean-theme .border-white\/\[0\.08\],
+body.clean-theme .border-white\/\[0\.06\] {
+  border-color: #e2e8f0 !important;
+}
+
+body.clean-theme .bg-slate-800,
+body.clean-theme .bg-slate-800\/80,
+body.clean-theme .bg-slate-800\/90 {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+body.clean-theme .hover\:bg-slate-700:hover,
+body.clean-theme .hover\:bg-slate-800:hover {
+  background-color: #cbd5e1 !important;
+}
