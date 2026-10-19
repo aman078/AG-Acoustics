@@ -16,10 +16,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21 (Required by Capacitor 8)
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
           cache: gradle
 
@@ -68,7 +68,7 @@ jobs:
           name: AGSoft Acoustics v1.0.${{ github.run_number }}
           body: |
             ### 🎸 AGSoft Acoustics Android APK
-            Tap `AGSoft-Acoustics.apk` below to download directly to your Android device!
+            Tap `AGSoft-Acoustics.apk` below to download directly to your Android phone!
           files: android/app/build/outputs/apk/debug/AGSoft-Acoustics.apk
           make_latest: true
         env:
