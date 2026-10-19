@@ -370,12 +370,56 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
     }
   }, [selectedSong, inspectChord]);
 
+  // Desktop Keyboard Shortcuts (Space for Auto-Scroll, -/+ for Speed, Arrows for Key)
+  useEffect(() => {
+    if (!selectedSong) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is currently typing in an input field
+      if (
+        document.activeElement instanceof HTMLInputElement ||
+        document.activeElement instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+
+      if (e.code === 'Space' || e.key === ' ') {
+        e.preventDefault();
+        setIsAutoScrolling((prev) => !prev);
+      } else if (e.key === '-' || e.key === '_' || e.key === '[' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        setScrollSpeed((prev) => Math.max(0.2, Number((prev - 0.2).toFixed(1))));
+      } else if (e.key === '+' || e.key === '=' || e.key === ']' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        setScrollSpeed((prev) => Math.min(3.0, Number((prev + 0.2).toFixed(1))));
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        setTransposeOffset((prev) => prev - 1);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        setTransposeOffset((prev) => prev + 1);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        if (inspectChord) {
+          setInspectChord(null);
+        } else {
+          setSelectedSong(null);
+          setIsAutoScrolling(false);
+          setTransposeOffset(0);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedSong, inspectChord]);
+
   // Fullscreen Immersive Song Sheet View
   if (selectedSong) {
     return (
-      <div className="fixed inset-0 z-[100] w-full h-full bg-[#08090D] flex flex-col overflow-hidden text-slate-900 dark:text-slate-100 select-text">
+      <div className="song-sheet-container fixed inset-0 z-[100] w-full h-full bg-white dark:bg-[#08090D] flex flex-col overflow-hidden text-slate-950 dark:text-slate-100 select-text">
         {/* Fullscreen Sticky Header */}
-        <div className="song-player-header flex items-center justify-between px-3 sm:px-6 py-2.5 border-b border-slate-200 dark:border-slate-800/80 bg-slate-950/95 backdrop-blur-xl shrink-0 z-20">
+        <div className="song-player-header flex items-center justify-between px-3 sm:px-6 py-2.5 border-b border-slate-200 dark:border-slate-800/80 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl shrink-0 z-20">
           <div className="flex items-center gap-2.5 min-w-0">
             <button
               onClick={() => {
@@ -495,9 +539,9 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
           ) : (
             selectedSong.sections.map((section, sIdx) => (
               <div key={sIdx} className="space-y-3">
-                <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 tracking-wider uppercase border-b border-slate-200 dark:border-slate-800 pb-1 flex items-center justify-between">
+                <div className="text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400 tracking-wider uppercase border-b border-emerald-500/20 dark:border-emerald-500/30 pb-1 flex items-center justify-between">
                   <span>[{section.sectionTitle}]</span>
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-normal">
                     {section.lines.length} lines
                   </span>
                 </div>
@@ -510,9 +554,9 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                       return (
                         <div
                           key={lIdx}
-                          className="flex flex-wrap items-center gap-2 py-1.5 px-3 my-1 rounded-xl bg-slate-100 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800/80 w-fit"
+                          className="flex flex-wrap items-center gap-2 py-1.5 px-3 my-1 rounded-xl bg-slate-100 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-800/80 w-fit"
                         >
-                          <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mr-1">
+                          <span className="text-[10px] font-mono text-slate-600 dark:text-slate-400 uppercase tracking-widest mr-1 font-bold">
                             CHORDS:
                           </span>
                           {line.chords.map((c, cIdx) => {
@@ -525,7 +569,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                                   const diag = findChordDiagram(transposed);
                                   if (diag) setInspectChord(diag);
                                 }}
-                                className="px-2 py-0.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 font-mono font-bold text-xs cursor-pointer transition"
+                                className="px-2 py-0.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 font-mono font-extrabold text-xs cursor-pointer transition shadow-sm"
                                 title={`Play ${transposed} & view fingering`}
                               >
                                 {transposed}
@@ -541,7 +585,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                       <div key={lIdx} className="flex flex-col py-1 overflow-x-auto">
                         {/* Chords Line visually aligned over syllable columns */}
                         {line.chords.length > 0 && (
-                          <div className="font-mono text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400 select-none flex items-center whitespace-pre leading-tight py-0.5">
+                          <div className="font-mono text-xs sm:text-sm font-extrabold text-emerald-700 dark:text-emerald-400 select-none flex items-center whitespace-pre leading-tight py-0.5">
                             {line.chords.map((c, cIdx) => {
                               const transposed = transposeChord(c.chord, transposeOffset);
                               const targetPos = Math.max(lastPos, c.position || 0);
@@ -556,7 +600,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                                       const diag = findChordDiagram(transposed);
                                       if (diag) setInspectChord(diag);
                                     }}
-                                    className="font-mono text-xs sm:text-sm font-extrabold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 dark:hover:text-emerald-300 hover:underline cursor-pointer transition select-none tracking-tight"
+                                    className="font-mono text-xs sm:text-sm font-black text-emerald-700 dark:text-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-300 hover:underline cursor-pointer transition select-none tracking-tight"
                                     title={`Play ${transposed} & view fingering`}
                                   >
                                     {transposed}
@@ -567,9 +611,9 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                           </div>
                         )}
 
-                        {/* Lyrics Line in matching monospace font */}
+                        {/* Lyrics Line with crystal-clear high contrast */}
                         {line.lyrics && (
-                          <div className="font-mono text-xs sm:text-sm text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
+                          <div className="song-lyrics-line font-mono text-sm sm:text-base font-semibold dark:font-medium text-slate-950 dark:text-slate-100 whitespace-pre-wrap leading-relaxed tracking-wide select-text py-0.5">
                             {line.lyrics}
                           </div>
                         )}
@@ -605,42 +649,45 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
             {/* Auto Scroll Button */}
             <button
               onClick={() => setIsAutoScrolling(!isAutoScrolling)}
-              className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer shadow-lg shrink-0 ${
+              className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-lg shrink-0 ${
                 isAutoScrolling
                   ? 'bg-rose-500 text-white shadow-rose-500/30'
                   : 'bg-emerald-500 text-black shadow-emerald-500/30 font-extrabold'
               }`}
+              title="Toggle Auto-Scroll (Desktop Shortcut: Spacebar)"
             >
               {isAutoScrolling ? (
                 <>
                   <Pause className="w-4 h-4 fill-white" />
-                  <span>PAUSE SCROLL</span>
+                  <span>PAUSE</span>
+                  <span className="hidden sm:inline-block px-1.5 py-0.5 text-[9px] font-mono bg-white/20 rounded text-white ml-0.5">Space</span>
                 </>
               ) : (
                 <>
                   <Play className="w-4 h-4 fill-black" />
                   <span>AUTO SCROLL</span>
+                  <span className="hidden sm:inline-block px-1.5 py-0.5 text-[9px] font-mono bg-black/15 rounded text-black font-extrabold ml-0.5">Space</span>
                 </>
               )}
             </button>
 
             {/* Granular Auto-Scroll Speed Steppers */}
             <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl px-2 py-1 shrink-0">
-              <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase hidden sm:inline">SPEED:</span>
+              <span className="text-[10px] font-mono text-slate-600 dark:text-slate-400 uppercase hidden sm:inline font-bold">SPEED:</span>
               <button
                 onClick={() => setScrollSpeed((prev) => Math.max(0.2, Number((prev - 0.2).toFixed(1))))}
-                className="w-7 h-7 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold flex items-center justify-center transition active:scale-95 cursor-pointer text-sm border border-slate-200 dark:border-transparent"
-                title="Slower scroll"
+                className="w-7 h-7 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold flex items-center justify-center transition active:scale-95 cursor-pointer text-sm border border-slate-300 dark:border-transparent shadow-xs"
+                title="Slower scroll (Shortcut: - or [ or ↓)"
               >
                 -
               </button>
-              <span className="font-mono font-extrabold text-emerald-600 dark:text-emerald-400 text-xs sm:text-sm min-w-[38px] text-center">
+              <span className="font-mono font-extrabold text-emerald-700 dark:text-emerald-400 text-xs sm:text-sm min-w-[38px] text-center">
                 {scrollSpeed.toFixed(1)}x
               </span>
               <button
                 onClick={() => setScrollSpeed((prev) => Math.min(3.0, Number((prev + 0.2).toFixed(1))))}
-                className="w-7 h-7 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold flex items-center justify-center transition active:scale-95 cursor-pointer text-sm border border-slate-200 dark:border-transparent"
-                title="Faster scroll"
+                className="w-7 h-7 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold flex items-center justify-center transition active:scale-95 cursor-pointer text-sm border border-slate-300 dark:border-transparent shadow-xs"
+                title="Faster scroll (Shortcut: + or = or ↑)"
               >
                 +
               </button>
@@ -648,11 +695,11 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
 
             {/* Key Transpose Steppers */}
             <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl px-2 py-1 shrink-0">
-              <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase hidden sm:inline">KEY:</span>
+              <span className="text-[10px] font-mono text-slate-600 dark:text-slate-400 uppercase hidden sm:inline font-bold">KEY:</span>
               <button
                 onClick={() => setTransposeOffset((prev) => prev - 1)}
-                className="w-7 h-7 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold flex items-center justify-center transition active:scale-95 cursor-pointer text-sm border border-slate-200 dark:border-transparent"
-                title="Transpose down"
+                className="w-7 h-7 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold flex items-center justify-center transition active:scale-95 cursor-pointer text-sm border border-slate-300 dark:border-transparent shadow-xs"
+                title="Transpose down (Shortcut: ←)"
               >
                 -
               </button>
@@ -661,8 +708,8 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
               </span>
               <button
                 onClick={() => setTransposeOffset((prev) => prev + 1)}
-                className="w-7 h-7 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold flex items-center justify-center transition active:scale-95 cursor-pointer text-sm border border-slate-200 dark:border-transparent"
-                title="Transpose up"
+                className="w-7 h-7 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold flex items-center justify-center transition active:scale-95 cursor-pointer text-sm border border-slate-300 dark:border-transparent shadow-xs"
+                title="Transpose up (Shortcut: →)"
               >
                 +
               </button>

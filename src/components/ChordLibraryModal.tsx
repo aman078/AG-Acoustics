@@ -115,75 +115,75 @@ export const ChordLibraryModal: React.FC<ChordLibraryModalProps> = ({ isOpen = t
   if (!isOpen) return null;
 
   const content = (
-    <div className={`relative w-full ${isEmbedded ? 'max-w-4xl h-full' : 'max-w-2xl max-h-[85vh]'} bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col overflow-hidden`}>
+    <div className={`relative w-full ${isEmbedded ? 'max-w-4xl h-full' : 'max-w-2xl max-h-[85vh]'} bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col overflow-hidden transition-all`}>
       {/* Header */}
-      <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+      <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
         <div>
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <span>CHORD DICTIONARY</span>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
               AUDIO PREVIEW
             </span>
           </h2>
-          <p className="text-xs text-slate-400">Essential guitar chords & interactive fretboard fingerings</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Essential guitar chords & interactive fretboard fingerings</p>
         </div>
         {!isEmbedded && onClose && (
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-1 rounded-full hover:bg-slate-800 transition"
+            className="text-slate-400 hover:text-slate-800 dark:hover:text-white p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         )}
       </div>
 
-        {/* Search & Root Filter */}
-        <div className="flex flex-col sm:flex-row gap-3 my-4">
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-            <input
-              type="text"
-              placeholder="Search chord (e.g. Dm, C, G7)..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-slate-800/80 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
-            />
-          </div>
-
-          <div className="flex items-center gap-1 overflow-x-auto pb-1">
-            {roots.map((root) => (
-              <button
-                key={root}
-                onClick={() => setSelectedRoot(root)}
-                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition ${
-                  selectedRoot === root
-                    ? 'bg-emerald-500 text-black font-extrabold shadow-sm'
-                    : 'bg-slate-800 text-slate-400 hover:text-white'
-                }`}
-              >
-                {root}
-              </button>
-            ))}
-          </div>
+      {/* Search & Root Filter */}
+      <div className="flex flex-col sm:flex-row gap-3 my-4">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search chord (e.g. Dm, C, G7)..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-slate-100 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500"
+          />
         </div>
 
-        {/* Chord Grid */}
-        <div className="flex-1 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 p-1">
-          {filteredChords.map((chord) => (
-            <div
-              key={chord.name}
-              className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-4 flex flex-col items-center hover:border-slate-700 transition"
+        <div className="flex items-center gap-1 overflow-x-auto pb-1">
+          {roots.map((root) => (
+            <button
+              key={root}
+              onClick={() => setSelectedRoot(root)}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                selectedRoot === root
+                  ? 'bg-emerald-500 text-black font-extrabold shadow-sm'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-400 hover:bg-slate-200 dark:hover:text-white border border-slate-300 dark:border-transparent'
+              }`}
             >
-              <div className="flex items-center justify-between w-full mb-2">
-                <span className="font-bold text-sm text-white">{chord.name}</span>
-                <button
-                  onClick={() => strumChord(chord.frets)}
-                  className="p-1.5 rounded-lg bg-slate-800 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-400 transition"
-                  title="Strum Chord"
-                >
-                  <Volume2 className="w-4 h-4" />
-                </button>
-              </div>
+              {root}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Chord Grid */}
+      <div className="flex-1 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 p-1">
+        {filteredChords.map((chord) => (
+          <div
+            key={chord.name}
+            className="bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4 flex flex-col items-center hover:border-slate-300 dark:hover:border-slate-700 transition"
+          >
+            <div className="flex items-center justify-between w-full mb-2">
+              <span className="font-bold text-sm text-slate-900 dark:text-white">{chord.name}</span>
+              <button
+                onClick={() => strumChord(chord.frets)}
+                className="p-1.5 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-400 transition cursor-pointer"
+                title="Strum Chord"
+              >
+                <Volume2 className="w-4 h-4" />
+              </button>
+            </div>
 
               {/* Fretboard SVG */}
               <div className="w-36 h-44 flex items-center justify-center">

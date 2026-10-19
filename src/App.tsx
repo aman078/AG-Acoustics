@@ -51,9 +51,13 @@ export const App: React.FC = () => {
       if (theme === 'clean') {
         document.documentElement.classList.add('clean-theme');
         document.body.classList.add('clean-theme');
+        document.documentElement.classList.remove('dark');
+        document.body.classList.remove('dark');
       } else {
         document.documentElement.classList.remove('clean-theme');
         document.body.classList.remove('clean-theme');
+        document.documentElement.classList.add('dark');
+        document.body.classList.add('dark');
       }
     } catch (e) {
       console.error(e);
