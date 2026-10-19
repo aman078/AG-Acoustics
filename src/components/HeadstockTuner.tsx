@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { TunedString } from '../data/tunings';
-import { Volume2 } from 'lucide-react';
+import { Volume2, Radio } from 'lucide-react';
+import { startToneDrone, stopToneDrone } from '../audio/toneGenerator';
 
 interface HeadstockTunerProps {
   strings: TunedString[];
@@ -23,6 +24,29 @@ export const HeadstockTuner: React.FC<HeadstockTunerProps> = ({
   isAutoMode,
   onPlayTone,
 }) => {
+  const [isDroneMode, setIsDroneMode] = useState<boolean>(false);
+  const [droningFreq, setDroningFreq] = useState<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      stopToneDrone();
+    };
+  }, []);
+
+  const handlePegClick = (actualIdx: number, targetFreq: number) => {
+    onSelectString(actualIdx);
+    if (isDroneMode) {
+      if (droningFreq === targetFreq) {
+        stopToneDrone();
+        setDroningFreq(null);
+      } else {
+        startToneDrone(targetFreq);
+        setDroningFreq(targetFreq);
+      }
+    } else {
+      onPlayTone(targetFreq);
+    }
+  };
   const activeString = strings[activeStringIndex] || strings[0];
   const isInTune = Math.abs(cents) <= 2.5 && clarity > 0.7 && frequency !== null;
   const isClose = Math.abs(cents) <= 8 && clarity > 0.6 && frequency !== null;
@@ -157,9 +181,30 @@ export const HeadstockTuner: React.FC<HeadstockTunerProps> = ({
 
       {/* Modern Studio Headstock & Interactive Tuning Pegs */}
       <div className="relative w-full max-w-sm px-4 py-4 mt-1 bg-slate-900/40 backdrop-blur border border-slate-800/80 rounded-2xl shadow-xl">
-        <div className="flex items-center justify-between text-xs text-slate-500 mb-3 px-1">
-          <span>{isAutoMode ? '⚡ AUTO-DETECTING STRING' : 'MANUAL STRING LOCK'}</span>
-          <span>TAP PEG TO HEAR TONE</span>
+        <div className="flex items-center justify-between text-xs text-slate-400 mb-3 px-1">
+          <button
+            onClick={() => {
+              if (isDroneMode) {
+                stopToneDrone();
+                setIsDroneMode(false);
+                setDroningFreq(null);
+              } else {
+                setIsDroneMode(true);
+              }
+            }}
+            className={`px-2.5 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border ${
+              isDroneMode
+                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.3)] animate-pulse'
+                : 'bg-slate-800/80 text-slate-400 border-slate-700 hover:text-slate-200'
+            }`}
+            title="Ear training reference drone: sound a continuous pitch center to practice scales and tuning"
+          >
+            <Radio className="w-3.5 h-3.5" />
+            <span>{isDroneMode ? 'DRONE ACTIVE' : 'DRONE MODE'}</span>
+          </button>
+          <span className="text-[11px] text-slate-500 font-mono">
+            {isDroneMode ? 'TAP STRING TO DRONE' : isAutoMode ? '⚡ AUTO-DETECTING' : 'TAP PEG TO PLUCK'}
+          </span>
         </div>
 
         {/* Headstock body */}
@@ -169,16 +214,16 @@ export const HeadstockTuner: React.FC<HeadstockTunerProps> = ({
             {leftStrings.map((str, idx) => {
               const actualIdx = idx;
               const isSelected = activeStringIndex === actualIdx;
+              const isDroning = droningFreq === str.targetFreq;
 
               return (
                 <button
                   key={str.name + idx}
-                  onClick={() => {
-                    onSelectString(actualIdx);
-                    onPlayTone(str.targetFreq);
-                  }}
+                  onClick={() => handlePegClick(actualIdx, str.targetFreq)}
                   className={`group relative flex items-center justify-between p-2.5 rounded-xl border transition-all duration-200 text-left cursor-pointer ${
-                    isSelected
+                    isDroning
+                      ? 'bg-amber-950/40 border-amber-500/80 shadow-[0_0_18px_rgba(245,158,11,0.35)] ring-1 ring-amber-500/50'
+                      : isSelected
                       ? isInTune
                         ? 'bg-emerald-950/40 border-emerald-500/80 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
                         : 'bg-slate-800/90 border-slate-600 shadow-md ring-1 ring-white/10'
@@ -188,7 +233,9 @@ export const HeadstockTuner: React.FC<HeadstockTunerProps> = ({
                   <div className="flex items-center gap-2.5">
                     <div
                       className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-sm transition-colors ${
-                        isSelected
+                        isDroning
+                          ? 'bg-amber-500 text-black font-extrabold shadow-sm'
+                          : isSelected
                           ? isInTune
                             ? 'bg-emerald-500 text-black font-extrabold shadow-sm'
                             : 'bg-white text-slate-950'
@@ -210,7 +257,14 @@ export const HeadstockTuner: React.FC<HeadstockTunerProps> = ({
                     </div>
                   </div>
 
-                  <Volume2 className="w-3.5 h-3.5 text-slate-500 group-hover:text-emerald-400 transition-colors" />
+                  {isDroning ? (
+                    <span className="flex h-2.5 w-2.5 relative">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+                    </span>
+                  ) : (
+                    <Volume2 className="w-3.5 h-3.5 text-slate-500 group-hover:text-emerald-400 transition-colors" />
+                  )}
                 </button>
               );
             })}
@@ -221,16 +275,16 @@ export const HeadstockTuner: React.FC<HeadstockTunerProps> = ({
             {rightStrings.map((str, idx) => {
               const actualIdx = strings.length - 1 - idx;
               const isSelected = activeStringIndex === actualIdx;
+              const isDroning = droningFreq === str.targetFreq;
 
               return (
                 <button
                   key={str.name + idx}
-                  onClick={() => {
-                    onSelectString(actualIdx);
-                    onPlayTone(str.targetFreq);
-                  }}
+                  onClick={() => handlePegClick(actualIdx, str.targetFreq)}
                   className={`group relative flex items-center justify-between p-2.5 rounded-xl border transition-all duration-200 text-left cursor-pointer ${
-                    isSelected
+                    isDroning
+                      ? 'bg-amber-950/40 border-amber-500/80 shadow-[0_0_18px_rgba(245,158,11,0.35)] ring-1 ring-amber-500/50'
+                      : isSelected
                       ? isInTune
                         ? 'bg-emerald-950/40 border-emerald-500/80 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
                         : 'bg-slate-800/90 border-slate-600 shadow-md ring-1 ring-white/10'
@@ -240,7 +294,9 @@ export const HeadstockTuner: React.FC<HeadstockTunerProps> = ({
                   <div className="flex items-center gap-2.5">
                     <div
                       className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-sm transition-colors ${
-                        isSelected
+                        isDroning
+                          ? 'bg-amber-500 text-black font-extrabold shadow-sm'
+                          : isSelected
                           ? isInTune
                             ? 'bg-emerald-500 text-black font-extrabold shadow-sm'
                             : 'bg-white text-slate-950'
@@ -262,7 +318,14 @@ export const HeadstockTuner: React.FC<HeadstockTunerProps> = ({
                     </div>
                   </div>
 
-                  <Volume2 className="w-3.5 h-3.5 text-slate-500 group-hover:text-emerald-400 transition-colors" />
+                  {isDroning ? (
+                    <span className="flex h-2.5 w-2.5 relative">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+                    </span>
+                  ) : (
+                    <Volume2 className="w-3.5 h-3.5 text-slate-500 group-hover:text-emerald-400 transition-colors" />
+                  )}
                 </button>
               );
             })}

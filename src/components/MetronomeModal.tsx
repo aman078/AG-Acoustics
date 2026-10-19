@@ -12,6 +12,20 @@ export const MetronomeModal: React.FC<MetronomeModalProps> = ({ isOpen = true, o
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [beatsPerMeasure, setBeatsPerMeasure] = useState<number>(4);
   const [currentBeat, setCurrentBeat] = useState<number>(0);
+  const [isHapticEnabled, setIsHapticEnabled] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('agsoft_metronome_haptic');
+      return saved !== null ? JSON.parse(saved) : true;
+    } catch {
+      return true;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('agsoft_metronome_haptic', JSON.stringify(isHapticEnabled));
+    } catch {}
+  }, [isHapticEnabled]);
 
   // Tap tempo state
   const tapTimesRef = useRef<number[]>([]);
@@ -48,6 +62,13 @@ export const MetronomeModal: React.FC<MetronomeModalProps> = ({ isOpen = true, o
 
     osc.start(time);
     osc.stop(time + 0.05);
+
+    // Haptic pocket vibration: strong pulse on Beat 1, softer on off-beats
+    if (isHapticEnabled && typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try {
+        navigator.vibrate(isFirstBeat ? 40 : 12);
+      } catch (e) {}
+    }
   };
 
   const scheduler = () => {
@@ -242,6 +263,28 @@ export const MetronomeModal: React.FC<MetronomeModalProps> = ({ isOpen = true, o
             </button>
           ))}
         </div>
+
+        {/* Haptic Pulse Toggle for Rehearsals */}
+        <button
+          onClick={() => {
+            const next = !isHapticEnabled;
+            setIsHapticEnabled(next);
+            if (next && typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+              try {
+                navigator.vibrate(30);
+              } catch (e) {}
+            }
+          }}
+          className={`w-full mt-4 py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer ${
+            isHapticEnabled
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+              : 'bg-slate-800/40 border-slate-700/60 text-slate-500 hover:text-slate-300'
+          }`}
+          title="Vibrate phone on each beat so you feel the tempo in your pocket"
+        >
+          <span>📳</span>
+          <span>Haptic Pocket Pulse: {isHapticEnabled ? 'ENABLED' : 'OFF'}</span>
+        </button>
       </div>
     );
 

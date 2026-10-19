@@ -72,6 +72,108 @@ export function playGuitarStringTone(frequency: number, durationSeconds = 2.0) {
 }
 
 /**
+ * Continuous Sustained Pitch Drone for Ear Training & Intonation Practice
+ */
+interface ActiveDrone {
+  osc1: OscillatorNode;
+  osc2: OscillatorNode;
+  filter: BiquadFilterNode;
+  gain: GainNode;
+  frequency: number;
+}
+
+let activeDrone: ActiveDrone | null = null;
+
+export function isToneDroneActive(): boolean {
+  return activeDrone !== null;
+}
+
+export function getActiveDroneFreq(): number | null {
+  return activeDrone ? activeDrone.frequency : null;
+}
+
+export function stopToneDrone() {
+  if (!activeDrone) return;
+  try {
+    const ctx = getAudioContext();
+    const now = ctx.currentTime;
+    // Smooth 60ms fade out to prevent clicking
+    activeDrone.gain.gain.setValueAtTime(activeDrone.gain.gain.value, now);
+    activeDrone.gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.06);
+    const droneToStop = activeDrone;
+    setTimeout(() => {
+      try {
+        droneToStop.osc1.stop();
+        droneToStop.osc2.stop();
+        droneToStop.osc1.disconnect();
+        droneToStop.osc2.disconnect();
+      } catch (e) {}
+    }, 70);
+  } catch (e) {
+    console.warn(e);
+  } finally {
+    activeDrone = null;
+  }
+}
+
+export function startToneDrone(frequency: number) {
+  // If already playing this frequency, stop it (toggle behavior)
+  if (activeDrone && Math.abs(activeDrone.frequency - frequency) < 0.5) {
+    stopToneDrone();
+    return;
+  }
+  // If another frequency was playing, stop it first
+  if (activeDrone) {
+    stopToneDrone();
+  }
+
+  try {
+    const ctx = getAudioContext();
+    const now = ctx.currentTime;
+
+    const osc1 = ctx.createOscillator();
+    osc1.type = 'triangle'; // Warm fundamental
+    osc1.frequency.setValueAtTime(frequency, now);
+
+    const osc2 = ctx.createOscillator();
+    osc2.type = 'sine'; // Subtle harmonic
+    osc2.frequency.setValueAtTime(frequency * 2, now);
+
+    // Warm acoustic low-pass filter to make prolonged drone pleasant to the ear
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(Math.min(1200, frequency * 4), now);
+
+    const masterGain = ctx.createGain();
+    // Smooth fade in over 50ms
+    masterGain.gain.setValueAtTime(0.0001, now);
+    masterGain.gain.exponentialRampToValueAtTime(0.28, now + 0.05);
+
+    const osc2Gain = ctx.createGain();
+    osc2Gain.gain.setValueAtTime(0.2, now);
+
+    osc1.connect(filter);
+    osc2.connect(osc2Gain);
+    osc2Gain.connect(filter);
+    filter.connect(masterGain);
+    masterGain.connect(ctx.destination);
+
+    osc1.start(now);
+    osc2.start(now);
+
+    activeDrone = {
+      osc1,
+      osc2,
+      filter,
+      gain: masterGain,
+      frequency,
+    };
+  } catch (err) {
+    console.warn('Could not start drone:', err);
+  }
+}
+
+/**
  * Plays a pleasant in-tune celebration chime
  */
 export function playInTuneChime() {
@@ -100,3 +202,4 @@ export function playInTuneChime() {
     console.warn('Could not play chime:', err);
   }
 }
+

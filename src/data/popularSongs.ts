@@ -407,3 +407,80 @@ export function transposeChord(chord: string, semitones: number): string {
   const newIdx = (idx + semitones + 12 * 10) % 12;
   return NOTES[newIdx] + suffix;
 }
+
+export interface CapoRecommendation {
+  fret: number;
+  openShapeKey: string;
+  recommendation: string;
+}
+
+/**
+ * Calculates optimal acoustic capo placement for comfortable open chord voicings
+ */
+export function calculateSmartCapo(originalKey: string, semitones = 0): CapoRecommendation | null {
+  if (!originalKey) return null;
+  const match = originalKey.match(/^([A-G][#b]?)/);
+  if (!match) return null;
+
+  let root = match[1];
+  const isMinor = originalKey.toLowerCase().includes('m') && !originalKey.toLowerCase().includes('major');
+
+  const flatToSharp: { [k: string]: string } = {
+    'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#'
+  };
+  if (flatToSharp[root]) root = flatToSharp[root];
+
+  const idx = NOTES.indexOf(root);
+  if (idx === -1) return null;
+
+  const targetIdx = (idx + semitones + 12 * 10) % 12;
+  const targetNote = NOTES[targetIdx];
+
+  // Preferred open acoustic shapes
+  const openShapes = isMinor
+    ? [
+        { shape: 'Em', baseIdx: 4 },
+        { shape: 'Am', baseIdx: 9 },
+        { shape: 'Dm', baseIdx: 2 },
+      ]
+    : [
+        { shape: 'G', baseIdx: 7 },
+        { shape: 'C', baseIdx: 0 },
+        { shape: 'D', baseIdx: 2 },
+        { shape: 'E', baseIdx: 4 },
+        { shape: 'A', baseIdx: 9 },
+      ];
+
+  // Check if targetNote is already a natural open shape
+  for (const s of openShapes) {
+    if (s.baseIdx === targetIdx) {
+      return {
+        fret: 0,
+        openShapeKey: s.shape,
+        recommendation: `Play open in ${targetNote}${isMinor ? 'm' : ''} with open chords`,
+      };
+    }
+  }
+
+  // Find best capo placement between fret 1 and 5
+  let bestCapo: { fret: number; shape: string } | null = null;
+  for (const s of openShapes) {
+    const fret = (targetIdx - s.baseIdx + 12) % 12;
+    if (fret > 0 && fret <= 5) {
+      if (!bestCapo || fret < bestCapo.fret) {
+        bestCapo = { fret, shape: s.shape };
+      }
+    }
+  }
+
+  if (bestCapo) {
+    return {
+      fret: bestCapo.fret,
+      openShapeKey: bestCapo.shape,
+      recommendation: `Capo Fret ${bestCapo.fret} to play open ${bestCapo.shape} shapes`,
+    };
+  }
+
+  return null;
+}
+

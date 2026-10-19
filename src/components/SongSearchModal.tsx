@@ -17,12 +17,13 @@ import {
   Sparkles,
   BookOpen
 } from 'lucide-react';
-import { SongData, transposeChord } from '../data/popularSongs';
+import { SongData, transposeChord, calculateSmartCapo, CapoRecommendation } from '../data/popularSongs';
 import { searchOnlineSongs, fetchCompleteSong, SearchSongItem } from '../services/chordService';
 import { REPERTOIRE_PIECES, RepertoirePiece } from '../data/repertoire';
 import { playGuitarStringTone } from '../audio/toneGenerator';
 import { TablatureViewer } from './TablatureViewer';
 import { findChordDiagram, ChordDef } from './ChordLibraryModal';
+import { cacheSongOffline, getCachedSongOffline, isSongCachedOffline } from '../services/offlineStorage';
 
 interface SongSearchModalProps {
   isOpen?: boolean;
@@ -60,6 +61,22 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
   const [isAutoScrolling, setIsAutoScrolling] = useState<boolean>(false);
   const [scrollSpeed, setScrollSpeed] = useState<number>(1);
   const [inspectChord, setInspectChord] = useState<ChordDef | null>(null);
+  const [isCurrentSongOffline, setIsCurrentSongOffline] = useState<boolean>(false);
+
+  // Dynamic Capo & Transposition Calculator
+  const smartCapo: CapoRecommendation | null = useMemo(() => {
+    if (!selectedSong) return null;
+    return calculateSmartCapo(selectedSong.key, transposeOffset);
+  }, [selectedSong, transposeOffset]);
+
+  // Sync offline cached status whenever selected song changes
+  useEffect(() => {
+    if (selectedSong?.id) {
+      isSongCachedOffline(selectedSong.id).then(setIsCurrentSongOffline);
+    } else {
+      setIsCurrentSongOffline(false);
+    }
+  }, [selectedSong]);
 
   // Local Storage States
   const [favorites, setFavorites] = useState<SearchSongItem[]>(() => {
@@ -201,22 +218,42 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
         return [songItem, ...prev];
       }
     });
+
+    // If active song is being favorited, cache it offline for venue rehearsal
+    if (selectedSong && selectedSong.id === songItem.id) {
+      cacheSongOffline(selectedSong).then(() => setIsCurrentSongOffline(true));
+    }
   };
 
-  // Open Song
+  // Open Song (Offline first with automatic IndexedDB caching)
   const handleSelectSong = async (item: SearchSongItem) => {
     setIsLoadingSong(true);
     try {
-      const fullSong = await fetchCompleteSong(item);
-      setSelectedSong(fullSong);
-      setTransposeOffset(0);
-      setSheetViewMode(fullSong.tabContent ? 'tab' : 'chords');
+      // 1. Check local offline IndexedDB cache for instant zero-latency opening
+      let fullSong = await getCachedSongOffline(item.id);
 
-      // Add to recent songs
-      setRecentSongs((prev) => {
-        const filtered = prev.filter((s) => s.id !== item.id);
-        return [item, ...filtered].slice(0, 10);
-      });
+      // 2. If not cached locally, fetch online and cache immediately
+      if (!fullSong) {
+        fullSong = await fetchCompleteSong(item);
+        if (fullSong) {
+          await cacheSongOffline(fullSong);
+          setIsCurrentSongOffline(true);
+        }
+      } else {
+        setIsCurrentSongOffline(true);
+      }
+
+      if (fullSong) {
+        setSelectedSong(fullSong);
+        setTransposeOffset(0);
+        setSheetViewMode(fullSong.tabContent ? 'tab' : 'chords');
+
+        // Add to recent songs
+        setRecentSongs((prev) => {
+          const filtered = prev.filter((s) => s.id !== item.id);
+          return [item, ...filtered].slice(0, 10);
+        });
+      }
     } catch (err) {
       console.error('Error opening song:', err);
     } finally {
@@ -224,7 +261,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
     }
   };
 
-  const handleSelectRepertoire = (piece: RepertoirePiece) => {
+  const handleSelectRepertoire = async (piece: RepertoirePiece) => {
     const fullSong: SongData = {
       id: piece.id,
       title: piece.title,
@@ -237,6 +274,11 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
       tabContent: piece.tabContent,
       sections: piece.sections,
     };
+
+    // Cache piece for offline rehearsal
+    await cacheSongOffline(fullSong);
+    setIsCurrentSongOffline(true);
+
     setSelectedSong(fullSong);
     setTransposeOffset(0);
     setSheetViewMode(piece.tabContent ? 'tab' : 'chords');
@@ -363,6 +405,11 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                 <span>Key: <strong className="text-cyan-600 dark:text-cyan-400">{selectedSong.key}</strong></span>
                 <span>•</span>
                 <span>Capo: <strong className="text-emerald-600 dark:text-emerald-400">{selectedSong.capo}</strong></span>
+                {isCurrentSongOffline && (
+                  <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                    ⚡ Offline Saved
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -540,8 +587,21 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
         </div>
 
         {/* Dedicated Fixed Bottom Playback Bar (NEVER CUT OFF ON MOBILE!) */}
-        <div className="song-player-footer fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-[#0A0D15]/95 backdrop-blur-2xl border-t border-slate-200 dark:border-slate-800/90 px-3 sm:px-6 py-2.5 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] dark:shadow-[0_-8px_30px_rgba(0,0,0,0.7)]">
-          <div className="max-w-3xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
+        <div className="song-player-footer fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-[#0A0D15]/95 backdrop-blur-2xl border-t border-slate-200 dark:border-slate-800/90 px-3 sm:px-6 py-2.5 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] dark:shadow-[0_-8px_30px_rgba(0,0,0,0.7)] flex flex-col gap-2">
+          {/* Smart Capo & Transposition Calculator Advice */}
+          {smartCapo && (
+            <div className="max-w-3xl mx-auto w-full flex items-center justify-between px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] font-mono text-amber-600 dark:text-amber-300">
+              <span className="flex items-center gap-1.5 font-semibold truncate">
+                <span>💡</span>
+                <span className="truncate">{smartCapo.recommendation}</span>
+              </span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 shrink-0 ml-2">
+                Open Shape: <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{smartCapo.openShapeKey}</strong>
+              </span>
+            </div>
+          )}
+
+          <div className="max-w-3xl mx-auto w-full flex items-center justify-between gap-2 sm:gap-4">
             {/* Auto Scroll Button */}
             <button
               onClick={() => setIsAutoScrolling(!isAutoScrolling)}
@@ -1043,6 +1103,8 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                             <span>{song.artist}</span>
                             <span className="text-slate-600">•</span>
                             <span className="text-xs text-rose-400 font-medium">{song.source}</span>
+                            <span className="text-slate-600">•</span>
+                            <span className="text-[10px] text-emerald-400 font-mono">⚡ Offline Ready</span>
                           </div>
                         </div>
                       </div>
