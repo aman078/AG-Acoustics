@@ -123,13 +123,13 @@ export const InstallModal: React.FC<InstallModalProps> = ({
               </p>
             </div>
             <a
-              href="https://github.com/aman078/AG-Acoustics/releases"
+              href="https://github.com/aman078/AG-Acoustics/releases/latest/download/AGSoft-Acoustics.apk"
               target="_blank"
               rel="noreferrer"
               className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-mono font-extrabold text-xs flex items-center gap-1.5 transition shrink-0 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
             >
+              <Download className="w-3.5 h-3.5" />
               <span>Download APK</span>
-              <ExternalLink className="w-3.5 h-3.5" />
             </a>
           </div>
         </div>
