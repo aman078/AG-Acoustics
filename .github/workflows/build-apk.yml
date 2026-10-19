@@ -9,6 +9,8 @@ jobs:
   build:
     name: Build Android APK
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
@@ -44,7 +46,7 @@ jobs:
       - name: Build Android Debug APK
         run: |
           cd android
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Prepare APK Output
         run: |
@@ -57,3 +59,18 @@ jobs:
           path: android/app/build/outputs/apk/debug/AGSoft-Acoustics.apk
           if-no-files-found: error
           retention-days: 30
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main'
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: AGSoft Acoustics v1.0.${{ github.run_number }}
+          body: |
+            ### 🎸 AGSoft Acoustics Android APK
+            Tap `AGSoft-Acoustics.apk` below to download directly to your Android device!
+          files: android/app/build/outputs/apk/debug/AGSoft-Acoustics.apk
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true

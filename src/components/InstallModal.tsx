@@ -80,15 +80,15 @@ export const InstallModal: React.FC<InstallModalProps> = ({
             <ol className="text-xs text-slate-300 space-y-2.5 font-sans pl-1">
               <li className="flex items-start gap-2.5">
                 <span className="w-5 h-5 rounded-full bg-white/[0.06] border border-white/10 text-[11px] font-mono font-bold flex items-center justify-center shrink-0 text-emerald-400">1</span>
-                <span>Tap the <strong className="text-white">three dots menu (⋮)</strong> in the top-right corner of Chrome.</span>
+                <span>While on <strong className="text-emerald-400">ag-acoustics.vercel.app</strong> (not on GitHub), tap the <strong className="text-white">three dots menu (⋮)</strong> in Chrome's top-right corner.</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <span className="w-5 h-5 rounded-full bg-white/[0.06] border border-white/10 text-[11px] font-mono font-bold flex items-center justify-center shrink-0 text-emerald-400">2</span>
-                <span>Select <strong className="text-emerald-400">"Install app"</strong> or <strong className="text-emerald-400">"Add to Home screen"</strong>.</span>
+                <span>Tap <strong className="text-emerald-400">"Install app"</strong> or <strong className="text-emerald-400">"Add to Home screen"</strong>.</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <span className="w-5 h-5 rounded-full bg-white/[0.06] border border-white/10 text-[11px] font-mono font-bold flex items-center justify-center shrink-0 text-emerald-400">3</span>
-                <span>Tap <strong className="text-white">Install</strong> when prompted. It will appear on your home screen like any normal Android app!</span>
+                <span>Tap <strong className="text-white">Install</strong>. It installs instantly with its own standalone icon!</span>
               </li>
             </ol>
           </div>
@@ -111,24 +111,25 @@ export const InstallModal: React.FC<InstallModalProps> = ({
             </ol>
           </div>
 
-          {/* Native APK Option */}
-          <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-950/40 to-indigo-950/40 border border-blue-500/30 flex items-center justify-between gap-3">
+          {/* Direct Native Android APK Option */}
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-teal-950/40 to-slate-900 border border-emerald-500/30 flex items-center justify-between gap-3">
             <div>
               <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-                <span>Want direct Android .APK?</span>
+                <Download className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Direct Android .APK Download</span>
               </h4>
               <p className="text-[11px] text-slate-400 mt-0.5">
-                Download the standalone debug APK from GitHub Actions
+                Download and install standalone APK directly
               </p>
             </div>
             <a
-              href="https://github.com/aman078/AG-Acoustics/actions"
+              href="https://github.com/aman078/AG-Acoustics/releases"
               target="_blank"
               rel="noreferrer"
-              className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-mono font-bold text-xs flex items-center gap-1 transition shrink-0"
+              className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-mono font-extrabold text-xs flex items-center gap-1.5 transition shrink-0 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
             >
-              <span>Get APK</span>
-              <ExternalLink className="w-3 h-3" />
+              <span>Download APK</span>
+              <ExternalLink className="w-3.5 h-3.5" />
             </a>
           </div>
         </div>
