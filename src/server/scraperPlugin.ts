@@ -106,18 +106,24 @@ async function searchUltimateGuitar(query: string) {
   const stripped = query.replace(/\b(from|song|movie|chords|tabs|lyrics)\b/gi, '').trim();
   const words = query.trim().split(/\s+/);
   const firstTwoWords = words.slice(0, 2).join(' ');
+  const normalizedNaa = query.replace(/\bna\b/gi, 'naa');
 
-  const variants = Array.from(new Set([query, stripped, firstTwoWords])).filter(Boolean);
+  const variants = Array.from(new Set([query, normalizedNaa, stripped, firstTwoWords])).filter(Boolean);
 
   for (const qVar of variants) {
-    const url = `https://www.ultimate-guitar.com/search.php?search_type=title&value=${encodeURIComponent(qVar)}`;
-    try {
-      const res = await fetch(url, {
-        headers: {
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        },
-      });
+    const urls = [
+      `https://www.ultimate-guitar.com/search.php?value=${encodeURIComponent(qVar)}`,
+      `https://www.ultimate-guitar.com/search.php?search_type=title&value=${encodeURIComponent(qVar)}`
+    ];
+
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, {
+          headers: {
+            'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          },
+        });
       const html = await res.text();
       const match = html.match(/class="js-store"\s+data-content="(.*?)"/);
       if (!match) continue;
@@ -162,6 +168,7 @@ async function searchUltimateGuitar(query: string) {
       }
     } catch (err) {
       console.error('UG Search error for variant', qVar, err);
+    }
     }
   }
   return [];
