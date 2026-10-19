@@ -21,6 +21,7 @@ import { SongData, transposeChord } from '../data/popularSongs';
 import { searchOnlineSongs, fetchCompleteSong, SearchSongItem } from '../services/chordService';
 import { REPERTOIRE_PIECES, RepertoirePiece } from '../data/repertoire';
 import { playGuitarStringTone } from '../audio/toneGenerator';
+import { TablatureViewer } from './TablatureViewer';
 
 interface SongSearchModalProps {
   isOpen?: boolean;
@@ -50,6 +51,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
 
   // Song View State
   const [selectedSong, setSelectedSong] = useState<SongData | null>(null);
+  const [sheetViewMode, setSheetViewMode] = useState<'chords' | 'tab'>('chords');
   const [isLoadingSong, setIsLoadingSong] = useState<boolean>(false);
   const [transposeOffset, setTransposeOffset] = useState<number>(0);
   const [isAutoScrolling, setIsAutoScrolling] = useState<boolean>(false);
@@ -202,6 +204,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
       const fullSong = await fetchCompleteSong(item);
       setSelectedSong(fullSong);
       setTransposeOffset(0);
+      setSheetViewMode(fullSong.tabContent ? 'tab' : 'chords');
 
       // Add to recent songs
       setRecentSongs((prev) => {
@@ -225,10 +228,12 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
       tuning: piece.tuning,
       difficulty: piece.difficulty,
       allChords: piece.allChords,
+      tabContent: piece.tabContent,
       sections: piece.sections,
     };
     setSelectedSong(fullSong);
     setTransposeOffset(0);
+    setSheetViewMode(piece.tabContent ? 'tab' : 'chords');
 
     const songItem: SearchSongItem = {
       id: piece.id,
@@ -754,6 +759,11 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                         <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/[0.04] text-slate-300 border border-white/[0.08]">
                           {piece.difficulty}
                         </span>
+                        {piece.tabContent && (
+                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
+                            <BookOpen className="w-3 h-3" /> 6-STR TAB
+                          </span>
+                        )}
                       </div>
 
                       <h3 className="font-bold text-sm text-white group-hover:text-cyan-400 transition flex items-center gap-2">
@@ -818,6 +828,34 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                 </div>
 
                 <div className="flex items-center gap-3">
+                  {/* View Mode Switcher: Chords vs 6-String Tab */}
+                  {selectedSong.tabContent && (
+                    <div className="flex items-center p-0.5 rounded-xl bg-slate-800/80 border border-slate-700">
+                      <button
+                        onClick={() => setSheetViewMode('chords')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                          sheetViewMode === 'chords'
+                            ? 'bg-emerald-500 text-black shadow-sm font-extrabold'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        <Guitar className="w-3.5 h-3.5" />
+                        <span>Chords</span>
+                      </button>
+                      <button
+                        onClick={() => setSheetViewMode('tab')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                          sheetViewMode === 'tab'
+                            ? 'bg-cyan-500 text-black shadow-sm font-extrabold'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        <BookOpen className="w-3.5 h-3.5" />
+                        <span>6-String Tab</span>
+                      </button>
+                    </div>
+                  )}
+
                   {/* Like / Favorite Button */}
                   <button
                     onClick={() => toggleFavorite(selectedSong)}
@@ -913,8 +951,11 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                 ref={scrollContainerRef}
                 className="flex-1 overflow-y-auto px-6 py-6 font-mono space-y-6"
               >
-                {selectedSong.sections.map((section, sIdx) => (
-                  <div key={sIdx} className="space-y-3">
+                {sheetViewMode === 'tab' && selectedSong.tabContent ? (
+                  <TablatureViewer tabContent={selectedSong.tabContent} title={selectedSong.title} />
+                ) : (
+                  selectedSong.sections.map((section, sIdx) => (
+                    <div key={sIdx} className="space-y-3">
                     <div className="text-xs font-bold text-emerald-400 tracking-wider uppercase border-b border-slate-800 pb-1 flex items-center justify-between">
                       <span>[{section.sectionTitle}]</span>
                       <span className="text-[10px] text-slate-500 font-normal">
@@ -987,10 +1028,11 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                       })}
                     </div>
                   </div>
-                ))}
+                ))
+              )}
 
                 <div className="py-8 text-center text-xs text-slate-500 border-t border-slate-800/80">
-                  ✨ End of song • Studio chord sheet provided by AGSoft Acoustics
+                  ✨ End of sheet • Studio music provided by AGSoft Acoustics
                 </div>
               </div>
             </>

@@ -14,8 +14,9 @@ export interface SongData {
   key: string;
   capo: string;
   tuning: string;
-  difficulty: 'Easy' | 'Intermediate' | 'Advanced';
+  difficulty: 'Easy' | 'Intermediate' | 'Advanced' | string;
   allChords: string[];
+  tabContent?: string;
   sections: SongChordSection[];
 }
 

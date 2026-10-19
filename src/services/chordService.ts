@@ -95,6 +95,7 @@ export async function fetchCompleteSong(item: SearchSongItem): Promise<SongData>
       tuning: repMatch.tuning,
       difficulty: repMatch.difficulty,
       allChords: repMatch.allChords,
+      tabContent: repMatch.tabContent,
       sections: repMatch.sections,
     };
   }
