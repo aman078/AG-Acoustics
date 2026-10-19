@@ -1,0 +1,135 @@
+import React, { useState } from 'react';
+import { X, Check } from 'lucide-react';
+import { TUNINGS, INSTRUMENTS, TuningPreset } from '../data/tunings';
+
+interface TuningModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  currentTuning: TuningPreset;
+  onSelectTuning: (tuning: TuningPreset) => void;
+  referenceA4: number;
+  onSetReferenceA4: (a4: number) => void;
+}
+
+export const TuningModal: React.FC<TuningModalProps> = ({
+  isOpen,
+  onClose,
+  currentTuning,
+  onSelectTuning,
+  referenceA4,
+  onSetReferenceA4,
+}) => {
+  const [selectedInstrument, setSelectedInstrument] = useState<string>(currentTuning.instrument);
+
+  if (!isOpen) return null;
+
+  const filteredTunings = TUNINGS.filter((t) => t.instrument === selectedInstrument);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+      <div className="relative w-full max-w-lg max-h-[85vh] bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+          <div>
+            <h2 className="text-lg font-bold text-white">INSTRUMENTS & TUNINGS</h2>
+            <p className="text-xs text-slate-400">Choose your instrument & custom tuning preset</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-slate-400 hover:text-white p-1 rounded-full hover:bg-slate-800 transition"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Reference Pitch Calibration (A4 = 440 Hz) */}
+        <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 my-3 flex items-center justify-between">
+          <div>
+            <div className="text-xs font-semibold text-slate-300">CONCERT REFERENCE PITCH</div>
+            <div className="text-[11px] text-slate-500">Standard: 440 Hz • Healing/Solfege: 432 Hz</div>
+          </div>
+          <div className="flex items-center gap-2">
+            {[432, 440, 442].map((freq) => (
+              <button
+                key={freq}
+                onClick={() => onSetReferenceA4(freq)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition ${
+                  referenceA4 === freq
+                    ? 'bg-emerald-500 text-black'
+                    : 'bg-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                {freq}Hz
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Instrument Selector Tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-800/80">
+          {INSTRUMENTS.map((inst) => (
+            <button
+              key={inst.id}
+              onClick={() => setSelectedInstrument(inst.id)}
+              className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-1.5 transition ${
+                selectedInstrument === inst.id
+                  ? 'bg-emerald-500 text-black font-extrabold shadow-sm'
+                  : 'bg-slate-800/80 text-slate-400 hover:text-white'
+              }`}
+            >
+              <span>{inst.icon}</span>
+              <span>{inst.name}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Tuning Presets List */}
+        <div className="flex-1 overflow-y-auto space-y-2.5 my-3 pr-1">
+          {filteredTunings.map((tuning) => {
+            const isCurrent = currentTuning.id === tuning.id;
+            return (
+              <button
+                key={tuning.id}
+                onClick={() => {
+                  onSelectTuning(tuning);
+                  onClose();
+                }}
+                className={`w-full text-left p-3.5 rounded-2xl border transition flex items-center justify-between cursor-pointer ${
+                  isCurrent
+                    ? 'bg-emerald-950/40 border-emerald-500/80 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+                    : 'bg-slate-950/40 border-slate-800/80 hover:bg-slate-800/50 hover:border-slate-700'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-sm text-white">{tuning.name}</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">
+                      {tuning.category}
+                    </span>
+                  </div>
+                  <div className="text-xs text-slate-400 mt-1">{tuning.description}</div>
+                  <div className="flex items-center gap-1.5 mt-2">
+                    {tuning.strings.map((s, idx) => (
+                      <span
+                        key={idx}
+                        className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-semibold"
+                      >
+                        {s.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {isCurrent && (
+                  <div className="w-6 h-6 rounded-full bg-emerald-500 text-black flex items-center justify-center shrink-0 ml-3">
+                    <Check className="w-4 h-4 stroke-[3]" />
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
