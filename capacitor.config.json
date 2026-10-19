@@ -1,5 +1,5 @@
 {
-  "appId": "com.agsoft.acoustics",
+  "appId": "com.auratuner.app",
   "appName": "AGSoft Acoustics",
   "webDir": "dist",
   "bundledWebRuntime": false,
