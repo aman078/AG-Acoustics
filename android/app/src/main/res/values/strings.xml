@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">AuraTuner</string>
-    <string name="title_activity_main">AuraTuner</string>
-    <string name="package_name">com.auratuner.app</string>
-    <string name="custom_url_scheme">com.auratuner.app</string>
+    <string name="app_name">AGSoft Acoustics</string>
+    <string name="title_activity_main">AGSoft Acoustics</string>
+    <string name="package_name">com.agsoft.acoustics</string>
+    <string name="custom_url_scheme">com.agsoft.acoustics</string>
 </resources>

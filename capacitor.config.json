@@ -1,6 +1,6 @@
 {
-  "appId": "com.auratuner.app",
-  "appName": "AuraTuner",
+  "appId": "com.agsoft.acoustics",
+  "appName": "AGSoft Acoustics",
   "webDir": "dist",
   "bundledWebRuntime": false,
   "server": {

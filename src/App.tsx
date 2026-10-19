@@ -12,7 +12,9 @@ import {
   Sparkles,
   Info,
   Music,
-  Search
+  Search,
+  CheckCircle2,
+  Guitar
 } from 'lucide-react';
 import { detectPitchMPM, frequencyToNote, calculateCents, getRMSVolume } from './audio/pitchDetection';
 import { playGuitarStringTone, playInTuneChime } from './audio/toneGenerator';
@@ -24,7 +26,12 @@ import { ChordLibraryModal } from './components/ChordLibraryModal';
 import { TuningModal } from './components/TuningModal';
 import { SongSearchModal } from './components/SongSearchModal';
 
+type ActiveTab = 'tuner' | 'songs' | 'metronome' | 'chords';
+
 export const App: React.FC = () => {
+  // Navigation Dock
+  const [activeTab, setActiveTab] = useState<ActiveTab>('tuner');
+
   // Tuner Modes: 'studio' (GuitarTuna visual headstock) vs 'strobe' (Peterson 0.1c Strobe)
   const [tunerMode, setTunerMode] = useState<'studio' | 'strobe'>('studio');
   const [currentTuning, setCurrentTuning] = useState<TuningPreset>(TUNINGS[0]);
@@ -43,11 +50,8 @@ export const App: React.FC = () => {
   const [centsOffset, setCentsOffset] = useState<number>(0);
   const [targetFreq, setTargetFreq] = useState<number | null>(currentTuning.strings[0].targetFreq);
 
-  // Modals
-  const [isMetronomeOpen, setIsMetronomeOpen] = useState<boolean>(false);
-  const [isChordsOpen, setIsChordsOpen] = useState<boolean>(false);
+  // Tuning Preset Modal
   const [isTuningModalOpen, setIsTuningModalOpen] = useState<boolean>(false);
-  const [isSongSearchOpen, setIsSongSearchOpen] = useState<boolean>(false);
 
   // Audio Nodes & Animation
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -118,83 +122,85 @@ export const App: React.FC = () => {
     const buffer = audioBufferRef.current;
     const sampleRate = audioContextRef.current.sampleRate;
 
-    // Volume calculation
-    const vol = getRMSVolume(buffer);
-    setRmsVolume(vol);
+    const volume = getRMSVolume(buffer);
+    setRmsVolume(volume);
 
-    // Noise gate threshold: ignore quiet room murmur
-    if (vol > 0.012) {
-      const result = detectPitchMPM(buffer, sampleRate, 30, 1200, 0.82);
-      if (result) {
-        const { frequency, clarity } = result;
-        setDetectedFreq(frequency);
-        setDetectedClarity(clarity);
+    // Noise gate threshold
+    const NOISE_GATE = 0.015;
+    if (volume < NOISE_GATE) {
+      setDetectedClarity(0);
+      inTuneDurationRef.current = 0;
+      animFrameRef.current = requestAnimationFrame(processAudio);
+      return;
+    }
 
-        if (isAutoMode) {
-          // Find the string in the current tuning that is closest to this frequency
-          let closestIndex = 0;
-          let minCentsDiff = 9999;
+    // Run MPM (McLeod Pitch Method)
+    const pitchResult = detectPitchMPM(buffer, sampleRate, 0.70);
 
-          currentTuning.strings.forEach((str, idx) => {
-            const cents = Math.abs(calculateCents(frequency, str.targetFreq));
-            if (cents < minCentsDiff) {
-              minCentsDiff = cents;
-              closestIndex = idx;
-            }
-          });
+    if (pitchResult) {
+      const { frequency, clarity } = pitchResult;
+      setDetectedFreq(frequency);
+      setDetectedClarity(clarity);
 
-          // If within reasonable range of a guitar string (e.g. 180 cents), lock to that string
-          if (minCentsDiff < 180) {
-            setActiveStringIndex(closestIndex);
-            const target = currentTuning.strings[closestIndex];
-            setTargetFreq(target.targetFreq);
-            setDetectedNote(target.note);
-            setDetectedOctave(target.octave);
-            const cents = calculateCents(frequency, target.targetFreq);
-            setCentsOffset(cents);
+      if (isAutoMode) {
+        // Auto-detect closest string in the current tuning
+        let closestIndex = 0;
+        let minDiff = Infinity;
 
-            // In-tune chime trigger
-            if (Math.abs(cents) <= 2.0 && clarity > 0.85) {
-              inTuneDurationRef.current += 1;
-              const now = performance.now();
-              if (inTuneDurationRef.current > 12 && now - lastChimeTimeRef.current > 2500) {
-                playInTuneChime();
-                lastChimeTimeRef.current = now;
-              }
-            } else {
-              inTuneDurationRef.current = 0;
-            }
-          } else {
-            // General chromatic note fallback
-            const chromatic = frequencyToNote(frequency, referenceA4);
-            setDetectedNote(chromatic.noteName);
-            setDetectedOctave(chromatic.octave);
-            setTargetFreq(chromatic.targetFreq);
-            setCentsOffset(chromatic.cents);
+        currentTuning.strings.forEach((str, idx) => {
+          const diff = Math.abs(frequency - str.targetFreq);
+          if (diff < minDiff) {
+            minDiff = diff;
+            closestIndex = idx;
+          }
+        });
+
+        setActiveStringIndex(closestIndex);
+        const currentTarget = currentTuning.strings[closestIndex].targetFreq;
+        setTargetFreq(currentTarget);
+
+        const cents = calculateCents(frequency, currentTarget);
+        setCentsOffset(cents);
+
+        const { noteName, octave } = frequencyToNote(frequency, referenceA4);
+        setDetectedNote(noteName);
+        setDetectedOctave(octave);
+
+        // Check if string is in tune (within +/- 3 cents)
+        if (Math.abs(cents) <= 3) {
+          inTuneDurationRef.current += 1;
+          const now = Date.now();
+          if (inTuneDurationRef.current > 8 && now - lastChimeTimeRef.current > 2500) {
+            playInTuneChime();
+            lastChimeTimeRef.current = now;
           }
         } else {
-          // Manual Locked String Mode
-          const target = currentTuning.strings[activeStringIndex];
-          setTargetFreq(target.targetFreq);
-          setDetectedNote(target.note);
-          setDetectedOctave(target.octave);
-          const cents = calculateCents(frequency, target.targetFreq);
-          setCentsOffset(cents);
+          inTuneDurationRef.current = 0;
+        }
+      } else {
+        // Manual mode: locked to activeStringIndex
+        const currentTarget = currentTuning.strings[activeStringIndex].targetFreq;
+        setTargetFreq(currentTarget);
 
-          if (Math.abs(cents) <= 2.0 && clarity > 0.85) {
-            inTuneDurationRef.current += 1;
-            const now = performance.now();
-            if (inTuneDurationRef.current > 12 && now - lastChimeTimeRef.current > 2500) {
-              playInTuneChime();
-              lastChimeTimeRef.current = now;
-            }
-          } else {
-            inTuneDurationRef.current = 0;
+        const cents = calculateCents(frequency, currentTarget);
+        setCentsOffset(cents);
+
+        const { noteName, octave } = frequencyToNote(frequency, referenceA4);
+        setDetectedNote(noteName);
+        setDetectedOctave(octave);
+
+        if (Math.abs(cents) <= 3) {
+          inTuneDurationRef.current += 1;
+          const now = Date.now();
+          if (inTuneDurationRef.current > 8 && now - lastChimeTimeRef.current > 2500) {
+            playInTuneChime();
+            lastChimeTimeRef.current = now;
           }
+        } else {
+          inTuneDurationRef.current = 0;
         }
       }
     } else {
-      // Quiet silence decay
       inTuneDurationRef.current = 0;
     }
 
@@ -221,249 +227,404 @@ export const App: React.FC = () => {
     playGuitarStringTone(freq, 2.0);
   };
 
+  // Status helper calculations
+  const currentTargetString = currentTuning.strings[activeStringIndex];
+  const isInTune = isListening && detectedFreq && Math.abs(centsOffset) <= 3;
+  const isFlat = isListening && detectedFreq && centsOffset < -3;
+  const isSharp = isListening && detectedFreq && centsOffset > 3;
+
   return (
-    <div className="min-h-screen bg-[#08090d] text-slate-100 flex flex-col justify-between selection:bg-emerald-500 selection:text-black">
-      {/* Top Navbar */}
-      <header className="border-b border-white/5 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40 px-4 py-3">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          {/* Logo & Brand */}
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-500 to-cyan-400 p-0.5 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.4)]">
-              <span className="text-sm">🎸</span>
+    <div className="min-h-screen bg-[#07090E] text-slate-100 flex flex-col justify-between selection:bg-emerald-500 selection:text-black font-sans pb-20 sm:pb-24">
+      {/* Top Studio Navbar */}
+      <header className="border-b border-white/[0.08] bg-[#0A0D15]/90 backdrop-blur-xl sticky top-0 z-40 px-4 py-3">
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
+          {/* Brand Identity */}
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 via-teal-400 to-cyan-500 p-0.5 flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.35)]">
+              <div className="w-full h-full bg-[#07090E] rounded-[10px] flex items-center justify-center">
+                <Guitar className="w-5 h-5 text-emerald-400" />
+              </div>
             </div>
             <div>
-              <div className="text-sm font-extrabold tracking-tight flex items-center gap-1.5">
-                <span>AuraTuner</span>
-                <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                  PRO
+              <div className="text-sm font-extrabold tracking-tight flex items-center gap-2">
+                <span className="text-white">AGSOFT</span>
+                <span className="text-emerald-400 tracking-wider">ACOUSTICS</span>
+                <span className="hidden sm:inline-block text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-white/[0.06] text-slate-300 border border-white/[0.08]">
+                  STUDIO SUITE
                 </span>
               </div>
-              <div className="text-[10px] text-slate-400 font-mono">
-                A4 = {referenceA4}Hz • 0.1¢ PRECISION
+              <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1.5">
+                <span>0.1¢ SCIENTIFIC</span>
+                <span>•</span>
+                <button
+                  onClick={() => setIsTuningModalOpen(true)}
+                  className="hover:text-emerald-400 underline decoration-slate-600 transition cursor-pointer"
+                >
+                  A4 = {referenceA4}Hz
+                </button>
               </div>
             </div>
           </div>
 
-          {/* Mode Switcher (Studio vs Peterson Strobe) */}
-          <div className="flex items-center p-1 bg-slate-900 border border-slate-800 rounded-xl">
+          {/* Header Controls: Tuning Preset + Dual Engine Switch */}
+          <div className="flex items-center gap-2">
+            {activeTab === 'tuner' && (
+              <div className="flex items-center p-1 bg-white/[0.04] border border-white/[0.08] rounded-xl text-xs">
+                <button
+                  onClick={() => setTunerMode('studio')}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                    tunerMode === 'studio'
+                      ? 'bg-emerald-500 text-black shadow-sm font-extrabold'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                  title="Studio Needle View"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">STUDIO</span>
+                </button>
+                <button
+                  onClick={() => setTunerMode('strobe')}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                    tunerMode === 'strobe'
+                      ? 'bg-cyan-500 text-black shadow-sm font-extrabold'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                  title="Peterson 0.1¢ Mechanical Strobe"
+                >
+                  <Radio className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">STROBE</span>
+                </button>
+              </div>
+            )}
+
             <button
-              onClick={() => setTunerMode('studio')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
-                tunerMode === 'studio'
-                  ? 'bg-emerald-500 text-black shadow-sm font-extrabold'
-                  : 'text-slate-400 hover:text-white'
-              }`}
+              onClick={() => setIsTuningModalOpen(true)}
+              className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-slate-300 hover:text-emerald-400 transition cursor-pointer"
+              title="Change Instrument / Alternate Tuning"
             >
-              <Sparkles className="w-3.5 h-3.5" /> STUDIO
-            </button>
-            <button
-              onClick={() => setTunerMode('strobe')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
-                tunerMode === 'strobe'
-                  ? 'bg-cyan-500 text-black shadow-sm font-extrabold'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Radio className="w-3.5 h-3.5" /> STROBE (0.1¢)
+              <SlidersHorizontal className="w-4 h-4" />
             </button>
           </div>
         </div>
       </header>
 
-      {/* Main Tuner Body */}
-      <main className="flex-1 max-w-xl w-full mx-auto px-4 py-4 flex flex-col items-center justify-between">
-        {/* Tuning Selector Header Bar */}
-        <div className="w-full flex items-center justify-between gap-3 mb-2">
-          {/* Tuning Dropdown Trigger */}
-          <button
-            onClick={() => setIsTuningModalOpen(true)}
-            className="flex-1 flex items-center justify-between px-3.5 py-2.5 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition group cursor-pointer"
-          >
-            <div className="text-left">
-              <span className="text-[10px] font-mono uppercase text-slate-500 block">CURRENT PRESET</span>
-              <span className="text-xs font-bold text-white group-hover:text-emerald-400 transition">
-                {currentTuning.name}
-              </span>
+      {/* Main App Body Depending on Active Tab */}
+      <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-4 flex flex-col items-center justify-start">
+        {/* TAB 1: TUNER VIEW */}
+        {activeTab === 'tuner' && (
+          <div className="w-full max-w-xl mx-auto flex flex-col items-center justify-between flex-1 space-y-4">
+            {/* Quick Tuning Selector Strip */}
+            <div className="w-full flex items-center justify-between gap-2.5 px-3 py-2 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+              <button
+                onClick={() => setIsTuningModalOpen(true)}
+                className="flex items-center gap-2 text-left cursor-pointer group"
+              >
+                <span className="text-[10px] font-mono uppercase text-slate-400">TUNING:</span>
+                <span className="text-xs font-bold text-white group-hover:text-emerald-400 transition">
+                  {currentTuning.name}
+                </span>
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsAutoMode(!isAutoMode)}
+                  className={`px-2.5 py-1 rounded-xl border text-[11px] font-bold font-mono transition flex items-center gap-1.5 cursor-pointer ${
+                    isAutoMode
+                      ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+                      : 'bg-white/[0.04] border-white/[0.08] text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Flame className="w-3.5 h-3.5" />
+                  <span>{isAutoMode ? 'AUTO DETECT' : 'LOCKED'}</span>
+                </button>
+              </div>
             </div>
-            <SlidersHorizontal className="w-4 h-4 text-slate-500 group-hover:text-white" />
-          </button>
 
-          {/* Quick Song Search Button */}
-          <button
-            onClick={() => setIsSongSearchOpen(true)}
-            className="p-2.5 rounded-2xl bg-slate-900/80 border border-slate-800 text-slate-400 hover:text-emerald-400 hover:border-slate-700 transition flex items-center justify-center cursor-pointer"
-            title="Search Songs & Chords"
-          >
-            <Search className="w-4 h-4" />
-          </button>
+            {/* Mic Permission Warning */}
+            {micError && (
+              <div className="w-full p-3.5 rounded-2xl bg-rose-950/40 border border-rose-800/80 text-rose-300 text-xs flex items-center gap-2.5">
+                <Info className="w-4 h-4 shrink-0 text-rose-400" />
+                <span>{micError}. Please allow microphone access in your browser to tune!</span>
+              </div>
+            )}
 
-          {/* Auto vs Lock Mode Toggle */}
-          <button
-            onClick={() => setIsAutoMode(!isAutoMode)}
-            className={`px-3 py-2.5 rounded-2xl border text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-              isAutoMode
-                ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400'
-                : 'bg-slate-900/80 border-slate-800 text-slate-400 hover:text-white'
-            }`}
-            title={isAutoMode ? 'Auto String Detection Active' : 'Manual String Locked'}
-          >
-            <Flame className="w-3.5 h-3.5" />
-            <span>{isAutoMode ? 'AUTO' : 'LOCK'}</span>
-          </button>
-        </div>
+            {/* HERO PITCH DISPLAY (The Centerpiece Note Badge) */}
+            <div className="w-full py-4 px-6 rounded-3xl bg-gradient-to-b from-white/[0.04] to-white/[0.01] border border-white/[0.08] shadow-2xl relative overflow-hidden flex flex-col items-center">
+              {/* In-Tune Background Ambient Beam */}
+              {isInTune && (
+                <div className="absolute inset-0 bg-emerald-500/10 blur-2xl animate-pulse pointer-events-none" />
+              )}
 
-        {/* Mic Permission Warning / Notification */}
-        {micError && (
-          <div className="w-full p-3 my-2 rounded-xl bg-rose-950/40 border border-rose-800/80 text-rose-300 text-xs flex items-center gap-2">
-            <Info className="w-4 h-4 shrink-0 text-rose-400" />
-            <span>{micError}. Please allow microphone access in your browser to tune!</span>
+              {/* Status Header Badge */}
+              <div className="mb-2">
+                {isInTune ? (
+                  <span className="px-3 py-1 rounded-full bg-emerald-500 text-black text-xs font-extrabold tracking-widest flex items-center gap-1.5 shadow-[0_0_20px_rgba(16,185,129,0.8)] animate-bounce">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> IN TUNE
+                  </span>
+                ) : isFlat ? (
+                  <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-bold font-mono tracking-wider">
+                    TUNE UP ▲
+                  </span>
+                ) : isSharp ? (
+                  <span className="px-3 py-1 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[11px] font-bold font-mono tracking-wider">
+                    TUNE DOWN ▼
+                  </span>
+                ) : isListening ? (
+                  <span className="text-[11px] font-mono tracking-widest text-slate-500 uppercase flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" />
+                    LISTENING FOR PLUCK...
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-mono tracking-widest text-slate-500 uppercase">
+                    MICROPHONE PAUSED
+                  </span>
+                )}
+              </div>
+
+              {/* Big Giant Note Readout */}
+              <div className="flex items-baseline justify-center gap-1 my-1">
+                <span className={`text-6xl sm:text-7xl font-extrabold tracking-tighter transition-all duration-150 ${
+                  isInTune 
+                    ? 'text-emerald-400 drop-shadow-[0_0_25px_rgba(16,185,129,0.7)] scale-105' 
+                    : isFlat
+                    ? 'text-amber-300 drop-shadow-[0_0_15px_rgba(251,191,36,0.4)]'
+                    : isSharp
+                    ? 'text-rose-400 drop-shadow-[0_0_15px_rgba(244,63,94,0.4)]'
+                    : 'text-white'
+                }`}>
+                  {isListening && detectedNote ? detectedNote : currentTargetString.note}
+                </span>
+                <span className="text-xl sm:text-2xl font-mono font-bold text-slate-400">
+                  {isListening && detectedOctave !== null ? detectedOctave : currentTargetString.octave}
+                </span>
+              </div>
+
+              {/* Deviation in Cents & Frequency */}
+              <div className="flex items-center gap-4 text-xs font-mono text-slate-400 mt-1">
+                <span>
+                  FREQ: <strong className="text-white">{detectedFreq ? `${detectedFreq.toFixed(1)} Hz` : `${currentTargetString.targetFreq.toFixed(1)} Hz`}</strong>
+                </span>
+                <span>•</span>
+                <span>
+                  DEV: <strong className={isInTune ? 'text-emerald-400' : 'text-slate-200'}>
+                    {isListening && detectedFreq ? `${centsOffset > 0 ? '+' : ''}${centsOffset.toFixed(1)}¢` : '0.0¢'}
+                  </strong>
+                </span>
+              </div>
+
+              {/* High-Precision Deviation Visual Bar */}
+              <div className="w-full max-w-md mt-4 flex flex-col items-center">
+                <div className="w-full relative h-3 bg-slate-950 rounded-full border border-white/[0.08] overflow-hidden flex items-center">
+                  {/* Center In-Tune Mark */}
+                  <div className="absolute left-1/2 -translate-x-1/2 w-1.5 h-full bg-emerald-400 z-10 shadow-[0_0_8px_rgba(16,185,129,0.9)]" />
+                  {/* Tolerance Window (+/- 3 cents) */}
+                  <div className="absolute left-[47%] w-[6%] h-full bg-emerald-500/30 z-0" />
+                  
+                  {/* Real-time Needle Dot */}
+                  {isListening && detectedFreq && (
+                    <div
+                      className={`absolute top-0 bottom-0 w-2.5 rounded-full transition-all duration-75 shadow-md ${
+                        isInTune ? 'bg-emerald-300' : isFlat ? 'bg-amber-400' : 'bg-rose-400'
+                      }`}
+                      style={{
+                        left: `calc(${Math.min(97, Math.max(3, 50 + centsOffset))}% - 5px)`
+                      }}
+                    />
+                  )}
+                </div>
+
+                <div className="w-full flex justify-between text-[10px] font-mono text-slate-400 mt-1 px-1">
+                  <span>-50¢ (FLAT)</span>
+                  <span className="text-emerald-400 font-bold">0¢ PERFECT</span>
+                  <span>+50¢ (SHARP)</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick String Peg Bar (Direct Access to all 6 Strings) */}
+            <div className="w-full flex items-center justify-between gap-1.5 p-2 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+              {currentTuning.strings.map((str, idx) => {
+                const isActive = activeStringIndex === idx;
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      setActiveStringIndex(idx);
+                      setIsAutoMode(false);
+                      handlePlayActiveString(str.targetFreq);
+                    }}
+                    className={`flex-1 flex flex-col items-center py-2 px-1 rounded-xl transition cursor-pointer ${
+                      isActive
+                        ? 'bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 font-bold shadow-[0_0_12px_rgba(16,185,129,0.3)]'
+                        : 'bg-white/[0.02] border border-white/[0.04] text-slate-400 hover:text-white hover:bg-white/[0.06]'
+                    }`}
+                  >
+                    <span className="text-sm font-bold font-mono">{str.note}</span>
+                    <span className="text-[9px] font-mono text-slate-400">{str.targetFreq.toFixed(0)}Hz</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* DUAL TUNER ENGINE: Studio Headstock OR Peterson Strobe */}
+            <div className="w-full flex-1 flex flex-col items-center justify-center py-1">
+              {tunerMode === 'studio' ? (
+                <HeadstockTuner
+                  strings={currentTuning.strings}
+                  activeStringIndex={activeStringIndex}
+                  onSelectString={(idx) => {
+                    setActiveStringIndex(idx);
+                    setIsAutoMode(false);
+                  }}
+                  frequency={isListening ? detectedFreq : null}
+                  cents={centsOffset}
+                  clarity={detectedClarity}
+                  isAutoMode={isAutoMode}
+                  onPlayTone={handlePlayActiveString}
+                />
+              ) : (
+                <StrobeTuner
+                  frequency={isListening ? detectedFreq : null}
+                  targetFreq={targetFreq}
+                  noteName={detectedNote}
+                  octave={detectedOctave}
+                  cents={centsOffset}
+                  clarity={detectedClarity}
+                />
+              )}
+            </div>
+
+            {/* Big Mic Start / Listen Action */}
+            <div className="w-full flex flex-col items-center gap-2.5 my-2">
+              <button
+                onClick={isListening ? stopListening : startListening}
+                className={`w-full max-w-sm py-4 rounded-2xl font-bold text-sm tracking-widest uppercase flex items-center justify-center gap-3 transition active:scale-[0.98] cursor-pointer shadow-xl ${
+                  isListening
+                    ? 'bg-slate-900 text-rose-400 border border-rose-500/30 hover:bg-slate-800'
+                    : 'bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400 text-black font-extrabold shadow-[0_0_30px_rgba(16,185,129,0.45)] hover:brightness-110'
+                }`}
+              >
+                {isListening ? (
+                  <>
+                    <MicOff className="w-5 h-5" /> PAUSE TUNER
+                  </>
+                ) : (
+                  <>
+                    <Mic className="w-5 h-5" /> START STUDIO TUNER (MIC)
+                  </>
+                )}
+              </button>
+
+              {/* Real-time volume signal visualizer bar */}
+              {isListening && (
+                <div className="w-full max-w-sm flex items-center gap-2 px-2 text-[10px] text-slate-400 font-mono">
+                  <span>INPUT LEVEL</span>
+                  <div className="flex-1 h-1.5 bg-slate-950 rounded-full overflow-hidden border border-white/[0.08]">
+                    <div
+                      className="h-full bg-emerald-400 transition-all duration-75"
+                      style={{ width: `${Math.min(100, rmsVolume * 600)}%` }}
+                    />
+                  </div>
+                  <span>{Math.round(rmsVolume * 100)}%</span>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
-        {/* Center Display: Studio Headstock OR Peterson Strobe */}
-        <div className="w-full flex-1 flex flex-col items-center justify-center py-2">
-          {tunerMode === 'studio' ? (
-            <HeadstockTuner
-              strings={currentTuning.strings}
-              activeStringIndex={activeStringIndex}
-              onSelectString={(idx) => {
-                setActiveStringIndex(idx);
-                setIsAutoMode(false);
-              }}
-              frequency={isListening ? detectedFreq : null}
-              cents={centsOffset}
-              clarity={detectedClarity}
-              isAutoMode={isAutoMode}
-              onPlayTone={handlePlayActiveString}
+        {/* TAB 2: SONGS & TABS */}
+        {activeTab === 'songs' && (
+          <div className="w-full h-[80vh] flex flex-col">
+            <SongSearchModal
+              isOpen={true}
+              isEmbedded={true}
+              onClose={() => setActiveTab('tuner')}
+              onOpenChordInfo={() => setActiveTab('chords')}
             />
-          ) : (
-            <StrobeTuner
-              frequency={isListening ? detectedFreq : null}
-              targetFreq={targetFreq}
-              noteName={detectedNote}
-              octave={detectedOctave}
-              cents={centsOffset}
-              clarity={detectedClarity}
+          </div>
+        )}
+
+        {/* TAB 3: PRO METRONOME */}
+        {activeTab === 'metronome' && (
+          <div className="w-full h-[78vh] flex items-center justify-center">
+            <MetronomeModal
+              isOpen={true}
+              isEmbedded={true}
+              onClose={() => setActiveTab('tuner')}
             />
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Big Mic Start / Listen Action */}
-        <div className="w-full flex flex-col items-center gap-3 my-3">
-          <button
-            onClick={isListening ? stopListening : startListening}
-            className={`w-full max-w-sm py-3.5 rounded-2xl font-bold text-sm tracking-wider uppercase flex items-center justify-center gap-2.5 transition active:scale-[0.98] cursor-pointer shadow-xl ${
-              isListening
-                ? 'bg-slate-800/90 text-rose-400 border border-rose-500/30 hover:bg-slate-800'
-                : 'bg-gradient-to-r from-emerald-500 to-teal-400 text-black font-extrabold shadow-[0_0_25px_rgba(16,185,129,0.4)] hover:brightness-110'
-            }`}
-          >
-            {isListening ? (
-              <>
-                <MicOff className="w-4 h-4" /> STOP TUNER
-              </>
-            ) : (
-              <>
-                <Mic className="w-4 h-4" /> START TUNER (MIC)
-              </>
-            )}
-          </button>
-
-          {/* Real-time volume signal visualizer bar */}
-          {isListening && (
-            <div className="w-full max-w-sm flex items-center gap-2 px-2 text-[10px] text-slate-500 font-mono">
-              <span>INPUT</span>
-              <div className="flex-1 h-1.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
-                <div
-                  className="h-full bg-emerald-400 transition-all duration-75"
-                  style={{ width: `${Math.min(100, rmsVolume * 600)}%` }}
-                />
-              </div>
-              <span>{Math.round(rmsVolume * 100)}%</span>
-            </div>
-          )}
-        </div>
+        {/* TAB 4: CHORD DICTIONARY */}
+        {activeTab === 'chords' && (
+          <div className="w-full h-[80vh] flex flex-col">
+            <ChordLibraryModal
+              isOpen={true}
+              isEmbedded={true}
+              onClose={() => setActiveTab('tuner')}
+            />
+          </div>
+        )}
       </main>
 
-      {/* Bottom Musician Toolbar */}
-      <footer className="border-t border-white/5 bg-slate-950/80 backdrop-blur-md px-3 py-3">
-        <div className="max-w-lg mx-auto grid grid-cols-5 gap-1.5">
-          {/* Songs & Tabs Searcher */}
+      {/* Persistent Bottom Glass Dock Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.08] bg-[#0A0D15]/95 backdrop-blur-2xl px-4 py-2.5">
+        <div className="max-w-md mx-auto grid grid-cols-4 gap-2">
+          {/* 1. Tuner */}
           <button
-            onClick={() => setIsSongSearchOpen(true)}
-            className="flex flex-col items-center justify-center p-2 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 transition cursor-pointer group"
+            onClick={() => setActiveTab('tuner')}
+            className={`flex flex-col items-center justify-center py-1.5 px-2 rounded-2xl transition cursor-pointer ${
+              activeTab === 'tuner'
+                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
+                : 'text-slate-400 hover:text-white hover:bg-white/[0.03]'
+            }`}
           >
-            <Music className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition" />
-            <span className="text-[10px] font-bold text-slate-300 group-hover:text-emerald-400 mt-1">
-              Songs
-            </span>
+            <Guitar className="w-5 h-5 mb-0.5" />
+            <span className="text-[10px] font-bold tracking-tight">Tuner</span>
           </button>
 
-          {/* Metronome Button */}
+          {/* 2. Songs & Chords */}
           <button
-            onClick={() => setIsMetronomeOpen(true)}
-            className="flex flex-col items-center justify-center p-2 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 transition cursor-pointer group"
+            onClick={() => setActiveTab('songs')}
+            className={`flex flex-col items-center justify-center py-1.5 px-2 rounded-2xl transition cursor-pointer ${
+              activeTab === 'songs'
+                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
+                : 'text-slate-400 hover:text-white hover:bg-white/[0.03]'
+            }`}
           >
-            <Clock className="w-4 h-4 text-slate-400 group-hover:text-emerald-400 transition" />
-            <span className="text-[10px] font-bold text-slate-400 group-hover:text-white mt-1">
-              Metronome
-            </span>
+            <Music className="w-5 h-5 mb-0.5" />
+            <span className="text-[10px] font-bold tracking-tight">Songs</span>
           </button>
 
-          {/* Chords Library Button */}
+          {/* 3. Metronome */}
           <button
-            onClick={() => setIsChordsOpen(true)}
-            className="flex flex-col items-center justify-center p-2 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 transition cursor-pointer group"
+            onClick={() => setActiveTab('metronome')}
+            className={`flex flex-col items-center justify-center py-1.5 px-2 rounded-2xl transition cursor-pointer ${
+              activeTab === 'metronome'
+                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
+                : 'text-slate-400 hover:text-white hover:bg-white/[0.03]'
+            }`}
           >
-            <BookOpen className="w-4 h-4 text-slate-400 group-hover:text-emerald-400 transition" />
-            <span className="text-[10px] font-bold text-slate-400 group-hover:text-white mt-1">
-              Chords
-            </span>
+            <Clock className="w-5 h-5 mb-0.5" />
+            <span className="text-[10px] font-bold tracking-tight">Metronome</span>
           </button>
 
-          {/* Play Target Pitch Reference */}
+          {/* 4. Chords */}
           <button
-            onClick={() => {
-              if (targetFreq) handlePlayActiveString(targetFreq);
-            }}
-            className="flex flex-col items-center justify-center p-2 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 transition cursor-pointer group"
+            onClick={() => setActiveTab('chords')}
+            className={`flex flex-col items-center justify-center py-1.5 px-2 rounded-2xl transition cursor-pointer ${
+              activeTab === 'chords'
+                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
+                : 'text-slate-400 hover:text-white hover:bg-white/[0.03]'
+            }`}
           >
-            <Volume2 className="w-4 h-4 text-slate-400 group-hover:text-emerald-400 transition" />
-            <span className="text-[10px] font-bold text-slate-400 group-hover:text-white mt-1">
-              Play Tone
-            </span>
-          </button>
-
-          {/* Tuning Presets Button */}
-          <button
-            onClick={() => setIsTuningModalOpen(true)}
-            className="flex flex-col items-center justify-center p-2 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 transition cursor-pointer group"
-          >
-            <RotateCcw className="w-4 h-4 text-slate-400 group-hover:text-emerald-400 transition" />
-            <span className="text-[10px] font-bold text-slate-400 group-hover:text-white mt-1">
-              Tunings
-            </span>
+            <BookOpen className="w-5 h-5 mb-0.5" />
+            <span className="text-[10px] font-bold tracking-tight">Chords</span>
           </button>
         </div>
-      </footer>
+      </nav>
 
-      {/* Modals */}
-      <SongSearchModal
-        isOpen={isSongSearchOpen}
-        onClose={() => setIsSongSearchOpen(false)}
-        onOpenChordInfo={() => setIsChordsOpen(true)}
-      />
-
-      <MetronomeModal
-        isOpen={isMetronomeOpen}
-        onClose={() => setIsMetronomeOpen(false)}
-      />
-
-      <ChordLibraryModal
-        isOpen={isChordsOpen}
-        onClose={() => setIsChordsOpen(false)}
-      />
-
+      {/* Tuning Presets & Calibration Modal */}
       <TuningModal
         isOpen={isTuningModalOpen}
         onClose={() => setIsTuningModalOpen(false)}

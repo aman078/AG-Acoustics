@@ -17,15 +17,17 @@ import { searchOnlineSongs, fetchCompleteSong, SearchSongItem } from '../service
 import { playGuitarStringTone } from '../audio/toneGenerator';
 
 interface SongSearchModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
   onOpenChordInfo?: (chordName: string) => void;
+  isEmbedded?: boolean;
 }
 
 export const SongSearchModal: React.FC<SongSearchModalProps> = ({
-  isOpen,
+  isOpen = true,
   onClose,
   onOpenChordInfo,
+  isEmbedded = false,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchSongItem[]>([]);
@@ -129,39 +131,41 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
     if (onOpenChordInfo) onOpenChordInfo(chordName);
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md">
-      <div className="relative w-full max-w-4xl h-[92vh] bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl flex flex-col overflow-hidden">
-        {/* Top Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/70">
-          <div className="flex items-center gap-3">
-            {selectedSong && (
-              <button
-                onClick={() => {
-                  setSelectedSong(null);
-                  setIsAutoScrolling(false);
-                  setTransposeOffset(0);
-                }}
-                className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition cursor-pointer"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-            )}
-            <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <span>{selectedSong ? selectedSong.title : 'LIVE SONG CHORDS & TABS'}</span>
-                {!selectedSong && (
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                    <Globe className="w-3 h-3" /> ON-DEMAND SCRAPER
-                  </span>
-                )}
-              </h2>
-              <p className="text-xs text-slate-400">
-                {selectedSong ? `${selectedSong.artist} • ${selectedSong.key}` : 'Live search across GuitarTuna & Songsterr for any song in the world'}
-              </p>
-            </div>
-          </div>
+  if (!isOpen) return null;
 
+  const content = (
+    <div className={`relative w-full ${isEmbedded ? 'max-w-4xl h-full' : 'max-w-4xl h-[92vh]'} bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl flex flex-col overflow-hidden`}>
+      {/* Top Header */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/70">
+        <div className="flex items-center gap-3">
+          {selectedSong && (
+            <button
+              onClick={() => {
+                setSelectedSong(null);
+                setIsAutoScrolling(false);
+                setTransposeOffset(0);
+              }}
+              className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition cursor-pointer"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          )}
+          <div>
+            <h2 className="text-base font-bold text-white flex items-center gap-2">
+              <span>{selectedSong ? selectedSong.title : 'SONG CHORDS & TABS'}</span>
+              {!selectedSong && (
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                  <Globe className="w-3 h-3" /> AGSOFT SCRAPER
+                </span>
+              )}
+            </h2>
+            <p className="text-xs text-slate-400">
+              {selectedSong ? `${selectedSong.artist} • ${selectedSong.key}` : 'Live search across Ultimate Guitar & GuitarTuna with verified chord charts'}
+            </p>
+          </div>
+        </div>
+
+        {!isEmbedded && onClose && (
           <button
             onClick={() => {
               setIsAutoScrolling(false);
@@ -171,7 +175,8 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
           >
             <X className="w-5 h-5" />
           </button>
-        </div>
+        )}
+      </div>
 
         {/* SONG SEARCH LIST VIEW */}
         {!selectedSong ? (
@@ -445,7 +450,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                   ))}
 
                   <div className="py-8 text-center text-xs text-slate-500 border-t border-slate-800/80">
-                    ✨ End of song • Full chord chart provided by GuitarTuna & AuraTuner
+                    ✨ End of song • Studio chord sheet provided by AGSoft Acoustics
                   </div>
                 </div>
               </>
@@ -453,6 +458,15 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
           </div>
         )}
       </div>
+    );
+
+  if (isEmbedded) {
+    return <div className="w-full h-full flex items-center justify-center p-2 sm:p-4">{content}</div>;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md">
+      {content}
     </div>
   );
 };

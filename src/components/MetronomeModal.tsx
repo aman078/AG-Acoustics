@@ -2,11 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, X, Plus, Minus, RotateCcw } from 'lucide-react';
 
 interface MetronomeModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
+  isEmbedded?: boolean;
 }
 
-export const MetronomeModal: React.FC<MetronomeModalProps> = ({ isOpen, onClose }) => {
+export const MetronomeModal: React.FC<MetronomeModalProps> = ({ isOpen = true, onClose, isEmbedded = false }) => {
   const [bpm, setBpm] = useState<number>(120);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [beatsPerMeasure, setBeatsPerMeasure] = useState<number>(4);
@@ -110,10 +111,10 @@ export const MetronomeModal: React.FC<MetronomeModalProps> = ({ isOpen, onClose 
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
-      <div className="relative w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col items-center">
-        {/* Close Button */}
+  const content = (
+    <div className={`relative w-full ${isEmbedded ? 'max-w-md my-auto' : 'max-w-sm'} bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col items-center backdrop-blur-xl`}>
+      {/* Close Button */}
+      {!isEmbedded && onClose && (
         <button
           onClick={() => {
             if (isPlaying) togglePlay();
@@ -123,10 +124,11 @@ export const MetronomeModal: React.FC<MetronomeModalProps> = ({ isOpen, onClose 
         >
           <X className="w-5 h-5" />
         </button>
+      )}
 
-        <h3 className="text-sm font-bold tracking-wider uppercase text-slate-400 mb-6">
-          PRO METRONOME
-        </h3>
+      <h3 className="text-sm font-bold tracking-wider uppercase text-emerald-400 mb-6 flex items-center gap-2">
+        <span>AGSOFT PRO METRONOME</span>
+      </h3>
 
         {/* Big BPM Display */}
         <div className="flex flex-col items-center my-2">
@@ -241,6 +243,15 @@ export const MetronomeModal: React.FC<MetronomeModalProps> = ({ isOpen, onClose 
           ))}
         </div>
       </div>
+    );
+
+  if (isEmbedded) {
+    return <div className="w-full h-full flex items-center justify-center p-4">{content}</div>;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+      {content}
     </div>
   );
 };

@@ -55,11 +55,12 @@ const CHORD_DATABASE: ChordDef[] = [
 const STANDARD_FREQS = [82.41, 110.0, 146.83, 196.0, 246.94, 329.63];
 
 interface ChordLibraryModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
+  isEmbedded?: boolean;
 }
 
-export const ChordLibraryModal: React.FC<ChordLibraryModalProps> = ({ isOpen, onClose }) => {
+export const ChordLibraryModal: React.FC<ChordLibraryModalProps> = ({ isOpen = true, onClose, isEmbedded = false }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRoot, setSelectedRoot] = useState<string>('ALL');
 
@@ -87,22 +88,30 @@ export const ChordLibraryModal: React.FC<ChordLibraryModalProps> = ({ isOpen, on
     });
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
-      <div className="relative w-full max-w-2xl max-h-[85vh] bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-          <div>
-            <h2 className="text-lg font-bold text-white">CHORD DICTIONARY</h2>
-            <p className="text-xs text-slate-400">Essential guitar chords & finger diagrams</p>
-          </div>
+  if (!isOpen) return null;
+
+  const content = (
+    <div className={`relative w-full ${isEmbedded ? 'max-w-4xl h-full' : 'max-w-2xl max-h-[85vh]'} bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col overflow-hidden`}>
+      {/* Header */}
+      <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+        <div>
+          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <span>CHORD DICTIONARY</span>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              AUDIO PREVIEW
+            </span>
+          </h2>
+          <p className="text-xs text-slate-400">Essential guitar chords & interactive fretboard fingerings</p>
+        </div>
+        {!isEmbedded && onClose && (
           <button
             onClick={onClose}
             className="text-slate-400 hover:text-white p-1 rounded-full hover:bg-slate-800 transition"
           >
             <X className="w-5 h-5" />
           </button>
-        </div>
+        )}
+      </div>
 
         {/* Search & Root Filter */}
         <div className="flex flex-col sm:flex-row gap-3 my-4">
@@ -243,6 +252,15 @@ export const ChordLibraryModal: React.FC<ChordLibraryModalProps> = ({ isOpen, on
           ))}
         </div>
       </div>
+    );
+
+  if (isEmbedded) {
+    return <div className="w-full h-full flex items-center justify-center p-2 sm:p-4">{content}</div>;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+      {content}
     </div>
   );
 };
