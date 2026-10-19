@@ -819,5 +819,295 @@ E|-0-------0-------|-0-------0-------|-0-------0-------|-0-------0-------|
         ]
       }
     ]
+  },
+  {
+    id: 'tears-in-heaven-eric-clapton',
+    title: 'Tears in Heaven',
+    artist: 'Eric Clapton (Unplugged)',
+    category: 'fingerstyle',
+    tuning: 'Standard (E A D G B E)',
+    key: 'A Major',
+    capo: 'No Capo',
+    difficulty: 'Intermediate',
+    tempo: 'Ballad (78 BPM)',
+    description: 'The definitive acoustic fingerpicking ballad. Beautiful bass-melody counterpoint with hammer-ons and walking bass lines through A, E/G#, F#m, D/F#, A/E, E7.',
+    allChords: ['A', 'E/G#', 'F#m', 'D/F#', 'A/E', 'E7', 'C#m', 'Em', 'F#7', 'Bm7', 'E'],
+    tabContent: `[Intro & Verse Fingerpicking Motif]
+e|---0-2-0---0-----|-----------------|-----------------|-----------------|
+B|---2-----2-0---0-|-2-3-2---2-3-2---|---3-----2---0---|---0h2p0---------|
+G|---2-------1---1-|-2-----2-2-----2-|---2---2-2---1---|---------2-------|
+D|-----------------|-----------------|---0-0---2---2---|-----------------|
+A|-0---------------|---------0-------|-----------------|-0---------------|
+E|-----------4-4---|-2---------------|-2-------0-0-0---|-----------------|
+   A         E/G#    F#m     A/E       D/F#    A/E E7    A`,
+    sections: [
+      {
+        sectionTitle: 'Intro',
+        lines: [
+          {
+            lyrics: '| A - E/G# | F#m - A/E | D/F# - A/E E7 | A |',
+            chords: [{ chord: 'A', position: 2 }, { chord: 'E/G#', position: 6 }, { chord: 'F#m', position: 13 }, { chord: 'A/E', position: 19 }, { chord: 'D/F#', position: 25 }, { chord: 'E7', position: 36 }]
+          }
+        ]
+      },
+      {
+        sectionTitle: 'Verse 1',
+        lines: [
+          {
+            lyrics: 'Would you know my name, if I saw you in heaven?',
+            chords: [{ chord: 'A', position: 0 }, { chord: 'E/G#', position: 14 }, { chord: 'F#m', position: 22 }, { chord: 'A/E', position: 26 }, { chord: 'D/F#', position: 31 }, { chord: 'A/E', position: 37 }, { chord: 'E7', position: 42 }]
+          },
+          {
+            lyrics: 'Would it be the same, if I saw you in heaven?',
+            chords: [{ chord: 'A', position: 0 }, { chord: 'E/G#', position: 14 }, { chord: 'F#m', position: 22 }, { chord: 'A/E', position: 26 }, { chord: 'D/F#', position: 31 }, { chord: 'A/E', position: 37 }, { chord: 'E7', position: 42 }]
+          }
+        ]
+      },
+      {
+        sectionTitle: 'Chorus',
+        lines: [
+          {
+            lyrics: 'I must be strong and carry on, \'cause I know I don\'t belong here in heaven',
+            chords: [{ chord: 'C#m', position: 0 }, { chord: 'F#m', position: 18 }, { chord: 'Em', position: 27 }, { chord: 'F#7', position: 36 }, { chord: 'Bm7', position: 46 }, { chord: 'E7', position: 60 }]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'shape-of-my-heart-sting',
+    title: 'Shape of My Heart',
+    artist: 'Sting / Dominic Miller',
+    category: 'fingerstyle',
+    tuning: 'Standard (E A D G B E)',
+    key: 'F# Minor',
+    capo: 'No Capo',
+    difficulty: 'Advanced',
+    tempo: 'Acoustic Arpeggio (84 BPM)',
+    description: 'Dominic Miller’s legendary nylon/steel-string classical arpeggiated acoustic progression. Flowing descending basslines and intricate finger extensions.',
+    allChords: ['F#m', 'E6', 'D6', 'C#7', 'B/D#', 'G#7', 'C#m'],
+    tabContent: `[Main Acoustic Arpeggio Progression]
+e|-------2---------|-------0---------|-------7---------|-------4---------|
+B|-----2---2-------|-----2---2-------|-----7---7-------|-----6---6-------|
+G|---2-------2---2-|---1-------1---1-|---7-------7---7-|---4-------4---4-|
+D|-4-----------4---|-2-----------2---|-0-----------0---|-----------------|
+A|-----------------|-----------------|-----------------|-4-----------4---|
+E|-----------------|-----------------|-----------------|-----------------|
+   F#m               E6              D6                C#7`,
+    sections: [
+      {
+        sectionTitle: 'Main Theme',
+        lines: [
+          {
+            lyrics: 'He deals the cards as a meditation...',
+            chords: [{ chord: 'F#m', position: 0 }, { chord: 'E6', position: 14 }, { chord: 'D6', position: 26 }, { chord: 'C#7', position: 36 }]
+          },
+          {
+            lyrics: 'And those he plays never suspect...',
+            chords: [{ chord: 'F#m', position: 0 }, { chord: 'E6', position: 14 }, { chord: 'D6', position: 24 }, { chord: 'C#7', position: 34 }]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'fast-car-tracy-chapman',
+    title: 'Fast Car',
+    artist: 'Tracy Chapman',
+    category: 'fingerstyle',
+    tuning: 'Standard (E A D G B E)',
+    key: 'C Major',
+    capo: 'Capo 2nd Fret',
+    difficulty: 'Easy',
+    tempo: 'Moderato (104 BPM)',
+    description: 'One of the most instantly recognizable fingerstyle acoustic riffs in modern folk history. Two-finger sliding intervals on the B and high E strings.',
+    allChords: ['Cmaj7', 'G', 'Em', 'D', 'C'],
+    tabContent: `[Signature Acoustic Riff - Relative to Capo 2]
+e|-------0---------|-------3---------|-------8---7-5-7-|-------5-7-5-----|
+B|-----1---1---1---|-----0---0---0---|-----0---0-------|-----7-------7---|
+G|---0-------0-----|---0-------0-----|---0-------------|---7-----------7-|
+D|-----------------|-----------------|-----------------|-0---------------|
+A|-3---------------|-----------------|-----------------|-----------------|
+E|-----------------|-3---------------|-0---------------|-----------------|
+   Cmaj7             G                 Em                D`,
+    sections: [
+      {
+        sectionTitle: 'Intro & Verse Riff',
+        lines: [
+          {
+            lyrics: 'You got a fast car, I want a ticket to anywhere...',
+            chords: [{ chord: 'Cmaj7', position: 0 }, { chord: 'G', position: 16 }, { chord: 'Em', position: 28 }, { chord: 'D', position: 40 }]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'the-boxer-simon-garfunkel',
+    title: 'The Boxer',
+    artist: 'Simon & Garfunkel (Paul Simon)',
+    category: 'fingerstyle',
+    tuning: 'Standard (E A D G B E)',
+    key: 'C Major',
+    capo: 'No Capo',
+    difficulty: 'Intermediate',
+    tempo: 'Allegretto (92 BPM)',
+    description: 'Classic alternating Travis picking with melodic hammer-ons on C, Am, G, and G7. The quintessential Paul Simon folk picking blueprint.',
+    allChords: ['C', 'Am', 'G', 'G7', 'F'],
+    tabContent: `[Travis Picking Pattern on C]
+e|-------0---------|-------0---------|-------0---------|-------0---------|
+B|-----1-----1---1-|-----1-----1---1-|-----1-----1---1-|-----1-----1---1-|
+G|---0---------0---|---0---------0---|---2---------2---|---2---------2---|
+D|---------2-------|---------2-------|---------2-------|---------2-------|
+A|-3---------------|-3---------------|-0---------------|-0---------------|
+E|-----------------|-----------------|-----------------|-----------------|
+   C                                   Am`,
+    sections: [
+      {
+        sectionTitle: 'Verse 1',
+        lines: [
+          {
+            lyrics: 'I am just a poor boy though my story\'s seldom told...',
+            chords: [{ chord: 'C', position: 0 }, { chord: 'Am', position: 35 }, { chord: 'G', position: 50 }]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'asturias-leyenda-albeniz',
+    title: 'Asturias (Leyenda)',
+    artist: 'Isaac Albéniz',
+    category: 'classical',
+    tuning: 'Standard (E A D G B E)',
+    key: 'E Phrygian / Minor',
+    capo: 'No Capo',
+    difficulty: 'Advanced',
+    tempo: 'Allegro (130 BPM)',
+    description: 'The monumental pinnacle of Spanish classical guitar. Relentless pedal note on the open high B string with driving Spanish melodic bass accents.',
+    allChords: ['Em', 'B7', 'C', 'Am', 'F', 'E'],
+    tabContent: `[Theme 1 - Driving Pedal Point Riff]
+e|-----------------|-----------------|-----------------|-----------------|
+B|---0---0---0---0-|---0---0---0---0-|---0---0---0---0-|---0---0---0---0-|
+G|-----------------|-----------------|-----------------|-----------------|
+D|-2---3---2---0---|-----------------|-----------------|-----------------|
+A|-----------------|-3---2---0---2---|-3---2---0-------|-----------------|
+E|-----------------|-----------------|-------------3---|-2---0---2---3---|
+   Em (Fortissimo Spanish rhythmic drive)`,
+    sections: [
+      {
+        sectionTitle: 'Theme 1 - Allegro',
+        lines: [
+          {
+            lyrics: '| Em - B7 | C - B7 | Em - Am | B7 - Em |',
+            chords: [{ chord: 'Em', position: 2 }, { chord: 'B7', position: 7 }, { chord: 'C', position: 14 }, { chord: 'B7', position: 18 }, { chord: 'Em', position: 24 }]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'capricho-arabe-tarrega',
+    title: 'Capricho Árabe',
+    artist: 'Francisco Tárrega',
+    category: 'classical',
+    tuning: 'Drop D (D A D G B E)',
+    key: 'D Minor',
+    capo: 'No Capo',
+    difficulty: 'Advanced',
+    tempo: 'Andantino Cantabile (66 BPM)',
+    description: 'Tárrega’s most celebrated Moorish classical study. Features an exotic improvisatory scale introduction followed by a romantic cantabile melody in D minor and D major.',
+    allChords: ['Dm', 'A7', 'Gm', 'Bb', 'D', 'G', 'A'],
+    tabContent: `[Introductory Scale & Cantabile Melody]
+e|---5-6-5-3-1-0---|-----------------|---1-3-1-0-------|-----------------|
+B|---------------3-|-2h3p2-----------|-----------3-1-3-|-2---------------|
+G|-----------------|-------3-2-0-----|-----------------|---2---2---2---2-|
+D|-0---------------|-------------3-2-|-0---------------|-----2-------2---|
+A|-----------------|-----------------|-----------------|-0-------0-------|
+D|-----------------|-----------------|-----------------|-----------------|
+   Dm                                  A7`,
+    sections: [
+      {
+        sectionTitle: 'Cantabile Theme in D Minor',
+        lines: [
+          {
+            lyrics: '| Dm - A7 | Dm - Gm | Bb - A7 | Dm |',
+            chords: [{ chord: 'Dm', position: 2 }, { chord: 'A7', position: 7 }, { chord: 'Dm', position: 14 }, { chord: 'Gm', position: 19 }, { chord: 'A7', position: 26 }]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'freight-train-elizabeth-cotten',
+    title: 'Freight Train',
+    artist: 'Elizabeth Cotten',
+    category: 'blues',
+    tuning: 'Standard (E A D G B E)',
+    key: 'C Major',
+    capo: 'No Capo',
+    difficulty: 'Intermediate',
+    tempo: 'Folk Ragtime (108 BPM)',
+    description: 'The foundation of Piedmont blues and folk fingerpicking. Alternating bass between C and G while the treble melody rings on top.',
+    allChords: ['C', 'G7', 'F'],
+    tabContent: `[Main Piedmont Picking Theme]
+e|---3---0---1---0-|-----------------|---1-------0-----|-----------------|
+B|-----------------|---3---1---0---1-|-------3-------1-|---3---0---1-----|
+G|-----0-------0---|-----0-------0---|-----0-------0---|-----0-------0---|
+D|---------2-------|---------0-------|---------0-------|---------2-------|
+A|-3---------------|-----------------|-----------------|-3---------------|
+E|-----------------|-3---------------|-3---------------|-----------------|
+   C                 G7                G7                C`,
+    sections: [
+      {
+        sectionTitle: 'Main Theme',
+        lines: [
+          {
+            lyrics: 'Freight train, freight train, run so fast...',
+            chords: [{ chord: 'C', position: 0 }, { chord: 'G7', position: 18 }, { chord: 'C', position: 36 }]
+          },
+          {
+            lyrics: 'Please don\'t tell what train I\'m on...',
+            chords: [{ chord: 'E7', position: 0 }, { chord: 'F', position: 15 }, { chord: 'C', position: 28 }, { chord: 'G7', position: 35 }, { chord: 'C', position: 40 }]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'nobody-knows-you-clapton',
+    title: 'Nobody Knows You When You\'re Down and Out',
+    artist: 'Scrapper Blackwell / Eric Clapton',
+    category: 'blues',
+    tuning: 'Standard (E A D G B E)',
+    key: 'C Acoustic Blues',
+    capo: 'No Capo',
+    difficulty: 'Intermediate',
+    tempo: 'Slow Acoustic Ragtime Blues (74 BPM)',
+    description: 'The master standard of 8-bar acoustic blues. Features a rich chord progression through C, E7, A7, Dm, A7, F, F#dim, C/G, A7, D7, G7.',
+    allChords: ['C', 'E7', 'A7', 'Dm', 'F', 'F#dim', 'C/G', 'D7', 'G7'],
+    tabContent: `[Acoustic Blues Intro Turnaround in C]
+e|-----------------|-----------------|-------1---------|-------1---------|
+B|-------1-------0-|-------2---------|-----3---3---3---|-----2---2---2---|
+G|-----0-------1---|-----0---0---0---|---2-------2-----|---2-------2-----|
+D|---2-------0-----|---2-------2-----|-0---------------|-----------------|
+A|-3---------------|-0---------------|-----------------|-0---------------|
+E|---------0-------|-----------------|-----------------|-----------------|
+   C       E7        A7                Dm                A7`,
+    sections: [
+      {
+        sectionTitle: 'Verse 1',
+        lines: [
+          {
+            lyrics: 'Once I lived the life of a millionaire...',
+            chords: [{ chord: 'C', position: 0 }, { chord: 'E7', position: 15 }, { chord: 'A7', position: 28 }, { chord: 'Dm', position: 40 }]
+          },
+          {
+            lyrics: 'Spent all my money, didn\'t have any care...',
+            chords: [{ chord: 'F', position: 0 }, { chord: 'F#dim', position: 14 }, { chord: 'C', position: 24 }, { chord: 'A7', position: 30 }, { chord: 'D7', position: 35 }, { chord: 'G7', position: 40 }]
+          }
+        ]
+      }
+    ]
   }
 ];

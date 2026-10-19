@@ -30,6 +30,7 @@ import { ChordLibraryModal } from './components/ChordLibraryModal';
 import { TuningModal } from './components/TuningModal';
 import { SongSearchModal } from './components/SongSearchModal';
 import { InstallModal } from './components/InstallModal';
+import { App as CapApp } from '@capacitor/app';
 
 type ActiveTab = 'tuner' | 'songs' | 'metronome' | 'chords';
 
@@ -88,6 +89,43 @@ export const App: React.FC = () => {
   const [canInstall, setCanInstall] = useState<boolean>(false);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState<boolean>(false);
   const [isInstalled, setIsInstalled] = useState<boolean>(false);
+  const [isSongOpen, setIsSongOpen] = useState<boolean>(false);
+
+  // Android Hardware & Gesture Back Button Handling
+  useEffect(() => {
+    let listenerHandle: any = null;
+
+    const setupBackButton = async () => {
+      try {
+        listenerHandle = await CapApp.addListener('backButton', () => {
+          if (isSongOpen) {
+            // Close the full-screen song sheet or chord inspector
+            window.dispatchEvent(new CustomEvent('agsoft_close_song'));
+          } else if (isTuningModalOpen) {
+            setIsTuningModalOpen(false);
+          } else if (isInstallModalOpen) {
+            setIsInstallModalOpen(false);
+          } else if (activeTab !== 'tuner') {
+            // Return to the home Tuner tab
+            setActiveTab('tuner');
+          } else {
+            // On home screen with nothing open: exit app
+            CapApp.exitApp();
+          }
+        });
+      } catch (err) {
+        console.warn('Capacitor App plugin not active:', err);
+      }
+    };
+
+    setupBackButton();
+
+    return () => {
+      if (listenerHandle?.remove) {
+        listenerHandle.remove();
+      }
+    };
+  }, [isSongOpen, isTuningModalOpen, isInstallModalOpen, activeTab]);
 
   useEffect(() => {
     // Detect if running in standalone mode (already installed)
@@ -669,6 +707,7 @@ export const App: React.FC = () => {
               isEmbedded={true}
               onClose={() => setActiveTab('tuner')}
               onOpenChordInfo={() => setActiveTab('chords')}
+              onSongStateChange={setIsSongOpen}
             />
           </div>
         )}
