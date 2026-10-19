@@ -13,20 +13,29 @@ export interface SearchSongItem {
 
 export function getApiBaseUrl(): string {
   if (typeof window !== 'undefined') {
-    // If running in development Vite server on laptop
-    if (window.location.hostname === 'localhost' && window.location.port === '3000') {
-      return '';
-    }
-    // If running directly on a hosted website (e.g. Vercel)
-    if (window.location.protocol.startsWith('http') && !window.location.origin.includes('localhost')) {
-      return '';
-    }
-    // Check if user saved a custom backend URL
+    // 1. Check if user configured a custom API URL
     const saved = localStorage.getItem('auratuner_custom_api_url');
-    if (saved) return saved.replace(/\/$/, '');
+    if (saved && saved.trim()) return saved.trim().replace(/\/$/, '');
+
+    // 2. If running locally on development server on laptop (port 3000 or 5173)
+    if (window.location.hostname === 'localhost' && (window.location.port === '3000' || window.location.port === '5173')) {
+      return '';
+    }
+
+    // 3. If running on the hosted Vercel website in a browser, relative path works directly
+    if (window.location.hostname.endsWith('vercel.app')) {
+      return '';
+    }
   }
-  // Default to env or hosted fallback
-  return ((import.meta as any).env?.VITE_API_URL as string) || '';
+
+  // 4. If environment variable is set
+  const envUrl = (import.meta as any).env?.VITE_API_URL as string;
+  if (envUrl && envUrl.trim()) {
+    return envUrl.trim().replace(/\/$/, '');
+  }
+
+  // 5. Default production cloud backend for Android APK, Capacitor WebView, and mobile apps
+  return 'https://ag-acoustics.vercel.app';
 }
 
 /**
