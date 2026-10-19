@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, Volume2, Search } from 'lucide-react';
 import { playGuitarStringTone } from '../audio/toneGenerator';
 
-interface ChordDef {
+export interface ChordDef {
   name: string;
   root: string;
   type: string;
@@ -11,45 +11,69 @@ interface ChordDef {
   baseFret?: number;
 }
 
-const CHORD_DATABASE: ChordDef[] = [
+export const CHORD_DATABASE: ChordDef[] = [
   // C family
   { name: 'C Major', root: 'C', type: 'Major', frets: ['x', 3, 2, 0, 1, 0], fingers: [null, 3, 2, null, 1, null] },
   { name: 'C7', root: 'C', type: '7th', frets: ['x', 3, 2, 3, 1, 0], fingers: [null, 3, 2, 4, 1, null] },
   { name: 'Cadd9', root: 'C', type: 'Add9', frets: ['x', 3, 2, 0, 3, 3], fingers: [null, 2, 1, null, 3, 4] },
   { name: 'Cm', root: 'C', type: 'Minor', frets: ['x', 3, 5, 5, 4, 3], fingers: [null, 1, 3, 4, 2, 1], baseFret: 3 },
+  { name: 'Cmaj7', root: 'C', type: 'Maj7', frets: ['x', 3, 2, 0, 0, 0], fingers: [null, 3, 2, null, null, null] },
 
   // D family
   { name: 'D Major', root: 'D', type: 'Major', frets: ['x', 'x', 0, 2, 3, 2], fingers: [null, null, null, 1, 3, 2] },
   { name: 'Dm', root: 'D', type: 'Minor', frets: ['x', 'x', 0, 2, 3, 1], fingers: [null, null, null, 2, 3, 1] },
   { name: 'D7', root: 'D', type: '7th', frets: ['x', 'x', 0, 2, 1, 2], fingers: [null, null, null, 2, 1, 3] },
   { name: 'Dsus4', root: 'D', type: 'Sus4', frets: ['x', 'x', 0, 2, 3, 3], fingers: [null, null, null, 1, 3, 4] },
+  { name: 'Dsus2', root: 'D', type: 'Sus2', frets: ['x', 'x', 0, 2, 3, 0], fingers: [null, null, null, 1, 3, null] },
 
   // E family
   { name: 'E Major', root: 'E', type: 'Major', frets: [0, 2, 2, 1, 0, 0], fingers: [null, 2, 3, 1, null, null] },
   { name: 'Em', root: 'E', type: 'Minor', frets: [0, 2, 2, 0, 0, 0], fingers: [null, 2, 3, null, null, null] },
   { name: 'E7', root: 'E', type: '7th', frets: [0, 2, 0, 1, 0, 0], fingers: [null, 2, null, 1, null, null] },
   { name: 'Em7', root: 'E', type: 'Minor 7th', frets: [0, 2, 2, 0, 3, 0], fingers: [null, 1, 2, null, 3, null] },
+  { name: 'Esus4', root: 'E', type: 'Sus4', frets: [0, 2, 2, 2, 0, 0], fingers: [null, 2, 3, 4, null, null] },
 
   // F family
   { name: 'F Major', root: 'F', type: 'Major', frets: [1, 3, 3, 2, 1, 1], fingers: [1, 3, 4, 2, 1, 1], baseFret: 1 },
   { name: 'Fm', root: 'F', type: 'Minor', frets: [1, 3, 3, 1, 1, 1], fingers: [1, 3, 4, 1, 1, 1], baseFret: 1 },
+  { name: 'Fmaj7', root: 'F', type: 'Maj7', frets: ['x', 3, 3, 2, 1, 0], fingers: [null, 3, 4, 2, 1, null] },
+  { name: 'F#m', root: 'F#', type: 'Minor', frets: [2, 4, 4, 2, 2, 2], fingers: [1, 3, 4, 1, 1, 1], baseFret: 2 },
 
   // G family
   { name: 'G Major', root: 'G', type: 'Major', frets: [3, 2, 0, 0, 0, 3], fingers: [2, 1, null, null, null, 3] },
   { name: 'G7', root: 'G', type: '7th', frets: [3, 2, 0, 0, 0, 1], fingers: [3, 2, null, null, null, 1] },
   { name: 'Gsus4', root: 'G', type: 'Sus4', frets: [3, 'x', 0, 0, 1, 3], fingers: [3, null, null, null, 1, 4] },
+  { name: 'Gm', root: 'G', type: 'Minor', frets: [3, 5, 5, 3, 3, 3], fingers: [1, 3, 4, 1, 1, 1], baseFret: 3 },
 
   // A family
   { name: 'A Major', root: 'A', type: 'Major', frets: ['x', 0, 2, 2, 2, 0], fingers: [null, null, 1, 2, 3, null] },
   { name: 'Am', root: 'A', type: 'Minor', frets: ['x', 0, 2, 2, 1, 0], fingers: [null, null, 2, 3, 1, null] },
   { name: 'A7', root: 'A', type: '7th', frets: ['x', 0, 2, 0, 2, 0], fingers: [null, null, 2, null, 3, null] },
   { name: 'Asus4', root: 'A', type: 'Sus4', frets: ['x', 0, 2, 2, 3, 0], fingers: [null, null, 1, 2, 3, null] },
+  { name: 'Asus2', root: 'A', type: 'Sus2', frets: ['x', 0, 2, 2, 0, 0], fingers: [null, null, 1, 2, null, null] },
 
   // B family
   { name: 'B Major', root: 'B', type: 'Major', frets: ['x', 2, 4, 4, 4, 2], fingers: [null, 1, 2, 3, 4, 1], baseFret: 2 },
   { name: 'Bm', root: 'B', type: 'Minor', frets: ['x', 2, 4, 4, 3, 2], fingers: [null, 1, 3, 4, 2, 1], baseFret: 2 },
   { name: 'B7', root: 'B', type: '7th', frets: ['x', 2, 1, 2, 0, 2], fingers: [null, 2, 1, 3, null, 4] },
 ];
+
+export function findChordDiagram(chordName: string): ChordDef | null {
+  if (!chordName) return null;
+  const raw = chordName.trim();
+  const normalized = raw.toLowerCase();
+  
+  return (
+    CHORD_DATABASE.find((c) => {
+      const dbName = c.name.toLowerCase();
+      if (dbName === normalized) return true;
+      if (dbName.replace(' major', '') === normalized) return true;
+      if (dbName.replace(' minor', 'm') === normalized) return true;
+      if (c.root.toLowerCase() === normalized && c.type === 'Major') return true;
+      return false;
+    }) || null
+  );
+}
 
 // Open string frequencies in standard tuning: [E2, A2, D3, G3, B3, E4]
 const STANDARD_FREQS = [82.41, 110.0, 146.83, 196.0, 246.94, 329.63];

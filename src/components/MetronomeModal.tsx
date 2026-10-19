@@ -112,7 +112,7 @@ export const MetronomeModal: React.FC<MetronomeModalProps> = ({ isOpen = true, o
   if (!isOpen) return null;
 
   const content = (
-    <div className={`relative w-full ${isEmbedded ? 'max-w-md my-auto' : 'max-w-sm'} bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col items-center backdrop-blur-xl`}>
+    <div className={`relative w-full ${isEmbedded ? 'max-w-md my-auto' : 'max-w-sm'} metronome-card bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col items-center backdrop-blur-xl`}>
       {/* Close Button */}
       {!isEmbedded && onClose && (
         <button
@@ -126,16 +126,16 @@ export const MetronomeModal: React.FC<MetronomeModalProps> = ({ isOpen = true, o
         </button>
       )}
 
-      <h3 className="text-sm font-bold tracking-wider uppercase text-emerald-400 mb-6 flex items-center gap-2">
+      <h3 className="text-sm font-bold tracking-wider uppercase text-emerald-500 dark:text-emerald-400 mb-6 flex items-center gap-2">
         <span>AGSOFT PRO METRONOME</span>
       </h3>
 
         {/* Big BPM Display */}
         <div className="flex flex-col items-center my-2">
-          <div className="text-6xl font-extrabold tracking-tight font-mono text-white">
+          <div className="text-6xl font-extrabold tracking-tight font-mono text-slate-900 dark:text-white">
             {bpm}
           </div>
-          <span className="text-xs font-semibold text-slate-400 mt-1 uppercase tracking-widest">
+          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-widest">
             BPM
           </span>
         </div>
@@ -148,37 +148,37 @@ export const MetronomeModal: React.FC<MetronomeModalProps> = ({ isOpen = true, o
               className={`w-3.5 h-3.5 rounded-full transition-all duration-75 ${
                 isPlaying && currentBeat === idx
                   ? idx === 0
-                    ? 'bg-emerald-400 scale-125 shadow-[0_0_12px_#10b981]'
-                    : 'bg-cyan-400 scale-110 shadow-[0_0_8px_#06b6d4]'
-                  : 'bg-slate-800 border border-slate-700'
+                    ? 'bg-emerald-500 scale-125 shadow-[0_0_12px_#10b981]'
+                    : 'bg-cyan-500 scale-110 shadow-[0_0_8px_#06b6d4]'
+                  : 'metronome-dot-inactive bg-slate-800 border border-slate-700'
               }`}
             />
           ))}
         </div>
 
         {/* BPM Stepper Controls */}
-        <div className="flex items-center gap-4 my-2">
+        <div className="flex items-center gap-3 my-2">
           <button
             onClick={() => setBpm((prev) => Math.max(30, prev - 5))}
-            className="w-10 h-10 rounded-xl bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center border border-slate-700 active:scale-95 transition"
+            className="metronome-stepper w-11 h-11 rounded-2xl bg-slate-800 text-slate-900 dark:text-white font-bold flex items-center justify-center border border-slate-700 shadow-sm active:scale-95 transition"
           >
             -5
           </button>
           <button
             onClick={() => setBpm((prev) => Math.max(30, prev - 1))}
-            className="w-10 h-10 rounded-xl bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center border border-slate-700 active:scale-95 transition"
+            className="metronome-stepper w-11 h-11 rounded-2xl bg-slate-800 text-slate-900 dark:text-white font-bold flex items-center justify-center border border-slate-700 shadow-sm active:scale-95 transition"
           >
             <Minus className="w-4 h-4" />
           </button>
           <button
             onClick={() => setBpm((prev) => Math.min(280, prev + 1))}
-            className="w-10 h-10 rounded-xl bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center border border-slate-700 active:scale-95 transition"
+            className="metronome-stepper w-11 h-11 rounded-2xl bg-slate-800 text-slate-900 dark:text-white font-bold flex items-center justify-center border border-slate-700 shadow-sm active:scale-95 transition"
           >
             <Plus className="w-4 h-4" />
           </button>
           <button
             onClick={() => setBpm((prev) => Math.min(280, prev + 5))}
-            className="w-10 h-10 rounded-xl bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center border border-slate-700 active:scale-95 transition"
+            className="metronome-stepper w-11 h-11 rounded-2xl bg-slate-800 text-slate-900 dark:text-white font-bold flex items-center justify-center border border-slate-700 shadow-sm active:scale-95 transition"
           >
             +5
           </button>
@@ -198,7 +198,7 @@ export const MetronomeModal: React.FC<MetronomeModalProps> = ({ isOpen = true, o
         <div className="grid grid-cols-2 gap-3 w-full mt-2">
           <button
             onClick={handleTapTempo}
-            className="py-3 px-4 rounded-xl bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 hover:bg-slate-700 active:scale-95 transition tracking-wider uppercase flex items-center justify-center gap-1.5"
+            className="metronome-stepper py-3 px-4 rounded-xl bg-slate-800 border border-slate-700 text-xs font-bold text-slate-900 dark:text-slate-200 hover:bg-slate-700 active:scale-95 transition tracking-wider uppercase flex items-center justify-center gap-1.5 shadow-sm"
           >
             <RotateCcw className="w-3.5 h-3.5" /> TAP TEMPO
           </button>
@@ -223,8 +223,8 @@ export const MetronomeModal: React.FC<MetronomeModalProps> = ({ isOpen = true, o
         </div>
 
         {/* Time Signature Buttons */}
-        <div className="flex items-center gap-2 mt-4 text-xs text-slate-400">
-          <span>TIME:</span>
+        <div className="flex items-center gap-2 mt-4 text-xs text-slate-500 dark:text-slate-400">
+          <span className="font-bold">TIME:</span>
           {[2, 3, 4, 6].map((num) => (
             <button
               key={num}
@@ -232,10 +232,10 @@ export const MetronomeModal: React.FC<MetronomeModalProps> = ({ isOpen = true, o
                 setBeatsPerMeasure(num);
                 setCurrentBeat(0);
               }}
-              className={`px-2 py-0.5 rounded-md font-mono ${
+              className={`px-2.5 py-1 rounded-lg font-mono text-xs transition ${
                 beatsPerMeasure === num
-                  ? 'bg-slate-700 text-white font-bold'
-                  : 'bg-slate-800/60 text-slate-400 hover:text-white'
+                  ? 'bg-emerald-500 text-black font-extrabold shadow-sm'
+                  : 'metronome-stepper bg-slate-800/60 text-slate-600 dark:text-slate-400 hover:text-white'
               }`}
             >
               {num}/4

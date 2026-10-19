@@ -415,14 +415,14 @@ export const App: React.FC = () => {
       {/* PWA In-App Banner if not installed */}
       {!isInstalled && (
         <div className="w-full max-w-4xl mx-auto px-4 pt-3 pb-1">
-          <div className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-slate-900/80 to-teal-950/60 border border-emerald-500/30 shadow-lg text-xs">
+          <div className="pwa-install-banner flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-slate-900/80 to-teal-950/60 border border-emerald-500/30 shadow-lg text-xs">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shrink-0">
-                <Smartphone className="w-4 h-4 text-emerald-400" />
+                <Smartphone className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
               </div>
               <div className="truncate">
-                <p className="font-bold text-white leading-tight">Install AGSoft Acoustics</p>
-                <p className="text-[10px] text-slate-400 font-mono">Run full-screen without browser bar • Instant offline launch</p>
+                <p className="font-bold text-slate-900 dark:text-white leading-tight">Install AGSoft Acoustics</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">Run full-screen without browser bar • Instant offline launch</p>
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">

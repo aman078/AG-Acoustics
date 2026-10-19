@@ -93,9 +93,16 @@ body.clean-theme .text-slate-500 {
 
 body.clean-theme .bg-slate-900,
 body.clean-theme .bg-slate-950,
+body.clean-theme .bg-slate-900\/95,
+body.clean-theme .bg-slate-900\/90,
+body.clean-theme .bg-slate-900\/80,
+body.clean-theme .bg-slate-900\/70,
+body.clean-theme .bg-slate-950\/95,
+body.clean-theme .bg-slate-950\/90,
 body.clean-theme .bg-\[\#07090E\],
 body.clean-theme .bg-\[\#08090D\],
-body.clean-theme .bg-\[\#0A0D15\] {
+body.clean-theme .bg-\[\#0A0D15\],
+body.clean-theme .bg-\[\#0A0D15\]\/95 {
   background-color: #ffffff !important;
   color: #0f172a !important;
 }
@@ -129,3 +136,52 @@ body.clean-theme .hover\:bg-slate-700:hover,
 body.clean-theme .hover\:bg-slate-800:hover {
   background-color: #cbd5e1 !important;
 }
+
+/* Specific Clean Mode Component Refinements */
+body.clean-theme .metronome-card {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.08) !important;
+  color: #0f172a !important;
+}
+
+body.clean-theme .metronome-stepper {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+body.clean-theme .metronome-stepper:hover {
+  background-color: #e2e8f0 !important;
+}
+
+body.clean-theme .metronome-dot-inactive {
+  background-color: #e2e8f0 !important;
+  border-color: #cbd5e1 !important;
+}
+
+body.clean-theme .pwa-install-banner {
+  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 50%, #f0fdfa 100%) !important;
+  border-color: #bbf7d0 !important;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.08) !important;
+}
+
+body.clean-theme .pwa-install-banner p {
+  color: #0f172a !important;
+}
+
+body.clean-theme .pwa-install-banner .text-slate-400 {
+  color: #64748b !important;
+}
+
+body.clean-theme .song-player-header {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+  border-bottom-color: #e2e8f0 !important;
+}
+
+body.clean-theme .song-player-footer {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+  border-top-color: #e2e8f0 !important;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.06) !important;
+}
+
