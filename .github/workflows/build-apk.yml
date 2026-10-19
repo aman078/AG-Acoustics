@@ -46,7 +46,11 @@ jobs:
       - name: Build Android Debug APK
         run: |
           cd android
-          ./gradlew assembleDebug --no-daemon --stacktrace > build.log 2>&1 || (echo "=== GRADLE LOG START ===" && tail -n 150 build.log && echo "=== GRADLE LOG END ===" && exit 1)
+          ./gradlew assembleDebug --no-daemon --stacktrace > build.log 2>&1 || {
+            ERR=$(tail -n 25 build.log | tr '\r\n' ' ')
+            echo "::error title=Gradle Failure::$ERR"
+            exit 1
+          }
 
       - name: Prepare APK Output
         run: |
