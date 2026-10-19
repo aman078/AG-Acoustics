@@ -22,7 +22,7 @@ import { searchOnlineSongs, fetchCompleteSong, SearchSongItem } from '../service
 import { REPERTOIRE_PIECES, RepertoirePiece } from '../data/repertoire';
 import { playGuitarStringTone } from '../audio/toneGenerator';
 import { TablatureViewer } from './TablatureViewer';
-import { findChordDiagram, ChordDef } from './ChordLibraryModal';
+import { findChordDiagram, ChordDef, ChordVoicing, getChordVoicings, strumChordVoicing } from './ChordLibraryModal';
 import { cacheSongOffline, getCachedSongOffline, isSongCachedOffline } from '../services/offlineStorage';
 
 interface SongSearchModalProps {
@@ -60,7 +60,11 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
   const [transposeOffset, setTransposeOffset] = useState<number>(0);
   const [isAutoScrolling, setIsAutoScrolling] = useState<boolean>(false);
   const [scrollSpeed, setScrollSpeed] = useState<number>(1);
-  const [inspectChord, setInspectChord] = useState<ChordDef | null>(null);
+  const [inspectChord, setInspectChord] = useState<{
+    chordName: string;
+    voicings: ChordVoicing[];
+    activeIndex: number;
+  } | null>(null);
   const [isCurrentSongOffline, setIsCurrentSongOffline] = useState<boolean>(false);
 
   // Dynamic Capo & Transposition Calculator
@@ -307,7 +311,20 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
     const root = chordName.match(/^([A-G][#b]?)/)?.[1] || 'C';
     const freq = noteFreqs[root] || 196.0;
     playGuitarStringTone(freq, 1.5);
-    if (onOpenChordInfo) onOpenChordInfo(chordName);
+  };
+
+  const handleInspectChord = (chordName: string) => {
+    const voicings = getChordVoicings(chordName);
+    if (voicings && voicings.length > 0) {
+      setInspectChord({
+        chordName,
+        voicings,
+        activeIndex: 0,
+      });
+      strumChordVoicing(voicings[0].frets, voicings[0].baseFret);
+    } else {
+      handlePlayChord(chordName);
+    }
   };
 
   // Filtered & Discovered Repertoire Pieces
@@ -513,11 +530,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
               return (
                 <button
                   key={chord}
-                  onClick={() => {
-                    handlePlayChord(transposed);
-                    const diag = findChordDiagram(transposed);
-                    if (diag) setInspectChord(diag);
-                  }}
+                  onClick={() => handleInspectChord(transposed)}
                   className="group px-2.5 py-1 rounded-xl bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-500/20 border border-slate-300 dark:border-slate-700 hover:border-emerald-500/50 text-xs font-mono font-bold text-slate-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-300 transition flex items-center gap-1.5 cursor-pointer shrink-0 shadow-sm"
                   title={`Play ${transposed} & view fingering`}
                 >
@@ -564,11 +577,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                             return (
                               <button
                                 key={cIdx}
-                                onClick={() => {
-                                  handlePlayChord(transposed);
-                                  const diag = findChordDiagram(transposed);
-                                  if (diag) setInspectChord(diag);
-                                }}
+                                onClick={() => handleInspectChord(transposed)}
                                 className="px-2 py-0.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 font-mono font-extrabold text-xs cursor-pointer transition shadow-sm"
                                 title={`Play ${transposed} & view fingering`}
                               >
@@ -595,11 +604,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                                 <span key={cIdx} className="inline-flex items-center">
                                   {spacesBefore > 0 && <span>{' '.repeat(spacesBefore)}</span>}
                                   <button
-                                    onClick={() => {
-                                      handlePlayChord(transposed);
-                                      const diag = findChordDiagram(transposed);
-                                      if (diag) setInspectChord(diag);
-                                    }}
+                                    onClick={() => handleInspectChord(transposed)}
                                     className="font-mono text-xs sm:text-sm font-black text-emerald-700 dark:text-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-300 hover:underline cursor-pointer transition select-none tracking-tight"
                                     title={`Play ${transposed} & view fingering`}
                                   >
@@ -718,82 +723,141 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
         </div>
 
         {/* Interactive Mini Chord Diagram Popover */}
-        {inspectChord && (
-          <div 
-            onClick={() => setInspectChord(null)}
-            className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in"
-          >
+        {inspectChord && (() => {
+          const activeVoicing = inspectChord.voicings[inspectChord.activeIndex] || inspectChord.voicings[0];
+          const baseFret = activeVoicing.baseFret || 1;
+          const gridFrets = [baseFret, baseFret + 1, baseFret + 2, baseFret + 3, baseFret + 4];
+
+          return (
             <div 
-              onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-2xl flex flex-col items-center"
+              onClick={() => setInspectChord(null)}
+              className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in"
             >
-              <button
-                onClick={() => setInspectChord(null)}
-                className="absolute top-4 right-4 p-1.5 rounded-full text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              <div 
+                onClick={(e) => e.stopPropagation()}
+                className="relative w-full max-w-[310px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-2xl flex flex-col items-center select-none"
               >
-                <X className="w-4 h-4" />
-              </button>
-              <h4 className="text-base font-extrabold text-slate-900 dark:text-white mb-0.5">
-                {inspectChord.name}
-              </h4>
-              <p className="text-xs text-emerald-600 dark:text-emerald-400 font-mono mb-3">
-                {inspectChord.type} Chord Diagram
-              </p>
-
-              {/* Fretboard Mini Diagram */}
-              <div className="w-full flex flex-col items-center py-2.5 px-3 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 mb-4">
-                {/* String labels & Open/Mute symbols */}
-                <div className="flex justify-between w-48 mb-1 px-1 font-mono text-[11px] font-bold">
-                  {inspectChord.frets.map((f, i) => (
-                    <span
-                      key={i}
-                      className={f === 'x' ? 'text-rose-500' : f === 0 ? 'text-emerald-500 font-extrabold' : 'text-slate-400'}
-                    >
-                      {f === 'x' ? '✕' : f === 0 ? '○' : '•'}
+                {/* Header */}
+                <div className="w-full flex items-center justify-between mb-2">
+                  <div className="flex items-baseline gap-2">
+                    <h4 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
+                      {inspectChord.chordName}
+                    </h4>
+                    <span className="text-xs text-emerald-600 dark:text-emerald-400 font-mono font-semibold">
+                      {activeVoicing.positionName}
                     </span>
-                  ))}
+                  </div>
+                  <button
+                    onClick={() => setInspectChord(null)}
+                    className="p-1.5 rounded-full text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                    title="Close & return to song"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
 
-                {/* 5 Frets Grid */}
-                <div className="relative w-48 border-t-4 border-slate-800 dark:border-slate-300">
-                  {[1, 2, 3, 4, 5].map((fret) => (
-                    <div
-                      key={fret}
-                      className="h-7 border-b border-slate-300 dark:border-slate-700 flex justify-between relative"
-                    >
-                      {/* Vertical string lines */}
-                      {[0, 1, 2, 3, 4, 5].map((stringIdx) => (
-                        <div
-                          key={stringIdx}
-                          className="w-px h-full bg-slate-300 dark:bg-slate-700 relative"
+                {/* Multiple Position Selector Pills */}
+                {inspectChord.voicings.length > 1 && (
+                  <div className="flex items-center gap-1.5 w-full mb-3 p-1 bg-slate-100 dark:bg-slate-950/80 rounded-xl border border-slate-200 dark:border-slate-800">
+                    {inspectChord.voicings.map((v, idx) => {
+                      const isActive = idx === inspectChord.activeIndex;
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => {
+                            setInspectChord({ ...inspectChord, activeIndex: idx });
+                            strumChordVoicing(v.frets, v.baseFret);
+                          }}
+                          className={`flex-1 py-1 px-1.5 rounded-lg text-[10px] sm:text-[11px] font-mono font-bold transition cursor-pointer truncate ${
+                            isActive
+                              ? 'bg-emerald-500 text-black shadow-xs font-extrabold'
+                              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                          }`}
                         >
-                          {/* Dot if chord fretted on this string & fret */}
-                          {inspectChord.frets[stringIdx] === fret && (
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-emerald-500 text-black font-extrabold text-[9px] flex items-center justify-center shadow-md">
-                              {inspectChord.fingers[stringIdx] || ''}
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                          {v.positionName}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Fretboard Mini Diagram */}
+                <div className="w-full flex flex-col items-center py-2.5 px-3 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 mb-3 relative">
+                  {/* Fret indicator badge when higher up the neck */}
+                  {baseFret > 1 && (
+                    <div className="absolute top-2 left-3 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-mono font-bold text-[10px]">
+                      fr. {baseFret}
                     </div>
-                  ))}
+                  )}
+
+                  {/* String labels & Open/Mute symbols */}
+                  <div className="flex justify-between w-48 mb-1 px-1 font-mono text-[11px] font-bold">
+                    {activeVoicing.frets.map((f, i) => (
+                      <span
+                        key={i}
+                        className={f === 'x' ? 'text-rose-500' : f === 0 ? 'text-emerald-600 dark:text-emerald-400 font-extrabold' : 'text-slate-300 dark:text-slate-700'}
+                      >
+                        {f === 'x' ? '✕' : f === 0 ? '○' : '•'}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* 5 Frets Grid */}
+                  <div className={`relative w-48 ${baseFret === 1 ? 'border-t-4 border-slate-800 dark:border-slate-300' : 'border-t-2 border-slate-400 dark:border-slate-600'}`}>
+                    {gridFrets.map((fret) => (
+                      <div
+                        key={fret}
+                        className="h-7 border-b border-slate-300 dark:border-slate-700 flex justify-between relative"
+                      >
+                        {/* Vertical string lines */}
+                        {[0, 1, 2, 3, 4, 5].map((stringIdx) => (
+                          <div
+                            key={stringIdx}
+                            className="w-px h-full bg-slate-300 dark:bg-slate-700 relative"
+                          >
+                            {/* Dot if chord fretted on this string & fret */}
+                            {activeVoicing.frets[stringIdx] === fret && (
+                              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-emerald-500 text-black font-extrabold text-[9px] flex items-center justify-center shadow-md">
+                                {activeVoicing.fingers[stringIdx] ?? ''}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* String Tuning Names */}
+                  <div className="flex justify-between w-48 mt-1.5 px-1 text-[10px] font-mono text-slate-500 dark:text-slate-400 font-semibold">
+                    <span>E</span><span>A</span><span>D</span><span>G</span><span>B</span><span>e</span>
+                  </div>
                 </div>
-                <div className="flex justify-between w-48 mt-2 px-1 text-[9px] font-mono text-slate-500">
-                  <span>E</span><span>A</span><span>D</span><span>G</span><span>B</span><span>e</span>
+
+                {/* Finger Legend */}
+                <div className="text-[10px] font-mono text-slate-400 dark:text-slate-500 mb-3 text-center">
+                  1=Index • 2=Middle • 3=Ring • 4=Pinky
+                </div>
+
+                {/* Strum & Return Controls */}
+                <div className="w-full flex items-center gap-2">
+                  <button
+                    onClick={() => strumChordVoicing(activeVoicing.frets, activeVoicing.baseFret)}
+                    className="flex-1 py-2.5 rounded-xl bg-emerald-500 text-black font-extrabold text-xs flex items-center justify-center gap-2 shadow-md hover:bg-emerald-400 active:scale-95 transition cursor-pointer"
+                  >
+                    <Volume2 className="w-4 h-4" />
+                    <span>STRUM CHORD</span>
+                  </button>
+                  <button
+                    onClick={() => setInspectChord(null)}
+                    className="py-2.5 px-3.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer"
+                  >
+                    Back
+                  </button>
                 </div>
               </div>
-
-              {/* Hear Chord Tone Button */}
-              <button
-                onClick={() => handlePlayChord(inspectChord.name.replace(' Major', ''))}
-                className="w-full py-2.5 rounded-xl bg-emerald-500 text-black font-extrabold text-xs flex items-center justify-center gap-2 shadow-md hover:bg-emerald-400 active:scale-95 transition cursor-pointer"
-              >
-                <Volume2 className="w-4 h-4" />
-                <span>HEAR CHORD TONE</span>
-              </button>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
     );
   }

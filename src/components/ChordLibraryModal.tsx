@@ -2,6 +2,13 @@ import React, { useState } from 'react';
 import { X, Volume2, Search } from 'lucide-react';
 import { playGuitarStringTone } from '../audio/toneGenerator';
 
+export interface ChordVoicing {
+  positionName: string; // e.g. "Pos 1 (Open)", "Pos 2 (Fret 8 Barre)"
+  baseFret: number;
+  frets: (number | 'x')[]; // 6 strings: [E, A, D, G, B, E]
+  fingers: (number | null)[]; // 1=index, 2=middle, 3=ring, 4=pinky
+}
+
 export interface ChordDef {
   name: string;
   root: string;
@@ -9,6 +16,7 @@ export interface ChordDef {
   frets: (number | 'x')[]; // 6 strings: [E, A, D, G, B, E]
   fingers: (number | null)[]; // 1=index, 2=middle, 3=ring, 4=pinky
   baseFret?: number;
+  voicings?: ChordVoicing[];
 }
 
 export const CHORD_DATABASE: ChordDef[] = [
@@ -58,25 +66,209 @@ export const CHORD_DATABASE: ChordDef[] = [
   { name: 'B7', root: 'B', type: '7th', frets: ['x', 2, 1, 2, 0, 2], fingers: [null, 2, 1, 3, null, 4] },
 ];
 
+// Open string frequencies in standard tuning: [E2, A2, D3, G3, B3, E4]
+export const STANDARD_FREQS = [82.41, 110.0, 146.83, 196.0, 246.94, 329.63];
+
+/**
+ * Strums a chord voicing sequentially across strings for realistic guitar preview
+ */
+export function strumChordVoicing(frets: (number | 'x')[], baseFret = 1) {
+  frets.forEach((fret, stringIdx) => {
+    if (fret !== 'x') {
+      const baseFreq = STANDARD_FREQS[stringIdx];
+      const actualFret = typeof fret === 'number' ? fret : 0;
+      const fretMultiplier = Math.pow(2, actualFret / 12);
+      const chordNoteFreq = baseFreq * fretMultiplier;
+      setTimeout(() => {
+        playGuitarStringTone(chordNoteFreq, 1.8);
+      }, stringIdx * 35);
+    }
+  });
+}
+
+/**
+ * Returns multiple positions and voicings for any acoustic guitar chord
+ */
+export function getChordVoicings(chordName: string): ChordVoicing[] {
+  if (!chordName) return [];
+  const clean = chordName.trim();
+  const match = clean.match(/^([A-G][#b]?)(.*)$/);
+  if (!match) return [];
+
+  let root = match[1];
+  const quality = match[2].trim().toLowerCase();
+
+  const CHROMATIC = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const ALIASES: { [k: string]: string } = {
+    'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#'
+  };
+  const normalizedRoot = ALIASES[root] || root;
+  const rootIdx = CHROMATIC.indexOf(normalizedRoot);
+  if (rootIdx === -1) return [];
+
+  const voicings: ChordVoicing[] = [];
+
+  const isMinor = quality.startsWith('m') && !quality.startsWith('maj');
+  const is7th = quality.includes('7') && !quality.includes('maj7');
+
+  if (isMinor) {
+    // 1. Root on E (String 6) - E Minor Barre Shape
+    const fretE = (rootIdx - 4 + 12) % 12;
+    if (fretE === 0) {
+      voicings.push({
+        positionName: 'Pos 1 (Open)',
+        baseFret: 1,
+        frets: [0, 2, 2, 0, 0, 0],
+        fingers: [null, 2, 3, null, null, null],
+      });
+    } else {
+      voicings.push({
+        positionName: `Pos 1 (Fret ${fretE})`,
+        baseFret: fretE,
+        frets: [fretE, fretE + 2, fretE + 2, fretE, fretE, fretE],
+        fingers: [1, 3, 4, 1, 1, 1],
+      });
+    }
+
+    // 2. Root on A (String 5) - A Minor Barre Shape
+    const fretA = (rootIdx - 9 + 12) % 12;
+    if (fretA === 0) {
+      voicings.push({
+        positionName: 'Pos 2 (Open)',
+        baseFret: 1,
+        frets: ['x', 0, 2, 2, 1, 0],
+        fingers: [null, null, 2, 3, 1, null],
+      });
+    } else {
+      voicings.push({
+        positionName: `Pos 2 (Fret ${fretA})`,
+        baseFret: fretA,
+        frets: ['x', fretA, fretA + 2, fretA + 2, fretA + 1, fretA],
+        fingers: [null, 1, 3, 4, 2, 1],
+      });
+    }
+  } else if (is7th) {
+    // 1. Dominant 7th E-shape
+    const fretE = (rootIdx - 4 + 12) % 12;
+    if (fretE === 0) {
+      voicings.push({
+        positionName: 'Pos 1 (Open)',
+        baseFret: 1,
+        frets: [0, 2, 0, 1, 0, 0],
+        fingers: [null, 2, null, 1, null, null],
+      });
+    } else {
+      voicings.push({
+        positionName: `Pos 1 (Fret ${fretE})`,
+        baseFret: fretE,
+        frets: [fretE, fretE + 2, fretE, fretE + 1, fretE, fretE],
+        fingers: [1, 3, 1, 2, 1, 1],
+      });
+    }
+
+    // 2. Dominant 7th A-shape
+    const fretA = (rootIdx - 9 + 12) % 12;
+    if (fretA === 0) {
+      voicings.push({
+        positionName: 'Pos 2 (Open)',
+        baseFret: 1,
+        frets: ['x', 0, 2, 0, 2, 0],
+        fingers: [null, null, 2, null, 3, null],
+      });
+    } else {
+      voicings.push({
+        positionName: `Pos 2 (Fret ${fretA})`,
+        baseFret: fretA,
+        frets: ['x', fretA, fretA + 2, fretA, fretA + 2, fretA],
+        fingers: [null, 1, 3, 1, 4, 1],
+      });
+    }
+  } else {
+    // Standard Major Shapes
+    // Check handcrafted open database first
+    const dbMatch = CHORD_DATABASE.find((c) => {
+      const matchDb = c.name.toLowerCase();
+      return matchDb === clean.toLowerCase() || matchDb.replace(' major', '') === clean.toLowerCase();
+    });
+
+    if (dbMatch) {
+      voicings.push({
+        positionName: 'Pos 1 (Open)',
+        baseFret: dbMatch.baseFret || 1,
+        frets: dbMatch.frets,
+        fingers: dbMatch.fingers,
+      });
+    }
+
+    // E-shape Barre
+    const fretE = (rootIdx - 4 + 12) % 12;
+    if (fretE > 0) {
+      voicings.push({
+        positionName: `Pos ${voicings.length + 1} (Fret ${fretE})`,
+        baseFret: fretE,
+        frets: [fretE, fretE + 2, fretE + 2, fretE + 1, fretE, fretE],
+        fingers: [1, 3, 4, 2, 1, 1],
+      });
+    }
+
+    // A-shape Barre
+    const fretA = (rootIdx - 9 + 12) % 12;
+    if (fretA > 0) {
+      voicings.push({
+        positionName: `Pos ${voicings.length + 1} (Fret ${fretA})`,
+        baseFret: fretA,
+        frets: ['x', fretA, fretA + 2, fretA + 2, fretA + 2, fretA],
+        fingers: [null, 1, 2, 3, 4, 1],
+      });
+    }
+  }
+
+  // Sort voicings so lowest fret is first
+  voicings.sort((a, b) => a.baseFret - b.baseFret);
+  // Re-label nicely Pos 1, Pos 2...
+  return voicings.map((v, i) => ({
+    ...v,
+    positionName: v.baseFret === 1 && !v.positionName.includes('Fret') ? `Pos ${i + 1} (Open)` : `Pos ${i + 1} (fr. ${v.baseFret})`,
+  }));
+}
+
 export function findChordDiagram(chordName: string): ChordDef | null {
   if (!chordName) return null;
   const raw = chordName.trim();
   const normalized = raw.toLowerCase();
   
-  return (
-    CHORD_DATABASE.find((c) => {
-      const dbName = c.name.toLowerCase();
-      if (dbName === normalized) return true;
-      if (dbName.replace(' major', '') === normalized) return true;
-      if (dbName.replace(' minor', 'm') === normalized) return true;
-      if (c.root.toLowerCase() === normalized && c.type === 'Major') return true;
-      return false;
-    }) || null
-  );
-}
+  const found = CHORD_DATABASE.find((c) => {
+    const dbName = c.name.toLowerCase();
+    if (dbName === normalized) return true;
+    if (dbName.replace(' major', '') === normalized) return true;
+    if (dbName.replace(' minor', 'm') === normalized) return true;
+    if (c.root.toLowerCase() === normalized && c.type === 'Major') return true;
+    return false;
+  });
 
-// Open string frequencies in standard tuning: [E2, A2, D3, G3, B3, E4]
-const STANDARD_FREQS = [82.41, 110.0, 146.83, 196.0, 246.94, 329.63];
+  if (found) {
+    return {
+      ...found,
+      voicings: getChordVoicings(chordName),
+    };
+  }
+
+  const voicings = getChordVoicings(chordName);
+  if (voicings.length > 0) {
+    const v1 = voicings[0];
+    return {
+      name: chordName,
+      root: chordName[0],
+      type: chordName.includes('m') ? 'Minor' : 'Major',
+      frets: v1.frets,
+      fingers: v1.fingers,
+      baseFret: v1.baseFret,
+      voicings,
+    };
+  }
+
+  return null;
+}
 
 interface ChordLibraryModalProps {
   isOpen?: boolean;

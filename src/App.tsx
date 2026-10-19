@@ -710,7 +710,6 @@ export const App: React.FC = () => {
               isOpen={true}
               isEmbedded={true}
               onClose={() => setActiveTab('tuner')}
-              onOpenChordInfo={() => setActiveTab('chords')}
               onSongStateChange={setIsSongOpen}
             />
           </div>
