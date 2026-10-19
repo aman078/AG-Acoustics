@@ -1,4 +1,4 @@
-const CACHE_NAME = 'agsoft-acoustics-v1';
+const CACHE_NAME = 'agsoft-acoustics-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

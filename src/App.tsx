@@ -14,7 +14,9 @@ import {
   Music,
   Search,
   CheckCircle2,
-  Guitar
+  Guitar,
+  Download,
+  Smartphone
 } from 'lucide-react';
 import { detectPitchMPM, frequencyToNote, calculateCents, getRMSVolume } from './audio/pitchDetection';
 import { playGuitarStringTone, playInTuneChime } from './audio/toneGenerator';
@@ -25,6 +27,7 @@ import { MetronomeModal } from './components/MetronomeModal';
 import { ChordLibraryModal } from './components/ChordLibraryModal';
 import { TuningModal } from './components/TuningModal';
 import { SongSearchModal } from './components/SongSearchModal';
+import { InstallModal } from './components/InstallModal';
 
 type ActiveTab = 'tuner' | 'songs' | 'metronome' | 'chords';
 
@@ -52,6 +55,54 @@ export const App: React.FC = () => {
 
   // Tuning Preset Modal
   const [isTuningModalOpen, setIsTuningModalOpen] = useState<boolean>(false);
+
+  // PWA Install Prompt State
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [canInstall, setCanInstall] = useState<boolean>(false);
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState<boolean>(false);
+  const [isInstalled, setIsInstalled] = useState<boolean>(false);
+
+  useEffect(() => {
+    // Detect if running in standalone mode (already installed)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+    if (isStandalone) {
+      setIsInstalled(true);
+    }
+
+    const handleBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setCanInstall(true);
+    };
+
+    const handleAppInstalled = () => {
+      setIsInstalled(true);
+      setCanInstall(false);
+      setDeferredPrompt(null);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  const handleTriggerInstall = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice;
+      if (choice && choice.outcome === 'accepted') {
+        setIsInstalled(true);
+        setCanInstall(false);
+        setDeferredPrompt(null);
+      }
+    } else {
+      setIsInstallModalOpen(true);
+    }
+  };
 
   // Audio Nodes & Animation
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -297,6 +348,18 @@ export const App: React.FC = () => {
               </div>
             )}
 
+            {/* Install App Button */}
+            {!isInstalled && (
+              <button
+                onClick={handleTriggerInstall}
+                className="px-2.5 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-[0_0_12px_rgba(16,185,129,0.15)]"
+                title="Install AGSoft Acoustics App"
+              >
+                <Download className="w-3.5 h-3.5 animate-bounce" />
+                <span className="hidden sm:inline">INSTALL</span>
+              </button>
+            )}
+
             <button
               onClick={() => setIsTuningModalOpen(true)}
               className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-slate-300 hover:text-emerald-400 transition cursor-pointer"
@@ -307,6 +370,31 @@ export const App: React.FC = () => {
           </div>
         </div>
       </header>
+
+      {/* PWA In-App Banner if not installed */}
+      {!isInstalled && (
+        <div className="w-full max-w-4xl mx-auto px-4 pt-3 pb-1">
+          <div className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-slate-900/80 to-teal-950/60 border border-emerald-500/30 shadow-lg text-xs">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shrink-0">
+                <Smartphone className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div className="truncate">
+                <p className="font-bold text-white leading-tight">Install AGSoft Acoustics</p>
+                <p className="text-[10px] text-slate-400 font-mono">Run full-screen without browser bar • Instant offline launch</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={handleTriggerInstall}
+                className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-[11px] font-mono tracking-wider transition shadow-[0_0_15px_rgba(16,185,129,0.4)] cursor-pointer"
+              >
+                INSTALL
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main App Body Depending on Active Tab */}
       <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-4 flex flex-col items-center justify-start">
@@ -632,6 +720,14 @@ export const App: React.FC = () => {
         onSelectTuning={handleSelectTuning}
         referenceA4={referenceA4}
         onSetReferenceA4={setReferenceA4}
+      />
+
+      {/* PWA & Native App Installation Guide Modal */}
+      <InstallModal
+        isOpen={isInstallModalOpen}
+        onClose={() => setIsInstallModalOpen(false)}
+        canInstallPrompt={canInstall}
+        onTriggerInstallPrompt={handleTriggerInstall}
       />
     </div>
   );
