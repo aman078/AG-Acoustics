@@ -8,9 +8,9 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    let latestTagName = 'v1.0.47';
+    let latestTagName = 'v1.0.48';
     let apkDownloadUrl = 'https://github.com/aman078/AG-Acoustics/releases/latest/download/AGSoft-Acoustics.apk';
-    let releaseNotes = 'Silent background tuner management (auto-pauses when scrolling chords, songs, metronome) and infinite screen wake lock while viewing chords and tabs.';
+    let releaseNotes = 'Interactive song practice accompaniment engine with tempo detection, beat pulse, and acoustic chord strumming; ultra-slow auto-scroll speeds down to 0.05x.';
 
     try {
       const ghRes = await fetch('https://api.github.com/repos/aman078/AG-Acoustics/releases/latest', {
@@ -36,7 +36,7 @@ export default async function handler(req: any, res: any) {
     }
 
     const match = latestTagName.match(/\d+$/);
-    const versionCode = match ? parseInt(match[0], 10) : 47;
+    const versionCode = match ? parseInt(match[0], 10) : 48;
     const versionName = latestTagName.replace(/^v/, '');
 
     res.setHeader('Content-Type', 'application/json');

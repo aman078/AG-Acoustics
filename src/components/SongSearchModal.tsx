@@ -37,6 +37,38 @@ interface SongSearchModalProps {
 type SongSectionTab = 'search' | 'favorites' | 'repertoire';
 type RepertoireFilter = 'all' | 'classical' | 'fingerstyle' | 'blues';
 
+function getEstimatedSongBpm(song: SongData | null): number {
+  if (!song) return 80;
+  const t = (song.title || '').toLowerCase();
+  if (t.includes('hotel california')) return 74;
+  if (t.includes('let it be')) return 72;
+  if (t.includes('hallelujah')) return 58;
+  if (t.includes('perfect')) return 63;
+  if (t.includes('yellow')) return 88;
+  if (t.includes('wonderwall')) return 87;
+  if (t.includes('fast car')) return 104;
+  if (t.includes('knockin')) return 68;
+  if (t.includes('wish you were here')) return 60;
+  if (t.includes('dust in the wind')) return 94;
+  if (t.includes('blackbird')) return 94;
+  if (t.includes('here comes the sun')) return 129;
+  if (t.includes('im yours') || t.includes("i'm yours")) return 76;
+  if (t.includes('stairway to heaven')) return 72;
+  if (t.includes('tears in heaven')) return 78;
+  if (t.includes('shape of my heart')) return 84;
+  if (t.includes('nothing else matters')) return 48;
+
+  const repPiece = REPERTOIRE_PIECES.find(
+    (p) => p.id === song.id || p.title.toLowerCase() === song.title.toLowerCase()
+  );
+  if (repPiece && repPiece.tempo) {
+    const m = repPiece.tempo.match(/(\d+)\s*bpm/i);
+    if (m) return parseInt(m[1], 10);
+  }
+
+  return 80;
+}
+
 export const SongSearchModal: React.FC<SongSearchModalProps> = ({
   isOpen = true,
   onClose,
@@ -65,7 +97,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
       const saved = localStorage.getItem('agsoft_scroll_speed');
       if (saved) {
         const val = Number(saved);
-        if (!isNaN(val) && val >= 0.2 && val <= 3.0) return val;
+        if (!isNaN(val) && val >= 0.05 && val <= 3.0) return val;
       }
     } catch {}
     return 1;
@@ -76,6 +108,255 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
       localStorage.setItem('agsoft_scroll_speed', String(scrollSpeed));
     } catch {}
   }, [scrollSpeed]);
+
+  const decreaseSpeed = () => {
+    setScrollSpeed((prev) => {
+      if (prev <= 0.1) return Math.max(0.05, Number((prev - 0.05).toFixed(2)));
+      if (prev <= 0.3) return Number((prev - 0.05).toFixed(2));
+      if (prev <= 1.0) return Number((prev - 0.1).toFixed(2));
+      return Math.max(0.05, Number((prev - 0.2).toFixed(1)));
+    });
+  };
+
+  const increaseSpeed = () => {
+    setScrollSpeed((prev) => {
+      if (prev < 0.3) return Number((prev + 0.05).toFixed(2));
+      if (prev < 1.0) return Number((prev + 0.1).toFixed(2));
+      return Math.min(3.0, Number((prev + 0.2).toFixed(1)));
+    });
+  };
+
+  // Practice Accompaniment & Song Tempo Engine
+  const [isPracticing, setIsPracticing] = useState<boolean>(false);
+  const [practiceBpm, setPracticeBpm] = useState<number>(80);
+  const [practiceSoundMode, setPracticeSoundMode] = useState<'both' | 'chords' | 'click' | 'silent'>('both');
+  const [beatsPerChord, setBeatsPerChord] = useState<number>(4);
+  const [currentBeatInBar, setCurrentBeatInBar] = useState<number>(0);
+  const [currentChordIndex, setCurrentChordIndex] = useState<number>(0);
+  const [isPracticeBarOpen, setIsPracticeBarOpen] = useState<boolean>(false);
+
+  const practiceAudioCtxRef = useRef<AudioContext | null>(null);
+  const timerIntervalRef = useRef<number | null>(null);
+  const tapTimesRef = useRef<number[]>([]);
+
+  // Flatten chords across all sections for sequential accompaniment tracking
+  const flatChords = useMemo(() => {
+    if (!selectedSong) return [];
+    const list: Array<{
+      globalIdx: number;
+      chord: string;
+      sectionIdx: number;
+      lineIdx: number;
+      chordIdx: number;
+    }> = [];
+    let count = 0;
+    selectedSong.sections.forEach((sec, sIdx) => {
+      sec.lines.forEach((line, lIdx) => {
+        line.chords.forEach((c, cIdx) => {
+          list.push({
+            globalIdx: count,
+            chord: c.chord,
+            sectionIdx: sIdx,
+            lineIdx: lIdx,
+            chordIdx: cIdx,
+          });
+          count++;
+        });
+      });
+    });
+    return list;
+  }, [selectedSong]);
+
+  const chordIndexMap = useMemo(() => {
+    const map = new Map<string, number>();
+    flatChords.forEach((item) => {
+      map.set(`${item.sectionIdx}-${item.lineIdx}-${item.chordIdx}`, item.globalIdx);
+    });
+    return map;
+  }, [flatChords]);
+
+  // Audio click generator for practice metronome
+  const playMetronomeClick = (isAccent: boolean) => {
+    try {
+      const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!practiceAudioCtxRef.current) {
+        practiceAudioCtxRef.current = new AudioCtxClass();
+      }
+      const ctx = practiceAudioCtxRef.current;
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(isAccent ? 1200 : 750, ctx.currentTime);
+
+      gain.gain.setValueAtTime(isAccent ? 0.35 : 0.18, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start();
+      osc.stop(ctx.currentTime + 0.045);
+    } catch {
+      // AudioContext backgrounded or not allowed
+    }
+  };
+
+  const handleTapTempo = () => {
+    const now = performance.now();
+    const times = tapTimesRef.current.filter((t) => now - t < 2500);
+    times.push(now);
+    tapTimesRef.current = times;
+
+    if (times.length >= 2) {
+      const intervals: number[] = [];
+      for (let i = 1; i < times.length; i++) {
+        intervals.push(times[i] - times[i - 1]);
+      }
+      const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+      const bpm = Math.round(60000 / avgInterval);
+      if (bpm >= 40 && bpm <= 240) {
+        setPracticeBpm(bpm);
+      }
+    }
+  };
+
+  const currentChordIndexRef = useRef(currentChordIndex);
+  currentChordIndexRef.current = currentChordIndex;
+  const currentBeatInBarRef = useRef(currentBeatInBar);
+  currentBeatInBarRef.current = currentBeatInBar;
+  const flatChordsRef = useRef(flatChords);
+  flatChordsRef.current = flatChords;
+  const beatsPerChordRef = useRef(beatsPerChord);
+  beatsPerChordRef.current = beatsPerChord;
+  const practiceSoundModeRef = useRef(practiceSoundMode);
+  practiceSoundModeRef.current = practiceSoundMode;
+  const transposeOffsetRef = useRef(transposeOffset);
+  transposeOffsetRef.current = transposeOffset;
+
+  // Strum and rhythm accompaniment loop
+  useEffect(() => {
+    if (!isPracticing || flatChords.length === 0) {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+      return;
+    }
+
+    const msPerBeat = (60 / practiceBpm) * 1000;
+
+    const tick = () => {
+      let nextBeat = currentBeatInBarRef.current + 1;
+      let nextChordIdx = currentChordIndexRef.current;
+
+      if (nextBeat >= beatsPerChordRef.current) {
+        nextBeat = 0;
+        nextChordIdx = (currentChordIndexRef.current + 1) % flatChordsRef.current.length;
+        currentChordIndexRef.current = nextChordIdx;
+        setCurrentChordIndex(nextChordIdx);
+
+        // Smoothly center the active playing chord on screen
+        const targetToken = document.getElementById(`chord-token-${nextChordIdx}`);
+        if (targetToken && scrollContainerRef.current) {
+          const cRect = scrollContainerRef.current.getBoundingClientRect();
+          const tRect = targetToken.getBoundingClientRect();
+          if (tRect.top < cRect.top + 90 || tRect.bottom > cRect.bottom - 130) {
+            targetToken.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }
+
+        // Strum chord voicing on bar start
+        const curChord = flatChordsRef.current[nextChordIdx];
+        if (curChord && (practiceSoundModeRef.current === 'both' || practiceSoundModeRef.current === 'chords')) {
+          const transposed = transposeChord(curChord.chord, transposeOffsetRef.current);
+          const voicings = getChordVoicings(transposed);
+          if (voicings && voicings.length > 0) {
+            strumChordVoicing(voicings[0].frets, voicings[0].baseFret);
+          }
+        }
+      }
+
+      currentBeatInBarRef.current = nextBeat;
+      setCurrentBeatInBar(nextBeat);
+
+      // Play metronome click
+      if (practiceSoundModeRef.current === 'both' || practiceSoundModeRef.current === 'click') {
+        playMetronomeClick(nextBeat === 0);
+      }
+    };
+
+    // Strum & click first beat on start
+    if (currentBeatInBarRef.current === 0) {
+      const curChord = flatChordsRef.current[currentChordIndexRef.current];
+      if (curChord && (practiceSoundModeRef.current === 'both' || practiceSoundModeRef.current === 'chords')) {
+        const transposed = transposeChord(curChord.chord, transposeOffsetRef.current);
+        const voicings = getChordVoicings(transposed);
+        if (voicings && voicings.length > 0) {
+          strumChordVoicing(voicings[0].frets, voicings[0].baseFret);
+        }
+      }
+      if (practiceSoundModeRef.current === 'both' || practiceSoundModeRef.current === 'click') {
+        playMetronomeClick(true);
+      }
+    }
+
+    timerIntervalRef.current = window.setInterval(tick, msPerBeat);
+
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+    };
+  }, [isPracticing, practiceBpm, flatChords.length]);
+
+  // Cleanup practice audio on component unmount
+  useEffect(() => {
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+      if (practiceAudioCtxRef.current && practiceAudioCtxRef.current.state !== 'closed') {
+        practiceAudioCtxRef.current.close().catch(() => {});
+        practiceAudioCtxRef.current = null;
+      }
+    };
+  }, []);
+
+  // Jump helpers for manual practice navigation
+  const jumpPreviousChord = () => {
+    if (flatChords.length === 0) return;
+    const prev = (currentChordIndex - 1 + flatChords.length) % flatChords.length;
+    setCurrentChordIndex(prev);
+    setCurrentBeatInBar(0);
+    const chordItem = flatChords[prev];
+    if (chordItem) {
+      const transposed = transposeChord(chordItem.chord, transposeOffset);
+      const voicings = getChordVoicings(transposed);
+      if (voicings && voicings.length > 0) {
+        strumChordVoicing(voicings[0].frets, voicings[0].baseFret);
+      }
+    }
+  };
+
+  const jumpNextChord = () => {
+    if (flatChords.length === 0) return;
+    const next = (currentChordIndex + 1) % flatChords.length;
+    setCurrentChordIndex(next);
+    setCurrentBeatInBar(0);
+    const chordItem = flatChords[next];
+    if (chordItem) {
+      const transposed = transposeChord(chordItem.chord, transposeOffset);
+      const voicings = getChordVoicings(transposed);
+      if (voicings && voicings.length > 0) {
+        strumChordVoicing(voicings[0].frets, voicings[0].baseFret);
+      }
+    }
+  };
 
   const [inspectChord, setInspectChord] = useState<{
     chordName: string;
@@ -90,12 +371,19 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
     return calculateSmartCapo(selectedSong.key, transposeOffset);
   }, [selectedSong, transposeOffset]);
 
-  // Sync offline cached status whenever selected song changes
+  // Sync offline cached status & auto-calibrate song tempo whenever selected song changes
   useEffect(() => {
     if (selectedSong?.id) {
       isSongCachedOffline(selectedSong.id).then(setIsCurrentSongOffline);
+      const detectedBpm = getEstimatedSongBpm(selectedSong);
+      setPracticeBpm(detectedBpm);
+      setCurrentChordIndex(0);
+      setCurrentBeatInBar(0);
+      setIsPracticing(false);
     } else {
       setIsCurrentSongOffline(false);
+      setIsPracticing(false);
+      setIsPracticeBarOpen(false);
     }
   }, [selectedSong]);
 
@@ -244,8 +532,10 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
 
       const container = scrollContainerRef.current;
       if (container && !isUserTouchingRef.current) {
-        // Smooth progression calibrated to scrollSpeed
-        const pxPerSec = scrollSpeed * 36;
+        // Smooth progression calibrated to scrollSpeed:
+        // 0.05x gives ~1.2 px/sec (ultra-slow crawl for relaxed practice)
+        // 1.0x gives 24 px/sec (natural pace)
+        const pxPerSec = Math.max(0.8, scrollSpeed * 24);
         accumulatedScrollRef.current += pxPerSec * deltaSeconds;
 
         const maxScroll = container.scrollHeight - container.clientHeight;
@@ -563,10 +853,10 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
         setIsAutoScrolling((prev) => !prev);
       } else if (e.key === '-' || e.key === '_' || e.key === '[' || e.key === 'ArrowDown') {
         e.preventDefault();
-        setScrollSpeed((prev) => Math.max(0.2, Number((prev - 0.2).toFixed(1))));
+        decreaseSpeed();
       } else if (e.key === '+' || e.key === '=' || e.key === ']' || e.key === 'ArrowUp') {
         e.preventDefault();
-        setScrollSpeed((prev) => Math.min(3.0, Number((prev + 0.2).toFixed(1))));
+        increaseSpeed();
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
         setTransposeOffset((prev) => prev - 1);
@@ -742,12 +1032,24 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                           </span>
                           {line.chords.map((c, cIdx) => {
                             const transposed = transposeChord(c.chord, transposeOffset);
+                            const gIdx = chordIndexMap.get(`${sIdx}-${lIdx}-${cIdx}`) ?? 0;
+                            const isPlayingThisChord = isPracticing && currentChordIndex === gIdx;
                             return (
                               <button
                                 key={cIdx}
-                                onClick={() => handleInspectChord(transposed)}
-                                className="px-2 py-0.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 font-mono font-extrabold text-xs cursor-pointer transition shadow-sm"
-                                title={`Play ${transposed} & view fingering`}
+                                id={`chord-token-${gIdx}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setCurrentChordIndex(gIdx);
+                                  setCurrentBeatInBar(0);
+                                  handleInspectChord(transposed);
+                                }}
+                                className={`px-2 py-0.5 rounded-lg font-mono font-extrabold text-xs cursor-pointer transition-all shadow-sm ${
+                                  isPlayingThisChord
+                                    ? 'bg-emerald-500 text-black shadow-md ring-2 ring-emerald-300 ring-offset-1 scale-110 font-black animate-pulse'
+                                    : 'bg-emerald-500/15 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300'
+                                }`}
+                                title={`Chord #${gIdx + 1}: ${transposed} (Click to jump practice player here)`}
                               >
                                 {transposed}
                               </button>
@@ -768,13 +1070,25 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                               const targetPos = Math.max(lastPos, c.position || 0);
                               const spacesBefore = targetPos - lastPos;
                               lastPos = targetPos + transposed.length;
+                              const gIdx = chordIndexMap.get(`${sIdx}-${lIdx}-${cIdx}`) ?? 0;
+                              const isPlayingThisChord = isPracticing && currentChordIndex === gIdx;
                               return (
                                 <span key={cIdx} className="inline-flex items-center">
                                   {spacesBefore > 0 && <span>{' '.repeat(spacesBefore)}</span>}
                                   <button
-                                    onClick={() => handleInspectChord(transposed)}
-                                    className="font-mono text-xs sm:text-sm font-black text-emerald-700 dark:text-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-300 hover:underline cursor-pointer transition select-none tracking-tight"
-                                    title={`Play ${transposed} & view fingering`}
+                                    id={`chord-token-${gIdx}`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setCurrentChordIndex(gIdx);
+                                      setCurrentBeatInBar(0);
+                                      handleInspectChord(transposed);
+                                    }}
+                                    className={`font-mono text-xs sm:text-sm font-black cursor-pointer transition-all select-none tracking-tight rounded-md px-1.5 py-0.5 ${
+                                      isPlayingThisChord
+                                        ? 'bg-emerald-500 text-black shadow-lg ring-2 ring-emerald-300 ring-offset-1 scale-110 font-extrabold animate-pulse'
+                                        : 'text-emerald-700 dark:text-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-300 hover:bg-emerald-500/10'
+                                    }`}
+                                    title={`Chord #${gIdx + 1}: ${transposed} (Click to jump practice player here)`}
                                   >
                                     {transposed}
                                   </button>
@@ -818,11 +1132,169 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
             </div>
           )}
 
-          <div className="max-w-3xl mx-auto w-full flex items-center justify-between gap-2 sm:gap-4">
+          {/* Interactive Song Practice Accompaniment Drawer */}
+          {isPracticeBarOpen && (
+            <div className="max-w-3xl mx-auto w-full p-3 rounded-2xl bg-slate-100/90 dark:bg-slate-900/90 border border-slate-300/80 dark:border-slate-800 space-y-2.5 animate-in slide-in-from-bottom-2">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsPracticing(!isPracticing)}
+                    className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer transition shadow-sm ${
+                      isPracticing
+                        ? 'bg-rose-500 text-white shadow-rose-500/30'
+                        : 'bg-emerald-500 text-black shadow-emerald-500/30 font-extrabold'
+                    }`}
+                  >
+                    {isPracticing ? <Pause className="w-3.5 h-3.5 fill-white" /> : <Play className="w-3.5 h-3.5 fill-black" />}
+                    <span>{isPracticing ? 'STOP PRACTICE' : 'START PRACTICE'}</span>
+                  </button>
+
+                  {/* Beat pulse visual dots */}
+                  <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                    {Array.from({ length: beatsPerChord }).map((_, bIdx) => (
+                      <span
+                        key={bIdx}
+                        className={`w-2.5 h-2.5 rounded-full transition-all duration-100 ${
+                          currentBeatInBar === bIdx && isPracticing
+                            ? bIdx === 0
+                              ? 'bg-emerald-400 scale-125 shadow-[0_0_8px_#34d399]'
+                              : 'bg-cyan-400 scale-110 shadow-[0_0_6px_#22d3ee]'
+                            : 'bg-slate-300 dark:bg-slate-700'
+                        }`}
+                      />
+                    ))}
+                    <span className="text-[10px] font-mono text-slate-500 ml-1 font-semibold">
+                      Beat {isPracticing ? currentBeatInBar + 1 : 1}/{beatsPerChord}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Tempo Steppers & Tap */}
+                <div className="flex items-center gap-1.5">
+                  <div className="flex items-center bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-1.5 py-1">
+                    <button
+                      onClick={() => setPracticeBpm((prev) => Math.max(40, prev - 2))}
+                      className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-bold flex items-center justify-center text-xs cursor-pointer"
+                    >
+                      -
+                    </button>
+                    <span className="font-mono font-extrabold text-xs text-slate-900 dark:text-white px-2 min-w-[54px] text-center">
+                      {practiceBpm} <span className="text-[9px] text-slate-400 font-normal">BPM</span>
+                    </span>
+                    <button
+                      onClick={() => setPracticeBpm((prev) => Math.min(240, prev + 2))}
+                      className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-bold flex items-center justify-center text-xs cursor-pointer"
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={handleTapTempo}
+                    className="px-2 py-1 rounded-xl bg-white dark:bg-slate-950 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-[11px] font-mono font-bold text-slate-800 dark:text-slate-200 active:scale-95 cursor-pointer shadow-xs"
+                    title="Tap along to the song rhythm to detect BPM"
+                  >
+                    TAP
+                  </button>
+                </div>
+              </div>
+
+              {/* Bar Frequency, Sound Mode & Jump Controls */}
+              <div className="flex items-center justify-between flex-wrap gap-2 pt-1 border-t border-slate-200 dark:border-slate-800/80 text-xs">
+                {/* Sound Mode Toggle */}
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] font-mono text-slate-500 font-bold hidden sm:inline">SOUND:</span>
+                  <div className="flex items-center p-0.5 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-[11px]">
+                    <button
+                      onClick={() => setPracticeSoundMode('both')}
+                      className={`px-2 py-0.5 rounded-md font-bold transition cursor-pointer ${
+                        practiceSoundMode === 'both' ? 'bg-emerald-500 text-black' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      Chords+Click
+                    </button>
+                    <button
+                      onClick={() => setPracticeSoundMode('chords')}
+                      className={`px-2 py-0.5 rounded-md font-bold transition cursor-pointer ${
+                        practiceSoundMode === 'chords' ? 'bg-emerald-500 text-black' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      Chords
+                    </button>
+                    <button
+                      onClick={() => setPracticeSoundMode('click')}
+                      className={`px-2 py-0.5 rounded-md font-bold transition cursor-pointer ${
+                        practiceSoundMode === 'click' ? 'bg-emerald-500 text-black' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      Click
+                    </button>
+                    <button
+                      onClick={() => setPracticeSoundMode('silent')}
+                      className={`px-2 py-0.5 rounded-md font-bold transition cursor-pointer ${
+                        practiceSoundMode === 'silent' ? 'bg-emerald-500 text-black' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      Silent
+                    </button>
+                  </div>
+                </div>
+
+                {/* Beats per Chord Toggle: 4 beats (1 bar) or 2 beats (half bar) */}
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] font-mono text-slate-500 font-bold hidden sm:inline">BAR:</span>
+                  <div className="flex items-center p-0.5 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-[11px]">
+                    <button
+                      onClick={() => setBeatsPerChord(4)}
+                      className={`px-2 py-0.5 rounded-md font-bold transition cursor-pointer ${
+                        beatsPerChord === 4 ? 'bg-cyan-500 text-black' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      4 Beats (1 Bar)
+                    </button>
+                    <button
+                      onClick={() => setBeatsPerChord(2)}
+                      className={`px-2 py-0.5 rounded-md font-bold transition cursor-pointer ${
+                        beatsPerChord === 2 ? 'bg-cyan-500 text-black' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      2 Beats (½ Bar)
+                    </button>
+                  </div>
+                </div>
+
+                {/* Prev / Next Chord Steppers */}
+                {flatChords.length > 0 && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={jumpPreviousChord}
+                      className="px-2 py-0.5 rounded-lg bg-white dark:bg-slate-950 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-[10px] font-mono font-bold cursor-pointer"
+                      title="Previous Chord"
+                    >
+                      ◀ Prev
+                    </button>
+                    <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-400 font-extrabold px-1">
+                      #{currentChordIndex + 1}/{flatChords.length} ({transposeChord(flatChords[currentChordIndex]?.chord || '', transposeOffset)})
+                    </span>
+                    <button
+                      onClick={jumpNextChord}
+                      className="px-2 py-0.5 rounded-lg bg-white dark:bg-slate-950 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-[10px] font-mono font-bold cursor-pointer"
+                      title="Next Chord"
+                    >
+                      Next ▶
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Main Playback Bar */}
+          <div className="max-w-3xl mx-auto w-full flex items-center justify-between gap-1.5 sm:gap-3 flex-wrap sm:flex-nowrap">
             {/* Auto Scroll Button */}
             <button
               onClick={() => setIsAutoScrolling(!isAutoScrolling)}
-              className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-lg shrink-0 ${
+              className={`flex-1 sm:flex-initial px-3 sm:px-4 py-2.5 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-lg shrink-0 ${
                 isAutoScrolling
                   ? 'bg-rose-500 text-white shadow-rose-500/30'
                   : 'bg-emerald-500 text-black shadow-emerald-500/30 font-extrabold'
@@ -844,21 +1316,21 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
               )}
             </button>
 
-            {/* Granular Auto-Scroll Speed Steppers */}
-            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl px-2 py-1 shrink-0">
+            {/* Granular Auto-Scroll Speed Steppers (down to 0.05x!) */}
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl px-1.5 sm:px-2 py-1 shrink-0">
               <span className="text-[10px] font-mono text-slate-600 dark:text-slate-400 uppercase hidden sm:inline font-bold">SPEED:</span>
               <button
-                onClick={() => setScrollSpeed((prev) => Math.max(0.2, Number((prev - 0.2).toFixed(1))))}
+                onClick={decreaseSpeed}
                 className="w-7 h-7 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold flex items-center justify-center transition active:scale-95 cursor-pointer text-sm border border-slate-300 dark:border-transparent shadow-xs"
-                title="Slower scroll (Shortcut: - or [ or ↓)"
+                title="Slower scroll (Down to 0.05x) (Shortcut: - or [ or ↓)"
               >
                 -
               </button>
-              <span className="font-mono font-extrabold text-emerald-700 dark:text-emerald-400 text-xs sm:text-sm min-w-[38px] text-center">
-                {scrollSpeed.toFixed(1)}x
+              <span className="font-mono font-extrabold text-emerald-700 dark:text-emerald-400 text-xs sm:text-sm min-w-[42px] text-center">
+                {scrollSpeed < 0.2 ? scrollSpeed.toFixed(2) : scrollSpeed.toFixed(1)}x
               </span>
               <button
-                onClick={() => setScrollSpeed((prev) => Math.min(3.0, Number((prev + 0.2).toFixed(1))))}
+                onClick={increaseSpeed}
                 className="w-7 h-7 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold flex items-center justify-center transition active:scale-95 cursor-pointer text-sm border border-slate-300 dark:border-transparent shadow-xs"
                 title="Faster scroll (Shortcut: + or = or ↑)"
               >
@@ -867,7 +1339,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
             </div>
 
             {/* Key Transpose Steppers */}
-            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl px-2 py-1 shrink-0">
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl px-1.5 sm:px-2 py-1 shrink-0">
               <span className="text-[10px] font-mono text-slate-600 dark:text-slate-400 uppercase hidden sm:inline font-bold">KEY:</span>
               <button
                 onClick={() => setTransposeOffset((prev) => prev - 1)}
@@ -887,6 +1359,23 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                 +
               </button>
             </div>
+
+            {/* Practice Accompaniment Toggle Button */}
+            <button
+              onClick={() => setIsPracticeBarOpen(!isPracticeBarOpen)}
+              className={`px-3 py-2 rounded-2xl text-xs font-bold font-mono transition flex items-center gap-1.5 cursor-pointer shadow-sm border shrink-0 ${
+                isPracticing
+                  ? 'bg-emerald-500 text-black border-emerald-400 font-extrabold ring-2 ring-emerald-300/50 animate-pulse'
+                  : isPracticeBarOpen
+                  ? 'bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white border-slate-300 dark:border-slate-700'
+                  : 'bg-slate-100 dark:bg-slate-900/90 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-800 hover:text-slate-900 dark:hover:text-white'
+              }`}
+              title="Practice Accompaniment & Tempo Engine"
+            >
+              <Clock className="w-3.5 h-3.5" />
+              <span>{practiceBpm} BPM</span>
+              {isPracticing && <span className="w-1.5 h-1.5 rounded-full bg-black"></span>}
+            </button>
           </div>
         </div>
 
