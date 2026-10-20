@@ -24,6 +24,7 @@ import { playGuitarStringTone } from '../audio/toneGenerator';
 import { TablatureViewer } from './TablatureViewer';
 import { findChordDiagram, ChordDef, ChordVoicing, getChordVoicings, strumChordVoicing } from './ChordLibraryModal';
 import { cacheSongOffline, getCachedSongOffline, isSongCachedOffline } from '../services/offlineStorage';
+import { requestScreenWakeLock, releaseScreenWakeLock } from '../utils/wakeLock';
 
 interface SongSearchModalProps {
   isOpen?: boolean;
@@ -486,6 +487,29 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
     onSongStateChange?.(!!selectedSong || !!inspectChord);
   }, [selectedSong, inspectChord, onSongStateChange]);
 
+  // Infinite Screen Timeout: Keeps mobile & browser screen awake while viewing a song or scrolling chords
+  useEffect(() => {
+    if (!selectedSong) {
+      releaseScreenWakeLock();
+      return;
+    }
+
+    requestScreenWakeLock();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && selectedSong) {
+        requestScreenWakeLock();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      releaseScreenWakeLock();
+    };
+  }, [selectedSong]);
+
   // Handle custom close event from Android hardware Back Button
   useEffect(() => {
     const handleCloseEvent = () => {
@@ -605,6 +629,9 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                     ⚡ Offline Saved
                   </span>
                 )}
+                <span className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 font-semibold" title="Screen timeout is paused while viewing this song">
+                  ⚡ Screen Awake
+                </span>
               </div>
             </div>
           </div>

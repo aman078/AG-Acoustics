@@ -21,7 +21,7 @@ import {
   Moon
 } from 'lucide-react';
 import { detectPitchMPM, frequencyToNote, calculateCents, getRMSVolume } from './audio/pitchDetection';
-import { playGuitarStringTone, playInTuneChime } from './audio/toneGenerator';
+import { playGuitarStringTone, playInTuneChime, stopToneDrone } from './audio/toneGenerator';
 import { TUNINGS, TuningPreset } from './data/tunings';
 import { StrobeTuner } from './components/StrobeTuner';
 import { HeadstockTuner } from './components/HeadstockTuner';
@@ -348,6 +348,7 @@ export const App: React.FC = () => {
   const stopListening = () => {
     if (animFrameRef.current) {
       cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = null;
     }
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach((track) => track.stop());
@@ -357,6 +358,7 @@ export const App: React.FC = () => {
       audioContextRef.current.close();
       audioContextRef.current = null;
     }
+    stopToneDrone();
     setIsListening(false);
     setDetectedFreq(null);
     setCentsOffset(0);
@@ -366,6 +368,7 @@ export const App: React.FC = () => {
   // Continuous Pitch Detection Loop
   const processAudio = useCallback(() => {
     if (!analyserRef.current || !audioBufferRef.current || !audioContextRef.current) return;
+    if (!isListening || activeTab !== 'tuner' || isSongOpen) return;
 
     analyserRef.current.getFloatTimeDomainData(audioBufferRef.current);
     const buffer = audioBufferRef.current;
@@ -454,16 +457,26 @@ export const App: React.FC = () => {
     }
 
     animFrameRef.current = requestAnimationFrame(processAudio);
-  }, [currentTuning, activeStringIndex, isAutoMode, referenceA4]);
+  }, [currentTuning, activeStringIndex, isAutoMode, referenceA4, isListening, activeTab, isSongOpen]);
+
+  // Completely shut down tuner microphone & audio processing when leaving the Tuner tab or when a song is open
+  useEffect(() => {
+    if (activeTab !== 'tuner' || isSongOpen) {
+      if (isListening) {
+        stopListening();
+      }
+      stopToneDrone();
+    }
+  }, [activeTab, isSongOpen, isListening]);
 
   useEffect(() => {
-    if (isListening) {
+    if (isListening && activeTab === 'tuner' && !isSongOpen) {
       animFrameRef.current = requestAnimationFrame(processAudio);
     }
     return () => {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     };
-  }, [isListening, processAudio]);
+  }, [isListening, activeTab, isSongOpen, processAudio]);
 
   // Handle tuning change
   const handleSelectTuning = (tuning: TuningPreset) => {
@@ -883,7 +896,11 @@ export const App: React.FC = () => {
 
           {/* 2. Songs & Chords */}
           <button
-            onClick={() => setActiveTab('songs')}
+            onClick={() => {
+              if (isListening) stopListening();
+              stopToneDrone();
+              setActiveTab('songs');
+            }}
             className={`flex flex-col items-center justify-center py-1.5 px-2 rounded-2xl transition cursor-pointer ${
               activeTab === 'songs'
                 ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
@@ -896,7 +913,11 @@ export const App: React.FC = () => {
 
           {/* 3. Metronome */}
           <button
-            onClick={() => setActiveTab('metronome')}
+            onClick={() => {
+              if (isListening) stopListening();
+              stopToneDrone();
+              setActiveTab('metronome');
+            }}
             className={`flex flex-col items-center justify-center py-1.5 px-2 rounded-2xl transition cursor-pointer ${
               activeTab === 'metronome'
                 ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
@@ -909,7 +930,11 @@ export const App: React.FC = () => {
 
           {/* 4. Chords */}
           <button
-            onClick={() => setActiveTab('chords')}
+            onClick={() => {
+              if (isListening) stopListening();
+              stopToneDrone();
+              setActiveTab('chords');
+            }}
             className={`flex flex-col items-center justify-center py-1.5 px-2 rounded-2xl transition cursor-pointer ${
               activeTab === 'chords'
                 ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.25)]'

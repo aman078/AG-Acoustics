@@ -563,10 +563,10 @@ export function guitarTunaScraperPlugin(): Plugin {
           res.setHeader('Content-Type', 'application/json');
           res.setHeader('Access-Control-Allow-Origin', '*');
           res.end(JSON.stringify({
-            latest_version_code: 46,
-            latest_version_name: '1.0.46',
+            latest_version_code: 47,
+            latest_version_name: '1.0.47',
             download_url: 'https://github.com/aman078/AG-Acoustics/releases/latest/download/AGSoft-Acoustics.apk',
-            release_notes: 'Clean, verified Ultimate Guitar chords and full lyrics engine. Removed multi-track instrument noise and snippet overrides.',
+            release_notes: 'Silent background tuner management (auto-pauses when scrolling chords, songs, metronome) and infinite screen wake lock while viewing chords and tabs.',
             force_update: false,
           }));
         } catch (err: unknown) {
