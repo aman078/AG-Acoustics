@@ -8,9 +8,9 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    let latestTagName = 'v1.0.38';
+    let latestTagName = 'v1.0.39';
     let apkDownloadUrl = 'https://github.com/aman078/AG-Acoustics/releases/latest/download/AGSoft-Acoustics.apk';
-    let releaseNotes = 'Optimized song search with in-flight cancellation, full 12-root Chord Dictionary with Sus4, Sus2, 7th, and in-app auto-updates.';
+    let releaseNotes = 'Locked permanent Android release signing key to eliminate package conflict errors, added Cute Acoustic Puppy splash screen, and updated Chord Dictionary.';
 
     try {
       const ghRes = await fetch('https://api.github.com/repos/aman078/AG-Acoustics/releases/latest', {
@@ -36,7 +36,7 @@ export default async function handler(req: any, res: any) {
     }
 
     const match = latestTagName.match(/\d+$/);
-    const versionCode = match ? parseInt(match[0], 10) : 38;
+    const versionCode = match ? parseInt(match[0], 10) : 39;
     const versionName = latestTagName.replace(/^v/, '');
 
     res.setHeader('Content-Type', 'application/json');

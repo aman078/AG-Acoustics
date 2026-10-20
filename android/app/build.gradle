@@ -7,8 +7,8 @@ android {
         applicationId "com.auratuner.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 38
-        versionName "1.0.38"
+        versionCode 39
+        versionName "1.0.39"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +16,20 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        fixedDebugKey {
+            storeFile file("debug.keystore")
+            storePassword "androiddebug"
+            keyAlias "androiddebugkey"
+            keyPassword "androiddebug"
+        }
+    }
     buildTypes {
+        debug {
+            signingConfig signingConfigs.fixedDebugKey
+        }
         release {
+            signingConfig signingConfigs.fixedDebugKey
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
