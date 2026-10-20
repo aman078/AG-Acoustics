@@ -23,13 +23,6 @@ function decodeHtmlEntities(str: string): string {
     .replace(/&uuml;/g, 'ü');
 }
 
-function toSlug(s: string): string {
-  return (s || '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
-}
-
 function isChordToken(text: string): boolean {
   if (!text) return false;
   return /^[A-G][b#]?(?:m|maj|min|dim|aug|sus\d?|\d)?$/i.test(text.trim());
@@ -122,13 +115,6 @@ function extractChordsWithVisualPosition(str: string): Array<{ chord: string; po
   return chords;
 }
 
-function toChordName(chordObj: any): string {
-  if (!chordObj) return '';
-  const root = chordObj.baseNote?.name || '';
-  const suffix = chordObj.chordType?.suffix || '';
-  return `${root}${suffix}`;
-}
-
 export interface SongChordSection {
   sectionTitle: string;
   lines: {
@@ -137,133 +123,6 @@ export interface SongChordSection {
   }[];
 }
 
-/**
- * Intelligent Chord Autocomplete & Verse Propagation
- */
-function propagateHarmonicStructure(sections: SongChordSection[]): SongChordSection[] {
-  if (!sections || sections.length === 0) return sections;
-
-  const categorize = (title: string): string => {
-    const t = (title || '').toLowerCase();
-    if (t.includes('verse') || t.includes('stanza')) return 'verse';
-    if (t.includes('chorus') || t.includes('refrain') || t.includes('hook')) return 'chorus';
-    if (t.includes('pre-chorus') || t.includes('prechorus')) return 'pre-chorus';
-    if (t.includes('bridge')) return 'bridge';
-    return 'other';
-  };
-
-  const templates: {
-    [cat: string]: {
-      maxLines: number;
-      chords: { chord: string; ratio: number }[][];
-    };
-  } = {};
-
-  for (const sec of sections) {
-    const cat = categorize(sec.sectionTitle);
-    if (cat === 'other') continue;
-
-    const chordLines = sec.lines.filter((l) => l.chords && l.chords.length > 0);
-    if (chordLines.length >= 2 || (chordLines.length >= 1 && sec.lines.length <= 2)) {
-      if (!templates[cat] || chordLines.length > templates[cat].maxLines) {
-        templates[cat] = {
-          maxLines: chordLines.length,
-          chords: sec.lines.map((l) =>
-            (l.chords || []).map((c) => ({
-              chord: c.chord,
-              ratio: l.lyrics && l.lyrics.length > 0 ? c.position / l.lyrics.length : 0,
-            }))
-          ),
-        };
-      }
-    }
-  }
-
-  const defaultTemplate = templates['verse'] || Object.values(templates)[0];
-
-  return sections.map((sec) => {
-    const cat = categorize(sec.sectionTitle);
-    const template = templates[cat] || (cat === 'verse' ? defaultTemplate : null);
-    if (!template || template.chords.length === 0) return sec;
-
-    const chordCount = sec.lines.reduce((acc, l) => acc + (l.chords?.length || 0), 0);
-    const linesWithLyrics = sec.lines.filter((l) => l.lyrics && l.lyrics.trim().length > 0);
-
-    if (linesWithLyrics.length > 0 && chordCount <= Math.floor(linesWithLyrics.length / 3)) {
-      const newLines = sec.lines.map((line, idx) => {
-        if (!line.lyrics || line.lyrics.trim().length === 0) return line;
-        if (line.chords && line.chords.length > 0) return line;
-
-        const tIndex = idx % template.chords.length;
-        const tChords = template.chords[tIndex] || [];
-        if (tChords.length === 0) return line;
-
-        const projected = tChords.map((tc) => ({
-          chord: tc.chord,
-          position: Math.min(
-            Math.max(0, Math.round(tc.ratio * line.lyrics.length)),
-            Math.max(0, line.lyrics.length - 2)
-          ),
-        }));
-
-        return {
-          ...line,
-          chords: projected,
-        };
-      });
-
-      return {
-        ...sec,
-        lines: newLines,
-      };
-    }
-
-    return sec;
-  });
-}
-
-/**
- * Searches Songsterr for verified multi-track tablature and complete ChordPro sheets
- */
-async function searchSongsterr(query: string) {
-  try {
-    const res = await fetch(`https://www.songsterr.com/api/songs?pattern=${encodeURIComponent(query)}`, {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      },
-    });
-    if (!res.ok) return [];
-    const songs = await res.json();
-    if (!Array.isArray(songs)) return [];
-
-    return songs
-      .filter((s: any) => !s.isJunk && s.artist && s.title)
-      .filter((s: any) => isRelevantMatch(query, s.title, s.artist))
-      .slice(0, 8)
-      .map((s: any) => {
-        const slug = `${toSlug(s.artist)}-${toSlug(s.title)}`;
-        const hasChords = !!s.hasChords;
-        const pageType = hasChords ? 'chords' : 'tab';
-        return {
-          id: `songsterr-${s.songId}`,
-          title: decodeHtmlEntities(s.title),
-          artist: decodeHtmlEntities(s.artist),
-          url: `https://www.songsterr.com/a/wsa/${slug}-${pageType}-s${s.songId}`,
-          source: hasChords ? 'Songsterr (Verified Chords)' : 'Songsterr (Multi-Track Tab)',
-          difficulty: hasChords ? 'Verified Studio' : 'Multi-Track Tab',
-          hasChords,
-        };
-      });
-  } catch (err) {
-    console.error('Songsterr search error:', err);
-    return [];
-  }
-}
-
-/**
- * Searches Ultimate Guitar with Best-Rated Version Prioritization (>4.5 stars, highest votes)
- */
 async function searchUltimateGuitar(query: string) {
   const variants = generateSearchVariants(query);
 
@@ -310,42 +169,38 @@ async function searchUltimateGuitar(query: string) {
 
         const versionGroups = new Map<string, UGRawItem[]>();
         for (const item of validResults) {
-          const key = `${item.song_name.toLowerCase().trim()}:::${item.artist_name.toLowerCase().trim()}:::${item.type.toLowerCase()}`;
+          const key = `${item.song_name.toLowerCase().trim()}:::${item.artist_name.toLowerCase().trim()}`;
           const list = versionGroups.get(key) || [];
           list.push(item);
           versionGroups.set(key, list);
         }
 
-        const championList: UGRawItem[] = [];
+        const champions: UGRawItem[] = [];
         for (const group of versionGroups.values()) {
           group.sort((a, b) => {
-            const aRating = a.rating || 0;
-            const bRating = b.rating || 0;
+            const aIsChords = a.type === 'Chords' ? 1 : 0;
+            const bIsChords = b.type === 'Chords' ? 1 : 0;
+            if (bIsChords !== aIsChords) return bIsChords - aIsChords;
+
             const aVotes = a.votes || 0;
             const bVotes = b.votes || 0;
-
-            const aIsHighRated = aRating >= 4.5 ? 1 : 0;
-            const bIsHighRated = bRating >= 4.5 ? 1 : 0;
-
-            if (aIsHighRated !== bIsHighRated) return bIsHighRated - aIsHighRated;
             if (bVotes !== aVotes) return bVotes - aVotes;
-            return bRating - aRating;
+            return (b.rating || 0) - (a.rating || 0);
           });
 
-          championList.push(group[0]);
+          champions.push(group[0]);
         }
 
-        championList.sort((a, b) => {
+        champions.sort((a, b) => {
           const aVotes = a.votes || 0;
           const bVotes = b.votes || 0;
           if (bVotes !== aVotes) return bVotes - aVotes;
           return (b.rating || 0) - (a.rating || 0);
         });
 
-        const formatted = championList.slice(0, 10).map((r) => {
+        const formatted = champions.slice(0, 15).map((r) => {
           const ratingVal = r.rating || 0;
           const votesVal = r.votes || 0;
-          const isTopRated = ratingVal >= 4.5;
           const votesDisplay = votesVal >= 1000 ? `${(votesVal / 1000).toFixed(1)}k` : `${votesVal}`;
           const diffLabel = votesVal > 0 ? `${ratingVal.toFixed(1)}★ (${votesDisplay} votes)` : 'Verified';
 
@@ -354,9 +209,7 @@ async function searchUltimateGuitar(query: string) {
             title: decodeHtmlEntities(r.song_name),
             artist: decodeHtmlEntities(r.artist_name),
             url: r.tab_url,
-            source: isTopRated
-              ? `Ultimate Guitar (Best-Rated ★ ${ratingVal.toFixed(1)})`
-              : 'Ultimate Guitar (Verified Chords & Lyrics)',
+            source: 'Ultimate Guitar (Complete Chords & Lyrics)',
             difficulty: diffLabel,
           };
         });
@@ -415,113 +268,6 @@ async function searchGuitarTuna(query: string) {
   } catch {
     return [];
   }
-}
-
-async function parseSongsterrSong(songUrl: string) {
-  const res = await fetch(songUrl, {
-    headers: {
-      'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    },
-  });
-  const html = await res.text();
-  const marker = 'id="state"';
-  const idx = html.indexOf(marker);
-  if (idx === -1) throw new Error('Could not parse Songsterr state script');
-
-  const start = html.indexOf('>', idx) + 1;
-  const end = html.indexOf('</script>', start);
-  const state = JSON.parse(html.substring(start, end));
-
-  const meta = state.meta?.current || state.meta || {};
-  const songName = decodeHtmlEntities(meta.title || 'Song');
-  const artistName = decodeHtmlEntities(meta.artist || 'Artist');
-  const chordpro = state.chordpro?.current || [];
-
-  let capo = 'No Capo';
-  let tuning = 'Standard (E A D G B E)';
-  const lines: Array<{ lyrics: string; chords: Array<{ chord: string; position: number }> }> = [];
-  const allChordsSet = new Set<string>();
-
-  for (const item of chordpro) {
-    if (item.type === 'capo') {
-      const c = item.text;
-      capo = `Capo ${c}${c === '1' ? 'st Fret' : c === '2' ? 'nd Fret' : c === '3' ? 'rd Fret' : 'th Fret'}`;
-    } else if (item.type === 'tuning') {
-      tuning = item.text || tuning;
-    } else if (item.type === 'line' && item.line) {
-      let currentLyrics = '';
-      const lineChords: Array<{ chord: string; position: number }> = [];
-
-      for (const token of item.line) {
-        if (token.type === 'chord' && token.chord) {
-          const chordName = toChordName(token.chord);
-          if (chordName) {
-            allChordsSet.add(chordName);
-            lineChords.push({ chord: chordName, position: currentLyrics.length });
-          }
-        } else if (token.type === 'text') {
-          currentLyrics += token.text || '';
-        }
-      }
-
-      lines.push({
-        lyrics: decodeHtmlEntities(currentLyrics.trim()),
-        chords: lineChords,
-      });
-    }
-  }
-
-  const sections: SongChordSection[] = [];
-  const chunkSize = 4;
-  for (let i = 0; i < lines.length; i += chunkSize) {
-    const chunk = lines.slice(i, i + chunkSize);
-    const secNum = Math.floor(i / chunkSize) + 1;
-    const isChorus = chunk.some(
-      (l) =>
-        l.lyrics.toLowerCase().includes('chorus') ||
-        l.lyrics.toLowerCase().includes('california') ||
-        l.lyrics.toLowerCase().includes('you look perfect') ||
-        l.lyrics.toLowerCase().includes('yellow')
-    );
-    const sectionTitle = isChorus ? `Chorus ${secNum > 2 ? Math.floor(secNum / 2) : ''}`.trim() : `Verse ${secNum}`;
-    sections.push({ sectionTitle, lines: chunk });
-  }
-
-  const finalSections = propagateHarmonicStructure(sections);
-
-  for (const sec of finalSections) {
-    for (const l of sec.lines) {
-      for (const c of l.chords || []) {
-        if (c.chord) allChordsSet.add(c.chord);
-      }
-    }
-  }
-
-  let tabContent = '';
-  const tracks = meta.tracks || state.tracks || [];
-  if (Array.isArray(tracks) && tracks.length > 0) {
-    tabContent = `================================================================================\nSONGSTERR VERIFIED MULTI-TRACK STUDIO SCORE\n================================================================================\n\n`;
-    for (const track of tracks) {
-      const instName = track.name || track.instrument || 'Guitar';
-      const diffStr = track.difficulty ? `Difficulty Level: ${track.difficulty}/5` : 'Standard';
-      tabContent += `• [Track] ${instName} (${track.instrument || 'Guitar'})\n  ${diffStr}\n`;
-    }
-    tabContent += `\nMulti-track synchronization verified. Switch or mute individual tracks inside studio view.\n`;
-  }
-
-  return {
-    id: songUrl,
-    title: songName,
-    artist: artistName,
-    key: 'Standard Key',
-    capo,
-    tuning,
-    difficulty: 'Verified Studio',
-    allChords: Array.from(allChordsSet),
-    tabContent,
-    sections: finalSections,
-  };
 }
 
 async function parseUltimateGuitarTab(tabUrl: string) {
@@ -607,16 +353,6 @@ async function parseUltimateGuitarTab(tabUrl: string) {
     sections.push(currentSection);
   }
 
-  const finalSections = propagateHarmonicStructure(sections);
-
-  for (const sec of finalSections) {
-    for (const l of sec.lines) {
-      for (const c of l.chords || []) {
-        if (c.chord) allChordsSet.add(c.chord);
-      }
-    }
-  }
-
   return {
     id: tabUrl,
     title: songName,
@@ -626,8 +362,7 @@ async function parseUltimateGuitarTab(tabUrl: string) {
     tuning: tuningVal,
     difficulty: 'Verified',
     allChords: Array.from(allChordsSet),
-    tabContent,
-    sections: finalSections,
+    sections,
   };
 }
 
@@ -749,16 +484,6 @@ async function parseGuitarTunaSong(songUrl: string) {
     });
   }
 
-  const finalSections = propagateHarmonicStructure(sections);
-
-  for (const sec of finalSections) {
-    for (const l of sec.lines) {
-      for (const c of l.chords || []) {
-        if (c.chord) allChordsSet.add(c.chord);
-      }
-    }
-  }
-
   return {
     id: songUrl,
     title,
@@ -768,7 +493,7 @@ async function parseGuitarTunaSong(songUrl: string) {
     tuning: 'Standard (E A D G B E)',
     difficulty: 'Easy',
     allChords: Array.from(allChordsSet),
-    sections: finalSections,
+    sections,
   };
 }
 
@@ -776,7 +501,6 @@ export function guitarTunaScraperPlugin(): Plugin {
   return {
     name: 'guitartuna-scraper-plugin',
     configureServer(server) {
-      // 1. Search Endpoint
       server.middlewares.use('/api/search', async (req: IncomingMessage, res: ServerResponse) => {
         try {
           const urlObj = new URL(req.url || '', `http://${req.headers.host}`);
@@ -788,37 +512,10 @@ export function guitarTunaScraperPlugin(): Plugin {
             return;
           }
 
-          const [songsterrResults, ugResults, gtResults] = await Promise.all([
-            searchSongsterr(query),
-            searchUltimateGuitar(query),
-            searchGuitarTuna(query),
-          ]);
-
-          const combined: Array<{ id: string; title: string; artist: string; url: string; source: string; difficulty: string }> = [];
-          const seenTitles = new Set<string>();
-
-          for (const item of songsterrResults) {
-            const key = `${item.title.toLowerCase().trim()}:::${item.artist.toLowerCase().trim()}`;
-            if (!seenTitles.has(key)) {
-              seenTitles.add(key);
-              combined.push(item);
-            }
-          }
-
-          for (const item of ugResults) {
-            const key = `${item.title.toLowerCase().trim()}:::${item.artist.toLowerCase().trim()}`;
-            if (!seenTitles.has(key)) {
-              seenTitles.add(key);
-              combined.push(item);
-            }
-          }
-
-          for (const item of gtResults) {
-            const key = `${item.title.toLowerCase().trim()}:::${item.artist.toLowerCase().trim()}`;
-            if (!seenTitles.has(key)) {
-              seenTitles.add(key);
-              combined.push(item);
-            }
+          const ugResults = await searchUltimateGuitar(query);
+          let combined = ugResults;
+          if (combined.length === 0) {
+            combined = await searchGuitarTuna(query);
           }
 
           res.setHeader('Content-Type', 'application/json');
@@ -832,7 +529,6 @@ export function guitarTunaScraperPlugin(): Plugin {
         }
       });
 
-      // 2. Song Details Endpoint
       server.middlewares.use('/api/song', async (req: IncomingMessage, res: ServerResponse) => {
         try {
           const urlObj = new URL(req.url || '', `http://${req.headers.host}`);
@@ -845,9 +541,7 @@ export function guitarTunaScraperPlugin(): Plugin {
           }
 
           let songData;
-          if (songUrl.includes('songsterr.com')) {
-            songData = await parseSongsterrSong(songUrl);
-          } else if (songUrl.includes('ultimate-guitar.com')) {
+          if (songUrl.includes('ultimate-guitar.com')) {
             songData = await parseUltimateGuitarTab(songUrl);
           } else {
             songData = await parseGuitarTunaSong(songUrl);
@@ -864,16 +558,15 @@ export function guitarTunaScraperPlugin(): Plugin {
         }
       });
 
-      // 3. App Version & In-App Auto-Updater Endpoint
       server.middlewares.use('/api/version', async (_req: IncomingMessage, res: ServerResponse) => {
         try {
           res.setHeader('Content-Type', 'application/json');
           res.setHeader('Access-Control-Allow-Origin', '*');
           res.end(JSON.stringify({
-            latest_version_code: 45,
-            latest_version_name: '1.0.45',
+            latest_version_code: 46,
+            latest_version_name: '1.0.46',
             download_url: 'https://github.com/aman078/AG-Acoustics/releases/latest/download/AGSoft-Acoustics.apk',
-            release_notes: 'Songsterr verified multi-track score & chord integration, Ultimate Guitar best-rated version prioritization (>4.5★), chord verse propagation, and expanded offline master repertoire.',
+            release_notes: 'Clean, verified Ultimate Guitar chords and full lyrics engine. Removed multi-track instrument noise and snippet overrides.',
             force_update: false,
           }));
         } catch (err: unknown) {
@@ -888,12 +581,9 @@ export function guitarTunaScraperPlugin(): Plugin {
 }
 
 export {
-  searchSongsterr,
   searchUltimateGuitar,
   searchGuitarTuna,
-  parseSongsterrSong,
   parseUltimateGuitarTab,
   parseGuitarTunaSong,
-  propagateHarmonicStructure,
   isRelevantMatch,
 };

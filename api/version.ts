@@ -8,9 +8,9 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    let latestTagName = 'v1.0.45';
+    let latestTagName = 'v1.0.46';
     let apkDownloadUrl = 'https://github.com/aman078/AG-Acoustics/releases/latest/download/AGSoft-Acoustics.apk';
-    let releaseNotes = 'Songsterr verified multi-track score & chord integration, Ultimate Guitar best-rated version prioritization (>4.5★), intelligent chord verse propagation, and expanded offline master repertoire.';
+    let releaseNotes = 'Clean, pure Ultimate Guitar chords and full lyrics engine. Removed multi-track instrument noise and snippet overrides.';
 
     try {
       const ghRes = await fetch('https://api.github.com/repos/aman078/AG-Acoustics/releases/latest', {
@@ -36,7 +36,7 @@ export default async function handler(req: any, res: any) {
     }
 
     const match = latestTagName.match(/\d+$/);
-    const versionCode = match ? parseInt(match[0], 10) : 45;
+    const versionCode = match ? parseInt(match[0], 10) : 46;
     const versionName = latestTagName.replace(/^v/, '');
 
     res.setHeader('Content-Type', 'application/json');

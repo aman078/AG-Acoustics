@@ -20,13 +20,6 @@ function decodeHtmlEntities(str: string): string {
     .replace(/&uuml;/g, 'ü');
 }
 
-function toSlug(s: string): string {
-  return (s || '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
-}
-
 function isRelevantMatch(query: string, title: string, artist: string): boolean {
   const qClean = query.toLowerCase().trim();
   const textClean = `${title} ${artist}`.toLowerCase();
@@ -96,46 +89,7 @@ function generateSearchVariants(query: string): string[] {
 }
 
 /**
- * Searches Songsterr for verified multi-track tablature and complete ChordPro sheets
- */
-async function searchSongsterr(query: string) {
-  try {
-    const res = await fetch(`https://www.songsterr.com/api/songs?pattern=${encodeURIComponent(query)}`, {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      },
-    });
-    if (!res.ok) return [];
-    const songs = await res.json();
-    if (!Array.isArray(songs)) return [];
-
-    return songs
-      .filter((s: any) => !s.isJunk && s.artist && s.title)
-      .filter((s: any) => isRelevantMatch(query, s.title, s.artist))
-      .slice(0, 8)
-      .map((s: any) => {
-        const slug = `${toSlug(s.artist)}-${toSlug(s.title)}`;
-        const hasChords = !!s.hasChords;
-        const pageType = hasChords ? 'chords' : 'tab';
-        return {
-          id: `songsterr-${s.songId}`,
-          title: decodeHtmlEntities(s.title),
-          artist: decodeHtmlEntities(s.artist),
-          url: `https://www.songsterr.com/a/wsa/${slug}-${pageType}-s${s.songId}`,
-          source: hasChords ? 'Songsterr (Verified Chords)' : 'Songsterr (Multi-Track Tab)',
-          difficulty: hasChords ? 'Verified Studio' : 'Multi-Track Tab',
-          hasChords,
-        };
-      });
-  } catch (err) {
-    console.error('Songsterr search error:', err);
-    return [];
-  }
-}
-
-/**
- * Searches Ultimate Guitar with Best-Rated Version Prioritization (>4.5 stars, highest votes)
+ * Searches Ultimate Guitar for complete human-verified chords & lyrics sheets
  */
 async function searchUltimateGuitar(query: string) {
   const variants = generateSearchVariants(query);
@@ -181,48 +135,44 @@ async function searchUltimateGuitar(query: string) {
               isRelevantMatch(query, r.song_name, r.artist_name)
           );
 
-        // Group by normalized song name + artist to select the #1 best version per song
+        // Group by song + artist to pick the single highest-rated version
         const versionGroups = new Map<string, UGRawItem[]>();
         for (const item of validResults) {
-          const key = `${item.song_name.toLowerCase().trim()}:::${item.artist_name.toLowerCase().trim()}:::${item.type.toLowerCase()}`;
+          const key = `${item.song_name.toLowerCase().trim()}:::${item.artist_name.toLowerCase().trim()}`;
           const list = versionGroups.get(key) || [];
           list.push(item);
           versionGroups.set(key, list);
         }
 
-        // For each group, prioritize rating >= 4.5 and sort by votes descending
-        const championList: UGRawItem[] = [];
+        const champions: UGRawItem[] = [];
         for (const group of versionGroups.values()) {
           group.sort((a, b) => {
-            const aRating = a.rating || 0;
-            const bRating = b.rating || 0;
+            // Prioritize Chords over pure Tab for acoustic singing
+            const aIsChords = a.type === 'Chords' ? 1 : 0;
+            const bIsChords = b.type === 'Chords' ? 1 : 0;
+            if (bIsChords !== aIsChords) return bIsChords - aIsChords;
+
+            // Highest votes then rating
             const aVotes = a.votes || 0;
             const bVotes = b.votes || 0;
-
-            const aIsHighRated = aRating >= 4.5 ? 1 : 0;
-            const bIsHighRated = bRating >= 4.5 ? 1 : 0;
-
-            if (aIsHighRated !== bIsHighRated) return bIsHighRated - aIsHighRated;
             if (bVotes !== aVotes) return bVotes - aVotes;
-            return bRating - aRating;
+            return (b.rating || 0) - (a.rating || 0);
           });
 
-          // Pick the champion version
-          championList.push(group[0]);
+          champions.push(group[0]);
         }
 
-        // Sort overall champions by popularity
-        championList.sort((a, b) => {
+        // Sort champions by votes descending
+        champions.sort((a, b) => {
           const aVotes = a.votes || 0;
           const bVotes = b.votes || 0;
           if (bVotes !== aVotes) return bVotes - aVotes;
           return (b.rating || 0) - (a.rating || 0);
         });
 
-        const formatted = championList.slice(0, 10).map((r) => {
+        const formatted = champions.slice(0, 15).map((r) => {
           const ratingVal = r.rating || 0;
           const votesVal = r.votes || 0;
-          const isTopRated = ratingVal >= 4.5;
           const votesDisplay = votesVal >= 1000 ? `${(votesVal / 1000).toFixed(1)}k` : `${votesVal}`;
           const diffLabel = votesVal > 0 ? `${ratingVal.toFixed(1)}★ (${votesDisplay} votes)` : 'Verified';
 
@@ -231,9 +181,7 @@ async function searchUltimateGuitar(query: string) {
             title: decodeHtmlEntities(r.song_name),
             artist: decodeHtmlEntities(r.artist_name),
             url: r.tab_url,
-            source: isTopRated
-              ? `Ultimate Guitar (Best-Rated ★ ${ratingVal.toFixed(1)})`
-              : 'Ultimate Guitar (Verified Chords & Lyrics)',
+            source: 'Ultimate Guitar (Complete Chords & Lyrics)',
             difficulty: diffLabel,
           };
         });
@@ -310,42 +258,12 @@ export default async function handler(req: any, res: any) {
       return res.status(200).json({ songs: [] });
     }
 
-    // Parallel multi-source fetch: Songsterr, Ultimate Guitar (Best-Rated), GuitarTuna
-    const [songsterrResults, ugResults, gtResults] = await Promise.all([
-      searchSongsterr(query),
-      searchUltimateGuitar(query),
-      searchGuitarTuna(query),
-    ]);
+    // Ultimate Guitar is primary (#1 for complete chords & lyrics)
+    const ugResults = await searchUltimateGuitar(query);
 
-    // Deduplicate and combine (Songsterr verified & UG Best-Rated first)
-    const combined: Array<{ id: string; title: string; artist: string; url: string; source: string; difficulty: string }> = [];
-    const seenTitles = new Set<string>();
-
-    // 1. Add Songsterr results
-    for (const item of songsterrResults) {
-      const key = `${item.title.toLowerCase().trim()}:::${item.artist.toLowerCase().trim()}`;
-      if (!seenTitles.has(key)) {
-        seenTitles.add(key);
-        combined.push(item);
-      }
-    }
-
-    // 2. Add Ultimate Guitar Best-Rated results
-    for (const item of ugResults) {
-      const key = `${item.title.toLowerCase().trim()}:::${item.artist.toLowerCase().trim()}`;
-      if (!seenTitles.has(key)) {
-        seenTitles.add(key);
-        combined.push(item);
-      }
-    }
-
-    // 3. Add GuitarTuna fallback results
-    for (const item of gtResults) {
-      const key = `${item.title.toLowerCase().trim()}:::${item.artist.toLowerCase().trim()}`;
-      if (!seenTitles.has(key)) {
-        seenTitles.add(key);
-        combined.push(item);
-      }
+    let combined = ugResults;
+    if (combined.length === 0) {
+      combined = await searchGuitarTuna(query);
     }
 
     res.setHeader('Content-Type', 'application/json');

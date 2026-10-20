@@ -48,55 +48,6 @@ export async function searchOnlineSongs(query: string, signal?: AbortSignal): Pr
     return [];
   }
 
-  // Tokenize query words (skip stop words, require word length >= 2)
-  const stopWords = new Set(['the', 'a', 'an', 'and', 'from', 'song', 'chords', 'tabs', 'lyrics', 'easy', 'guitar']);
-  const queryTokens = trimmed
-    .split(/[\s\-_\/]+/)
-    .map((t) => t.replace(/[^a-z0-9]/g, ''))
-    .filter((t) => t.length >= 2 && !stopWords.has(t));
-
-  // Search curated popular songs & classical / fingerstyle / blues pieces by TITLE or ARTIST
-  const popularMatches: SearchSongItem[] = POPULAR_SONGS.filter((p) => {
-    const textClean = `${p.title} ${p.artist}`.toLowerCase();
-    if (textClean.includes(trimmed)) return true;
-    if (queryTokens.length === 0) return false;
-    const matchingTokens = queryTokens.filter((token) => {
-      const regex = new RegExp(`(^|\\b)${token}`, 'i');
-      return regex.test(textClean);
-    });
-    return matchingTokens.length >= Math.ceil(queryTokens.length * 0.7);
-  }).map((p) => ({
-    id: p.id,
-    title: p.title,
-    artist: p.artist,
-    url: p.id,
-    source: 'AGSoft Master Repertoire',
-    difficulty: p.difficulty,
-    hasChords: true,
-  }));
-
-  const repertoireMatches: SearchSongItem[] = REPERTOIRE_PIECES.filter((p) => {
-    const textClean = `${p.title} ${p.artist}`.toLowerCase();
-    if (textClean.includes(trimmed)) return true;
-    if (queryTokens.length === 0) return false;
-    
-    const matchingTokens = queryTokens.filter((token) => {
-      const regex = new RegExp(`(^|\\b)${token}`, 'i');
-      return regex.test(textClean);
-    });
-    return matchingTokens.length >= Math.ceil(queryTokens.length * 0.7);
-  }).map((p) => ({
-    id: p.id,
-    title: p.title,
-    artist: p.artist,
-    url: p.id,
-    source: `AGSoft ${p.category.toUpperCase()}`,
-    difficulty: p.difficulty,
-    hasChords: true,
-  }));
-
-  const localMatches = [...popularMatches, ...repertoireMatches];
-
   try {
     const apiBase = getApiBaseUrl();
     const res = await fetch(`${apiBase}/api/search?q=${encodeURIComponent(query)}`, { signal });
@@ -104,23 +55,28 @@ export async function searchOnlineSongs(query: string, signal?: AbortSignal): Pr
     const data = (await res.json()) as { songs?: SearchSongItem[] };
 
     const remoteSongs = data.songs || [];
-    const combined = [...localMatches];
-    const seen = new Set(localMatches.map((s) => s.title.toLowerCase()));
-
-    for (const r of remoteSongs) {
-      if (!seen.has(r.title.toLowerCase())) {
-        seen.add(r.title.toLowerCase());
-        combined.push(r);
-      }
-    }
-
-    return combined;
+    return remoteSongs;
   } catch (err: any) {
     if (err?.name === 'AbortError') {
       throw err;
     }
-    console.warn('Online search error, returning local repertoire matches:', err);
-    return localMatches;
+    console.warn('Online search error, checking offline popular repertoire:', err);
+
+    // Fallback only if offline / network failure
+    const popularMatches: SearchSongItem[] = POPULAR_SONGS.filter((p) => {
+      const textClean = `${p.title} ${p.artist}`.toLowerCase();
+      return textClean.includes(trimmed);
+    }).map((p) => ({
+      id: p.id,
+      title: p.title,
+      artist: p.artist,
+      url: p.id,
+      source: 'AGSoft Offline Repertoire',
+      difficulty: p.difficulty,
+      hasChords: true,
+    }));
+
+    return popularMatches;
   }
 }
 
@@ -128,7 +84,43 @@ export async function searchOnlineSongs(query: string, signal?: AbortSignal): Pr
  * Fetches the complete song chord sheet dynamically on demand
  */
 export async function fetchCompleteSong(item: SearchSongItem): Promise<SongData> {
-  // 1. Check curated popular songs repertoire first (instant zero-network playback)
+  // Check localStorage cache
+  const cacheKey = `agsoft_song_cache_${item.id}`;
+  try {
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      const parsed = JSON.parse(cached) as SongData;
+      // Do not return old broken Songsterr track-list scrapes
+      if (parsed.sections && parsed.sections.length > 0 && !parsed.tabContent?.includes('SONGSTERR')) {
+        return parsed;
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  // If item is a remote song from Ultimate Guitar or GuitarTuna, fetch full sheet from API
+  if (item.url && (item.url.startsWith('http') || item.url.startsWith('/') || item.id.startsWith('ug-'))) {
+    try {
+      const apiBase = getApiBaseUrl();
+      const res = await fetch(`${apiBase}/api/song?url=${encodeURIComponent(item.url)}`);
+      if (!res.ok) throw new Error('Failed to load song from scraper');
+      const data = (await res.json()) as SongData;
+
+      // Cache locally for offline performance
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify(data));
+      } catch {
+        // ignore
+      }
+
+      return data;
+    } catch (err) {
+      console.error('Failed to fetch complete song chords, checking local fallback:', err);
+    }
+  }
+
+  // Check curated popular repertoire for instant offline playback
   const popMatch = POPULAR_SONGS.find(
     (p) => p.id === item.id || p.title.toLowerCase() === item.title.toLowerCase()
   );
@@ -136,7 +128,7 @@ export async function fetchCompleteSong(item: SearchSongItem): Promise<SongData>
     return popMatch;
   }
 
-  // 2. Check if it's a curated classical / fingerstyle piece
+  // Check curated classical / fingerstyle piece if requested
   const repMatch = REPERTOIRE_PIECES.find((p) => p.id === item.id);
   if (repMatch) {
     return {
@@ -153,62 +145,29 @@ export async function fetchCompleteSong(item: SearchSongItem): Promise<SongData>
     };
   }
 
-  // Check localStorage cache
-  const cacheKey = `agsoft_song_cache_${item.id}`;
-  try {
-    const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-      const parsed = JSON.parse(cached) as SongData;
-      if (parsed.sections && parsed.sections.length > 0) {
-        return parsed;
-      }
-    }
-  } catch {
-    // ignore
-  }
-
-  // Fetch live from scraper endpoint
-  try {
-    const apiBase = getApiBaseUrl();
-    const res = await fetch(`${apiBase}/api/song?url=${encodeURIComponent(item.url)}`);
-    if (!res.ok) throw new Error('Failed to load song from scraper');
-    const data = (await res.json()) as SongData;
-
-    // Cache locally for offline performance
-    try {
-      localStorage.setItem(cacheKey, JSON.stringify(data));
-    } catch {
-      // ignore
-    }
-
-    return data;
-  } catch (err) {
-    console.error('Failed to fetch complete song chords, using fallback:', err);
-
-    return {
-      id: item.id,
-      title: item.title,
-      artist: item.artist,
-      key: 'Standard Key',
-      capo: 'No Capo',
-      tuning: 'Standard (E A D G B E)',
-      difficulty: 'Easy',
-      allChords: ['G', 'C', 'D', 'Em'],
-      sections: [
-        {
-          sectionTitle: 'Interactive Chord Chart',
-          lines: [
-            {
-              lyrics: `Loaded ${item.title} by ${item.artist}. Full interactive studio charts available.`,
-              chords: [{ chord: 'G', position: 0 }, { chord: 'D', position: 20 }, { chord: 'Em', position: 35 }, { chord: 'C', position: 50 }],
-            },
-            {
-              lyrics: 'Strum with steady down-up rhythm matching the capo and tuning specified above.',
-              chords: [{ chord: 'G', position: 0 }, { chord: 'C', position: 30 }, { chord: 'D', position: 55 }],
-            }
-          ],
-        },
-      ],
-    };
-  }
+  return {
+    id: item.id,
+    title: item.title,
+    artist: item.artist,
+    key: 'Standard Key',
+    capo: 'No Capo',
+    tuning: 'Standard (E A D G B E)',
+    difficulty: 'Easy',
+    allChords: ['G', 'C', 'D', 'Em'],
+    sections: [
+      {
+        sectionTitle: 'Interactive Chord Chart',
+        lines: [
+          {
+            lyrics: `Loaded ${item.title} by ${item.artist}. Full interactive studio charts available.`,
+            chords: [{ chord: 'G', position: 0 }, { chord: 'D', position: 20 }, { chord: 'Em', position: 35 }, { chord: 'C', position: 50 }],
+          },
+          {
+            lyrics: 'Strum with steady down-up rhythm matching the capo and tuning specified above.',
+            chords: [{ chord: 'G', position: 0 }, { chord: 'C', position: 30 }, { chord: 'D', position: 55 }],
+          }
+        ],
+      },
+    ],
+  };
 }
