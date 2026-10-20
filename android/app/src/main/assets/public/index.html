@@ -14,10 +14,31 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script type="module" crossorigin src="/assets/index-Cbh3JM_p.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-BxgDeLyG.css">
+    <script>
+      (function() {
+        try {
+          var saved = localStorage.getItem('agsoft_theme');
+          var isClean = saved === null ? true : (saved === 'clean');
+          var root = document.documentElement;
+          if (isClean) {
+            root.classList.add('clean-theme');
+            root.classList.remove('dark');
+            var meta = document.querySelector('meta[name="theme-color"]');
+            if (meta) meta.setAttribute('content', '#ffffff');
+          } else {
+            root.classList.remove('clean-theme');
+            root.classList.add('dark');
+            var meta = document.querySelector('meta[name="theme-color"]');
+            if (meta) meta.setAttribute('content', '#0a0c10');
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <style>html.clean-theme,html.clean-theme body{color:#0f172a!important;background-color:#fff!important}html.dark,html.dark body{color:#f1f5f9!important;background-color:#08090d!important}</style>
+    <script type="module" crossorigin src="/assets/index-A9_G5D95.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-CwwntuI-.css">
   </head>
-  <body class="bg-[#08090d] text-slate-100 antialiased overflow-x-hidden selection:bg-emerald-500 selection:text-black">
+  <body class="bg-white dark:bg-[#08090d] text-slate-900 dark:text-slate-100 antialiased overflow-x-hidden selection:bg-emerald-500 selection:text-black">
     <div id="root"></div>
     <script>
       if ('serviceWorker' in navigator) {

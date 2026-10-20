@@ -59,7 +59,23 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
   const [isLoadingSong, setIsLoadingSong] = useState<boolean>(false);
   const [transposeOffset, setTransposeOffset] = useState<number>(0);
   const [isAutoScrolling, setIsAutoScrolling] = useState<boolean>(false);
-  const [scrollSpeed, setScrollSpeed] = useState<number>(1);
+  const [scrollSpeed, setScrollSpeed] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('agsoft_scroll_speed');
+      if (saved) {
+        const val = Number(saved);
+        if (!isNaN(val) && val >= 0.2 && val <= 3.0) return val;
+      }
+    } catch {}
+    return 1;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('agsoft_scroll_speed', String(scrollSpeed));
+    } catch {}
+  }, [scrollSpeed]);
+
   const [inspectChord, setInspectChord] = useState<{
     chordName: string;
     voicings: ChordVoicing[];
@@ -111,7 +127,10 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
   });
 
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
-  const scrollIntervalRef = useRef<number | null>(null);
+  const animFrameIdRef = useRef<number | null>(null);
+  const accumulatedScrollRef = useRef<number>(0);
+  const isUserTouchingRef = useRef<boolean>(false);
+  const touchResumeTimeoutRef = useRef<number | null>(null);
   const debounceTimerRef = useRef<number | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const activeQueryRef = useRef<string>('');
@@ -202,32 +221,114 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
     };
   }, [searchQuery, isOpen]);
 
-  // Auto-scroll loop with sub-pixel float accumulator for fractional speeds
+  // Touch-Aware, Fluid 60fps/120fps Auto-Scroll with sub-pixel delta
   useEffect(() => {
-    if (isAutoScrolling) {
-      let accumulated = scrollContainerRef.current?.scrollTop || 0;
-      scrollIntervalRef.current = window.setInterval(() => {
-        if (scrollContainerRef.current) {
-          accumulated += scrollSpeed * 0.75;
-          scrollContainerRef.current.scrollTop = Math.round(accumulated);
-        }
-      }, 30);
-    } else {
-      if (scrollIntervalRef.current) clearInterval(scrollIntervalRef.current);
+    if (!isAutoScrolling) {
+      if (animFrameIdRef.current) {
+        cancelAnimationFrame(animFrameIdRef.current);
+        animFrameIdRef.current = null;
+      }
+      return;
     }
+
+    if (scrollContainerRef.current) {
+      accumulatedScrollRef.current = scrollContainerRef.current.scrollTop;
+    }
+
+    let lastTimestamp = performance.now();
+
+    const scrollStep = (now: number) => {
+      const deltaSeconds = Math.min((now - lastTimestamp) / 1000, 0.05);
+      lastTimestamp = now;
+
+      const container = scrollContainerRef.current;
+      if (container && !isUserTouchingRef.current) {
+        // Smooth progression calibrated to scrollSpeed
+        const pxPerSec = scrollSpeed * 36;
+        accumulatedScrollRef.current += pxPerSec * deltaSeconds;
+
+        const maxScroll = container.scrollHeight - container.clientHeight;
+        if (maxScroll > 0 && accumulatedScrollRef.current >= maxScroll - 2) {
+          container.scrollTop = maxScroll;
+          setIsAutoScrolling(false);
+          return;
+        }
+
+        container.scrollTop = accumulatedScrollRef.current;
+      }
+
+      animFrameIdRef.current = requestAnimationFrame(scrollStep);
+    };
+
+    animFrameIdRef.current = requestAnimationFrame(scrollStep);
+
     return () => {
-      if (scrollIntervalRef.current) clearInterval(scrollIntervalRef.current);
+      if (animFrameIdRef.current) {
+        cancelAnimationFrame(animFrameIdRef.current);
+        animFrameIdRef.current = null;
+      }
+      if (touchResumeTimeoutRef.current) {
+        clearTimeout(touchResumeTimeoutRef.current);
+        touchResumeTimeoutRef.current = null;
+      }
     };
   }, [isAutoScrolling, scrollSpeed]);
 
+  // Touch and Manual Scroll Handlers to prevent jerking and stutter
+  const handleUserTouchStart = () => {
+    isUserTouchingRef.current = true;
+    if (touchResumeTimeoutRef.current) {
+      clearTimeout(touchResumeTimeoutRef.current);
+      touchResumeTimeoutRef.current = null;
+    }
+    if (scrollContainerRef.current) {
+      accumulatedScrollRef.current = scrollContainerRef.current.scrollTop;
+    }
+  };
+
+  const handleUserTouchEnd = () => {
+    if (touchResumeTimeoutRef.current) {
+      clearTimeout(touchResumeTimeoutRef.current);
+    }
+    touchResumeTimeoutRef.current = window.setTimeout(() => {
+      if (scrollContainerRef.current) {
+        accumulatedScrollRef.current = scrollContainerRef.current.scrollTop;
+      }
+      isUserTouchingRef.current = false;
+    }, 200);
+  };
+
+  const handleContainerScroll = () => {
+    if (isUserTouchingRef.current && scrollContainerRef.current) {
+      accumulatedScrollRef.current = scrollContainerRef.current.scrollTop;
+    }
+  };
+
+  const handleUserWheel = () => {
+    isUserTouchingRef.current = true;
+    if (scrollContainerRef.current) {
+      accumulatedScrollRef.current = scrollContainerRef.current.scrollTop;
+    }
+    if (touchResumeTimeoutRef.current) {
+      clearTimeout(touchResumeTimeoutRef.current);
+    }
+    touchResumeTimeoutRef.current = window.setTimeout(() => {
+      if (scrollContainerRef.current) {
+        accumulatedScrollRef.current = scrollContainerRef.current.scrollTop;
+      }
+      isUserTouchingRef.current = false;
+    }, 300);
+  };
+
   if (!isOpen) return null;
 
-  // Toggle Favorite
+  // Toggle Favorite & Save Full Song Offline in IndexedDB
   const isFavorite = (songId: string): boolean => {
     return favorites.some((f) => f.id === songId);
   };
 
-  const toggleFavorite = (item: SearchSongItem | SongData) => {
+  const toggleFavorite = async (item: SearchSongItem | SongData) => {
+    const isCurrentlyFav = favorites.some((f) => f.id === item.id);
     const songItem: SearchSongItem = {
       id: item.id,
       title: item.title,
@@ -238,17 +339,27 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
       hasChords: true,
     };
 
-    setFavorites((prev) => {
-      if (prev.some((f) => f.id === songItem.id)) {
-        return prev.filter((f) => f.id !== songItem.id);
-      } else {
-        return [songItem, ...prev];
+    if (isCurrentlyFav) {
+      setFavorites((prev) => prev.filter((f) => f.id !== songItem.id));
+      if (selectedSong?.id === songItem.id) {
+        setIsCurrentSongOffline(false);
       }
-    });
+    } else {
+      setFavorites((prev) => [songItem, ...prev]);
 
-    // If active song is being favorited, cache it offline for venue rehearsal
-    if (selectedSong && selectedSong.id === songItem.id) {
-      cacheSongOffline(selectedSong).then(() => setIsCurrentSongOffline(true));
+      // Cache full song content offline immediately so it's always ready with zero network
+      if (selectedSong && selectedSong.id === songItem.id) {
+        await cacheSongOffline(selectedSong);
+        setIsCurrentSongOffline(true);
+      } else {
+        fetchCompleteSong(songItem).then(async (fullSong) => {
+          if (fullSong) {
+            await cacheSongOffline(fullSong);
+          }
+        }).catch((err) => {
+          console.warn('Could not pre-cache favorite song offline:', err);
+        });
+      }
     }
   };
 
@@ -568,7 +679,14 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
         {/* Scrollable Song Body */}
         <div
           ref={scrollContainerRef}
-          className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 font-mono space-y-6 pb-28"
+          onScroll={handleContainerScroll}
+          onTouchStart={handleUserTouchStart}
+          onTouchEnd={handleUserTouchEnd}
+          onTouchCancel={handleUserTouchEnd}
+          onPointerDown={handleUserTouchStart}
+          onPointerUp={handleUserTouchEnd}
+          onWheel={handleUserWheel}
+          className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 font-mono space-y-6 pb-28 overscroll-contain"
         >
           {sheetViewMode === 'tab' && selectedSong.tabContent ? (
             <TablatureViewer tabContent={selectedSong.tabContent} title={selectedSong.title} />

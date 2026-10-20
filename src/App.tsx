@@ -33,10 +33,31 @@ import { InstallModal } from './components/InstallModal';
 import { AutoUpdateModal } from './components/AutoUpdateModal';
 import { checkForAppUpdate, AppUpdateInfo, CURRENT_APP_VERSION } from './services/updateService';
 import { App as CapApp } from '@capacitor/app';
+import { SplashScreen } from '@capacitor/splash-screen';
 
 type ActiveTab = 'tuner' | 'songs' | 'metronome' | 'chords';
 
 export const App: React.FC = () => {
+  // Option A: Seamless Native Splash Screen Handshake
+  // Hold native splash screen until React finishes initial render, then fade out smoothly
+  useEffect(() => {
+    const hideSplash = async () => {
+      try {
+        await SplashScreen.hide({
+          fadeOutDuration: 400
+        });
+      } catch {
+        // Fallback for web browser execution
+      }
+    };
+
+    // Allow one animation frame for React to paint the UI
+    const raf = requestAnimationFrame(() => {
+      setTimeout(hideSplash, 120);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
   // Theme Mode: 'clean' (clean light modern studio) vs 'dark' (obsidian stage)
   const [theme, setTheme] = useState<'clean' | 'dark'>(() => {
     try {
@@ -70,11 +91,72 @@ export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('tuner');
 
   // Tuner Modes: 'studio' (GuitarTuna visual headstock) vs 'strobe' (Peterson 0.1c Strobe)
-  const [tunerMode, setTunerMode] = useState<'studio' | 'strobe'>('studio');
-  const [currentTuning, setCurrentTuning] = useState<TuningPreset>(TUNINGS[0]);
+  const [tunerMode, setTunerMode] = useState<'studio' | 'strobe'>(() => {
+    try {
+      const saved = localStorage.getItem('agsoft_tuner_mode');
+      if (saved === 'studio' || saved === 'strobe') return saved;
+    } catch {}
+    return 'studio';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('agsoft_tuner_mode', tunerMode);
+    } catch {}
+  }, [tunerMode]);
+
+  // Tuning Preset persistence
+  const [currentTuning, setCurrentTuning] = useState<TuningPreset>(() => {
+    try {
+      const savedId = localStorage.getItem('agsoft_tuning_id');
+      if (savedId) {
+        const found = TUNINGS.find((t) => t.id === savedId || t.name === savedId);
+        if (found) return found;
+      }
+    } catch {}
+    return TUNINGS[0];
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('agsoft_tuning_id', currentTuning.id);
+    } catch {}
+  }, [currentTuning]);
+
   const [activeStringIndex, setActiveStringIndex] = useState<number>(0);
-  const [isAutoMode, setIsAutoMode] = useState<boolean>(true);
-  const [referenceA4, setReferenceA4] = useState<number>(440);
+
+  // Auto String Detection persistence
+  const [isAutoMode, setIsAutoMode] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('agsoft_is_auto_mode');
+      if (saved !== null) return JSON.parse(saved);
+    } catch {}
+    return true;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('agsoft_is_auto_mode', JSON.stringify(isAutoMode));
+    } catch {}
+  }, [isAutoMode]);
+
+  // Concert Pitch A4 persistence
+  const [referenceA4, setReferenceA4] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('agsoft_reference_a4');
+      if (saved) {
+        const val = Number(saved);
+        if (!isNaN(val) && val >= 420 && val <= 460) return val;
+      }
+    } catch {}
+    return 440;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('agsoft_reference_a4', String(referenceA4));
+    } catch {}
+  }, [referenceA4]);
 
   // Audio State
   const [isListening, setIsListening] = useState<boolean>(false);

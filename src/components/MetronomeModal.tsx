@@ -8,9 +8,29 @@ interface MetronomeModalProps {
 }
 
 export const MetronomeModal: React.FC<MetronomeModalProps> = ({ isOpen = true, onClose, isEmbedded = false }) => {
-  const [bpm, setBpm] = useState<number>(120);
+  const [bpm, setBpm] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('agsoft_metronome_bpm');
+      if (saved) {
+        const val = Number(saved);
+        if (!isNaN(val) && val >= 30 && val <= 300) return val;
+      }
+    } catch {}
+    return 120;
+  });
+
+  const [beatsPerMeasure, setBeatsPerMeasure] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('agsoft_metronome_beats');
+      if (saved) {
+        const val = Number(saved);
+        if (!isNaN(val) && val >= 1 && val <= 16) return val;
+      }
+    } catch {}
+    return 4;
+  });
+
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [beatsPerMeasure, setBeatsPerMeasure] = useState<number>(4);
   const [currentBeat, setCurrentBeat] = useState<number>(0);
   const [isHapticEnabled, setIsHapticEnabled] = useState<boolean>(() => {
     try {
@@ -20,6 +40,18 @@ export const MetronomeModal: React.FC<MetronomeModalProps> = ({ isOpen = true, o
       return true;
     }
   });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('agsoft_metronome_bpm', String(bpm));
+    } catch {}
+  }, [bpm]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('agsoft_metronome_beats', String(beatsPerMeasure));
+    } catch {}
+  }, [beatsPerMeasure]);
 
   useEffect(() => {
     try {

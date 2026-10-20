@@ -8,10 +8,13 @@
   },
   "plugins": {
     "SplashScreen": {
-      "launchShowDuration": 1800,
+      "launchShowDuration": 3500,
+      "launchAutoHide": false,
       "backgroundColor": "#ffffff",
+      "androidScaleType": "CENTER_CROP",
       "splashFullScreen": true,
-      "splashImmersive": true
+      "splashImmersive": true,
+      "showSpinner": false
     }
   }
 }
