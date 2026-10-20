@@ -22,6 +22,401 @@ export interface SongData {
 
 export const POPULAR_SONGS: SongData[] = [
   {
+    id: 'hotel-california-eagles',
+    title: 'Hotel California',
+    artist: 'Eagles',
+    albumArt: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=200&auto=format&fit=crop&q=80',
+    key: 'Bm',
+    capo: 'Capo 7th Fret (or Capo 2nd Fret in Am)',
+    tuning: 'Standard (E A D G B E)',
+    difficulty: 'Intermediate',
+    allChords: ['Bm', 'F#', 'A', 'E', 'G', 'D', 'Em'],
+    sections: [
+      {
+        sectionTitle: 'Intro',
+        lines: [
+          {
+            lyrics: '| Bm - F# | A - E | G - D | Em - F# | (x2)',
+            chords: [{ chord: 'Bm', position: 2 }, { chord: 'F#', position: 7 }, { chord: 'A', position: 12 }, { chord: 'E', position: 16 }, { chord: 'G', position: 20 }, { chord: 'D', position: 24 }, { chord: 'Em', position: 28 }, { chord: 'F#', position: 33 }]
+          }
+        ]
+      },
+      {
+        sectionTitle: 'Verse 1',
+        lines: [
+          {
+            lyrics: 'On a dark desert highway, cool wind in my hair',
+            chords: [{ chord: 'Bm', position: 0 }, { chord: 'F#', position: 26 }]
+          },
+          {
+            lyrics: 'Warm smell of colitas, rising up through the air',
+            chords: [{ chord: 'A', position: 0 }, { chord: 'E', position: 23 }]
+          },
+          {
+            lyrics: 'Up ahead in the distance, I saw a shimmering light',
+            chords: [{ chord: 'G', position: 0 }, { chord: 'D', position: 26 }]
+          },
+          {
+            lyrics: 'My head grew heavy and my sight grew dim, I had to stop for the night',
+            chords: [{ chord: 'Em', position: 0 }, { chord: 'F#', position: 42 }]
+          }
+        ]
+      },
+      {
+        sectionTitle: 'Verse 2',
+        lines: [
+          {
+            lyrics: 'There she stood in the doorway, I heard the mission bell',
+            chords: [{ chord: 'Bm', position: 0 }, { chord: 'F#', position: 32 }]
+          },
+          {
+            lyrics: 'And I was thinking to myself, "This could be Heaven or this could be Hell"',
+            chords: [{ chord: 'A', position: 0 }, { chord: 'E', position: 30 }]
+          },
+          {
+            lyrics: 'Then she lit up a candle, and she showed me the way',
+            chords: [{ chord: 'G', position: 0 }, { chord: 'D', position: 26 }]
+          },
+          {
+            lyrics: 'There were voices down the corridor, I thought I heard them say...',
+            chords: [{ chord: 'Em', position: 0 }, { chord: 'F#', position: 37 }]
+          }
+        ]
+      },
+      {
+        sectionTitle: 'Chorus 1',
+        lines: [
+          {
+            lyrics: 'Welcome to the Hotel California',
+            chords: [{ chord: 'G', position: 0 }, { chord: 'D', position: 15 }]
+          },
+          {
+            lyrics: 'Such a lovely place (such a lovely place), such a lovely face',
+            chords: [{ chord: 'F#', position: 0 }, { chord: 'Bm', position: 35 }]
+          },
+          {
+            lyrics: 'Plenty of room at the Hotel California',
+            chords: [{ chord: 'G', position: 0 }, { chord: 'D', position: 18 }]
+          },
+          {
+            lyrics: 'Any time of year, you can find it here',
+            chords: [{ chord: 'Em', position: 0 }, { chord: 'F#', position: 20 }]
+          }
+        ]
+      },
+      {
+        sectionTitle: 'Verse 3',
+        lines: [
+          {
+            lyrics: 'Her mind is Tiffany-twisted, she got the Mercedes bends',
+            chords: [{ chord: 'Bm', position: 0 }, { chord: 'F#', position: 28 }]
+          },
+          {
+            lyrics: 'She got a lot of pretty, pretty boys that she calls friends',
+            chords: [{ chord: 'A', position: 0 }, { chord: 'E', position: 30 }]
+          },
+          {
+            lyrics: 'How they dance in the courtyard, sweet summer sweat',
+            chords: [{ chord: 'G', position: 0 }, { chord: 'D', position: 25 }]
+          },
+          {
+            lyrics: 'Some dance to remember, some dance to forget',
+            chords: [{ chord: 'Em', position: 0 }, { chord: 'F#', position: 24 }]
+          }
+        ]
+      },
+      {
+        sectionTitle: 'Verse 4',
+        lines: [
+          {
+            lyrics: 'So I called up the Captain, "Please bring me my wine"',
+            chords: [{ chord: 'Bm', position: 0 }, { chord: 'F#', position: 28 }]
+          },
+          {
+            lyrics: 'He said, "We haven\'t had that spirit here since nineteen sixty-nine"',
+            chords: [{ chord: 'A', position: 0 }, { chord: 'E', position: 35 }]
+          },
+          {
+            lyrics: 'And still those voices are calling from far away',
+            chords: [{ chord: 'G', position: 0 }, { chord: 'D', position: 27 }]
+          },
+          {
+            lyrics: 'Wake you up in the middle of the night just to hear them say...',
+            chords: [{ chord: 'Em', position: 0 }, { chord: 'F#', position: 35 }]
+          }
+        ]
+      },
+      {
+        sectionTitle: 'Chorus 2',
+        lines: [
+          {
+            lyrics: 'Welcome to the Hotel California',
+            chords: [{ chord: 'G', position: 0 }, { chord: 'D', position: 15 }]
+          },
+          {
+            lyrics: 'Such a lovely place (such a lovely place), such a lovely face',
+            chords: [{ chord: 'F#', position: 0 }, { chord: 'Bm', position: 35 }]
+          },
+          {
+            lyrics: 'They livin\' it up at the Hotel California',
+            chords: [{ chord: 'G', position: 0 }, { chord: 'D', position: 20 }]
+          },
+          {
+            lyrics: 'What a nice surprise, bring your alibis',
+            chords: [{ chord: 'Em', position: 0 }, { chord: 'F#', position: 21 }]
+          }
+        ]
+      },
+      {
+        sectionTitle: 'Verse 5',
+        lines: [
+          {
+            lyrics: 'Mirrors on the ceiling, the pink champagne on ice',
+            chords: [{ chord: 'Bm', position: 0 }, { chord: 'F#', position: 23 }]
+          },
+          {
+            lyrics: 'And she said, "We are all just prisoners here of our own device"',
+            chords: [{ chord: 'A', position: 0 }, { chord: 'E', position: 32 }]
+          },
+          {
+            lyrics: 'And in the master\'s chambers, they gathered for the feast',
+            chords: [{ chord: 'G', position: 0 }, { chord: 'D', position: 28 }]
+          },
+          {
+            lyrics: 'They stab it with their steely knives, but they just can\'t kill the beast',
+            chords: [{ chord: 'Em', position: 0 }, { chord: 'F#', position: 38 }]
+          }
+        ]
+      },
+      {
+        sectionTitle: 'Verse 6 & Outro',
+        lines: [
+          {
+            lyrics: 'Last thing I remember, I was running for the door',
+            chords: [{ chord: 'Bm', position: 0 }, { chord: 'F#', position: 23 }]
+          },
+          {
+            lyrics: 'I had to find the passage back to the place I was before',
+            chords: [{ chord: 'A', position: 0 }, { chord: 'E', position: 29 }]
+          },
+          {
+            lyrics: '"Relax," said the night man, "We are programmed to receive"',
+            chords: [{ chord: 'G', position: 0 }, { chord: 'D', position: 29 }]
+          },
+          {
+            lyrics: '"You can check out any time you like, but you can never leave!"',
+            chords: [{ chord: 'Em', position: 0 }, { chord: 'F#', position: 38 }]
+          },
+          {
+            lyrics: '[Iconic Dual Guitar Solo: Don Felder & Joe Walsh - Fade out]',
+            chords: [{ chord: 'Bm', position: 1 }, { chord: 'F#', position: 15 }, { chord: 'A', position: 30 }, { chord: 'E', position: 42 }]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'hallelujah-leonard-cohen',
+    title: 'Hallelujah',
+    artist: 'Leonard Cohen (Jeff Buckley)',
+    albumArt: 'https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=200&auto=format&fit=crop&q=80',
+    key: 'C Major',
+    capo: 'No Capo',
+    tuning: 'Standard (E A D G B E)',
+    difficulty: 'Easy',
+    allChords: ['C', 'Am', 'F', 'G', 'E7'],
+    sections: [
+      {
+        sectionTitle: 'Intro',
+        lines: [
+          {
+            lyrics: '| C - Am | C - Am | (6/8 Fingerpicking Arpeggios)',
+            chords: [{ chord: 'C', position: 2 }, { chord: 'Am', position: 6 }, { chord: 'C', position: 11 }, { chord: 'Am', position: 15 }]
+          }
+        ]
+      },
+      {
+        sectionTitle: 'Verse 1',
+        lines: [
+          {
+            lyrics: 'Now I\'ve heard there was a secret chord that David played, and it pleased the Lord',
+            chords: [{ chord: 'C', position: 0 }, { chord: 'Am', position: 27 }, { chord: 'C', position: 42 }, { chord: 'Am', position: 62 }]
+          },
+          {
+            lyrics: 'But you don\'t really care for music, do you?',
+            chords: [{ chord: 'F', position: 0 }, { chord: 'G', position: 25 }, { chord: 'C', position: 35 }, { chord: 'G', position: 40 }]
+          },
+          {
+            lyrics: 'It goes like this: the fourth, the fifth, the minor fall, the major lift',
+            chords: [{ chord: 'C', position: 0 }, { chord: 'F', position: 19 }, { chord: 'G', position: 31 }, { chord: 'Am', position: 42 }, { chord: 'F', position: 58 }]
+          },
+          {
+            lyrics: 'The baffled king composing Hallelujah',
+            chords: [{ chord: 'G', position: 0 }, { chord: 'E7', position: 17 }, { chord: 'Am', position: 27 }]
+          }
+        ]
+      },
+      {
+        sectionTitle: 'Chorus 1',
+        lines: [
+          {
+            lyrics: 'Hallelujah, Hallelujah',
+            chords: [{ chord: 'F', position: 0 }, { chord: 'Am', position: 12 }]
+          },
+          {
+            lyrics: 'Hallelujah, Hallelu---jah',
+            chords: [{ chord: 'F', position: 0 }, { chord: 'C', position: 12 }, { chord: 'G', position: 18 }, { chord: 'C', position: 22 }]
+          }
+        ]
+      },
+      {
+        sectionTitle: 'Verse 2',
+        lines: [
+          {
+            lyrics: 'Your faith was strong but you needed proof, you saw her bathing on the roof',
+            chords: [{ chord: 'C', position: 0 }, { chord: 'Am', position: 26 }, { chord: 'C', position: 43 }, { chord: 'Am', position: 62 }]
+          },
+          {
+            lyrics: 'Her beauty and the moonlight overthrew ya',
+            chords: [{ chord: 'F', position: 0 }, { chord: 'G', position: 23 }, { chord: 'C', position: 33 }, { chord: 'G', position: 38 }]
+          },
+          {
+            lyrics: 'She tied you to a kitchen chair, she broke your throne, and she cut your hair',
+            chords: [{ chord: 'C', position: 0 }, { chord: 'F', position: 22 }, { chord: 'G', position: 33 }, { chord: 'Am', position: 48 }, { chord: 'F', position: 66 }]
+          },
+          {
+            lyrics: 'And from your lips she drew the Hallelujah',
+            chords: [{ chord: 'G', position: 0 }, { chord: 'E7', position: 20 }, { chord: 'Am', position: 32 }]
+          }
+        ]
+      },
+      {
+        sectionTitle: 'Chorus 2',
+        lines: [
+          {
+            lyrics: 'Hallelujah, Hallelujah',
+            chords: [{ chord: 'F', position: 0 }, { chord: 'Am', position: 12 }]
+          },
+          {
+            lyrics: 'Hallelujah, Hallelu---jah',
+            chords: [{ chord: 'F', position: 0 }, { chord: 'C', position: 12 }, { chord: 'G', position: 18 }, { chord: 'C', position: 22 }]
+          }
+        ]
+      },
+      {
+        sectionTitle: 'Verse 3',
+        lines: [
+          {
+            lyrics: 'Baby I have been here before, I know this room, I\'ve walked this floor',
+            chords: [{ chord: 'C', position: 0 }, { chord: 'Am', position: 24 }, { chord: 'C', position: 41 }, { chord: 'Am', position: 58 }]
+          },
+          {
+            lyrics: 'I used to live alone before I knew ya',
+            chords: [{ chord: 'F', position: 0 }, { chord: 'G', position: 20 }, { chord: 'C', position: 29 }, { chord: 'G', position: 34 }]
+          },
+          {
+            lyrics: 'I\'ve seen your flag on the marble arch, love is not a victory march',
+            chords: [{ chord: 'C', position: 0 }, { chord: 'F', position: 24 }, { chord: 'G', position: 38 }, { chord: 'Am', position: 47 }, { chord: 'F', position: 60 }]
+          },
+          {
+            lyrics: 'It\'s a cold and it\'s a broken Hallelujah',
+            chords: [{ chord: 'G', position: 0 }, { chord: 'E7', position: 20 }, { chord: 'Am', position: 30 }]
+          }
+        ]
+      },
+      {
+        sectionTitle: 'Chorus 3 & Outro',
+        lines: [
+          {
+            lyrics: 'Hallelujah, Hallelujah',
+            chords: [{ chord: 'F', position: 0 }, { chord: 'Am', position: 12 }]
+          },
+          {
+            lyrics: 'Hallelujah, Hallelu---jah (Fade out)',
+            chords: [{ chord: 'F', position: 0 }, { chord: 'C', position: 12 }, { chord: 'G', position: 18 }, { chord: 'C', position: 22 }]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'wish-you-were-here-pink-floyd',
+    title: 'Wish You Were Here',
+    artist: 'Pink Floyd',
+    albumArt: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=200&auto=format&fit=crop&q=80',
+    key: 'G Major',
+    capo: 'No Capo',
+    tuning: 'Standard (E A D G B E)',
+    difficulty: 'Intermediate',
+    allChords: ['Em7', 'G', 'A7sus4', 'Cadd9', 'C', 'D', 'Am'],
+    sections: [
+      {
+        sectionTitle: 'Intro Acoustic Riff',
+        lines: [
+          {
+            lyrics: '| Em7 - G | Em7 - G | Em7 - A7sus4 | Em7 - A7sus4 - G |',
+            chords: [{ chord: 'Em7', position: 2 }, { chord: 'G', position: 8 }, { chord: 'Em7', position: 12 }, { chord: 'G', position: 18 }, { chord: 'A7sus4', position: 28 }, { chord: 'G', position: 48 }]
+          }
+        ]
+      },
+      {
+        sectionTitle: 'Verse 1',
+        lines: [
+          {
+            lyrics: 'So, so you think you can tell Heaven from Hell?',
+            chords: [{ chord: 'C', position: 0 }, { chord: 'D', position: 27 }, { chord: 'Am', position: 36 }]
+          },
+          {
+            lyrics: 'Blue skies from pain? Can you tell a green field from a cold steel rail?',
+            chords: [{ chord: 'G', position: 0 }, { chord: 'D', position: 18 }, { chord: 'C', position: 32 }, { chord: 'Am', position: 56 }]
+          },
+          {
+            lyrics: 'A smile from a veil? Do you think you can tell?',
+            chords: [{ chord: 'G', position: 0 }]
+          }
+        ]
+      },
+      {
+        sectionTitle: 'Verse 2',
+        lines: [
+          {
+            lyrics: 'Did they get you to trade your heroes for ghosts?',
+            chords: [{ chord: 'C', position: 0 }, { chord: 'D', position: 26 }, { chord: 'Am', position: 38 }]
+          },
+          {
+            lyrics: 'Hot ashes for trees? Hot air for a cool breeze? Cold comfort for change?',
+            chords: [{ chord: 'G', position: 0 }, { chord: 'D', position: 21 }, { chord: 'C', position: 44 }, { chord: 'Am', position: 60 }]
+          },
+          {
+            lyrics: 'Did you exchange a walk-on part in the war for a lead role in a cage?',
+            chords: [{ chord: 'G', position: 0 }]
+          }
+        ]
+      },
+      {
+        sectionTitle: 'Chorus',
+        lines: [
+          {
+            lyrics: 'How I wish, how I wish you were here',
+            chords: [{ chord: 'C', position: 0 }, { chord: 'D', position: 18 }, { chord: 'Am', position: 28 }]
+          },
+          {
+            lyrics: 'We\'re just two lost souls swimming in a fish bowl, year after year',
+            chords: [{ chord: 'G', position: 0 }, { chord: 'D', position: 24 }, { chord: 'C', position: 48 }, { chord: 'Am', position: 58 }]
+          },
+          {
+            lyrics: 'Running over the same old ground, what have we found?',
+            chords: [{ chord: 'G', position: 0 }, { chord: 'Em7', position: 25 }, { chord: 'G', position: 45 }]
+          },
+          {
+            lyrics: 'The same old fears, wish you were here',
+            chords: [{ chord: 'A7sus4', position: 0 }, { chord: 'Em7', position: 17 }, { chord: 'A7sus4', position: 27 }, { chord: 'G', position: 35 }]
+          }
+        ]
+      }
+    ]
+  },
+  {
     id: 'perfect-ed-sheeran',
     title: 'Perfect',
     artist: 'Ed Sheeran',
@@ -54,10 +449,10 @@ export const POPULAR_SONGS: SongData[] = [
         ]
       },
       {
-        sectionTitle: 'Pre-Chorus',
+        sectionTitle: 'Pre-Chorus 1',
         lines: [
           {
-            lyrics: "'Cause we were just kids when we fell in love",
+            lyrics: '\'Cause we were just kids when we fell in love',
             chords: [{ chord: 'G', position: 0 }]
           },
           {
@@ -71,7 +466,7 @@ export const POPULAR_SONGS: SongData[] = [
         ]
       },
       {
-        sectionTitle: 'Chorus',
+        sectionTitle: 'Chorus 1',
         lines: [
           {
             lyrics: 'Baby, I\'m dancing in the dark with you between my arms',
@@ -88,6 +483,48 @@ export const POPULAR_SONGS: SongData[] = [
           {
             lyrics: 'But you heard it, darling, you look perfect tonight',
             chords: [{ chord: 'G', position: 0 }, { chord: 'D', position: 24 }, { chord: 'G', position: 40 }]
+          }
+        ]
+      },
+      {
+        sectionTitle: 'Verse 2',
+        lines: [
+          {
+            lyrics: 'Well, I found a woman, stronger than anyone I know',
+            chords: [{ chord: 'G', position: 0 }, { chord: 'Em', position: 20 }]
+          },
+          {
+            lyrics: 'She shares my dreams, I hope that someday I\'ll share her home',
+            chords: [{ chord: 'C', position: 0 }, { chord: 'D', position: 30 }]
+          },
+          {
+            lyrics: 'I found a love to carry more than just my secrets',
+            chords: [{ chord: 'G', position: 0 }, { chord: 'Em', position: 19 }]
+          },
+          {
+            lyrics: 'To carry love, to carry children of our own',
+            chords: [{ chord: 'C', position: 0 }, { chord: 'D', position: 24 }]
+          }
+        ]
+      },
+      {
+        sectionTitle: 'Chorus 2 & Outro',
+        lines: [
+          {
+            lyrics: 'Baby, I\'m dancing in the dark with you between my arms',
+            chords: [{ chord: 'G', position: 0 }, { chord: 'Em', position: 22 }, { chord: 'C', position: 38 }]
+          },
+          {
+            lyrics: 'Barefoot on the grass, listening to our favorite song',
+            chords: [{ chord: 'D', position: 0 }, { chord: 'G', position: 22 }, { chord: 'Em', position: 35 }]
+          },
+          {
+            lyrics: 'I have faith in what I see, now I know I have met an angel in person',
+            chords: [{ chord: 'C', position: 0 }, { chord: 'D', position: 30 }]
+          },
+          {
+            lyrics: 'And she looks perfect, no I don\'t deserve this, you look perfect tonight',
+            chords: [{ chord: 'G', position: 0 }, { chord: 'D', position: 25 }, { chord: 'G', position: 55 }]
           }
         ]
       }
@@ -126,7 +563,7 @@ export const POPULAR_SONGS: SongData[] = [
         ]
       },
       {
-        sectionTitle: 'Chorus',
+        sectionTitle: 'Chorus 1',
         lines: [
           {
             lyrics: 'Your skin, oh yeah your skin and bones',
@@ -139,6 +576,44 @@ export const POPULAR_SONGS: SongData[] = [
           {
             lyrics: 'You know, you know I love you so',
             chords: [{ chord: 'Em', position: 0 }, { chord: 'D', position: 17 }]
+          }
+        ]
+      },
+      {
+        sectionTitle: 'Verse 2',
+        lines: [
+          {
+            lyrics: 'I swam across, I jumped across for you',
+            chords: [{ chord: 'G', position: 0 }, { chord: 'D', position: 18 }]
+          },
+          {
+            lyrics: 'Oh what a thing to do, \'cause you were all yellow',
+            chords: [{ chord: 'C', position: 0 }, { chord: 'G', position: 35 }]
+          },
+          {
+            lyrics: 'I drew a line, I drew a line for you',
+            chords: [{ chord: 'G', position: 0 }, { chord: 'D', position: 17 }]
+          },
+          {
+            lyrics: 'Oh what a thing to do, and it was all yellow',
+            chords: [{ chord: 'C', position: 0 }, { chord: 'G', position: 32 }]
+          }
+        ]
+      },
+      {
+        sectionTitle: 'Chorus 2 & Outro',
+        lines: [
+          {
+            lyrics: 'Your skin, oh yeah your skin and bones',
+            chords: [{ chord: 'C', position: 0 }, { chord: 'Em', position: 24 }]
+          },
+          {
+            lyrics: 'Turn into something beautiful',
+            chords: [{ chord: 'D', position: 0 }, { chord: 'C', position: 15 }]
+          },
+          {
+            lyrics: 'Look at the stars, look how they shine for you',
+            chords: [{ chord: 'G', position: 0 }, { chord: 'D', position: 20 }, { chord: 'C', position: 38 }]
           }
         ]
       }
@@ -165,6 +640,23 @@ export const POPULAR_SONGS: SongData[] = [
           {
             lyrics: 'By now you should\'ve somehow realized what you gotta do',
             chords: [{ chord: 'Em7', position: 0 }, { chord: 'G', position: 20 }, { chord: 'Dsus4', position: 35 }, { chord: 'A7sus4', position: 50 }]
+          },
+          {
+            lyrics: 'I don\'t believe that anybody feels the way I do about you now',
+            chords: [{ chord: 'C', position: 0 }, { chord: 'D', position: 25 }, { chord: 'Em7', position: 45 }]
+          }
+        ]
+      },
+      {
+        sectionTitle: 'Verse 2',
+        lines: [
+          {
+            lyrics: 'Backbeat, the word is on the street that the fire in your heart is out',
+            chords: [{ chord: 'Em7', position: 0 }, { chord: 'G', position: 23 }, { chord: 'Dsus4', position: 41 }, { chord: 'A7sus4', position: 55 }]
+          },
+          {
+            lyrics: 'I\'m sure you\'ve heard it all before, but you never really had a doubt',
+            chords: [{ chord: 'Em7', position: 0 }, { chord: 'G', position: 24 }, { chord: 'Dsus4', position: 42 }, { chord: 'A7sus4', position: 55 }]
           },
           {
             lyrics: 'I don\'t believe that anybody feels the way I do about you now',
@@ -273,67 +765,8 @@ export const POPULAR_SONGS: SongData[] = [
             chords: [{ chord: 'G', position: 0 }, { chord: 'D', position: 12 }, { chord: 'C', position: 26 }]
           },
           {
-            lyrics: "Oooh, yeah, yeah, yeah, knockin' on heaven's door",
-            chords: [{ chord: 'G', position: 0 }, { chord: 'D', position: 15 }, { chord: 'Am', position: 35 }]
-          },
-          {
             lyrics: "Knock, knock, knockin' on heaven's door (fade out)",
             chords: [{ chord: 'G', position: 0 }, { chord: 'D', position: 12 }, { chord: 'C', position: 26 }]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'hotel-california-eagles',
-    title: 'Hotel California',
-    artist: 'Eagles',
-    albumArt: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=200&auto=format&fit=crop&q=80',
-    key: 'Bm',
-    capo: 'Capo 7th Fret (for easy open chords) or No Capo',
-    tuning: 'Standard (E A D G B E)',
-    difficulty: 'Intermediate',
-    allChords: ['Bm', 'F#', 'A', 'E', 'G', 'D', 'Em'],
-    sections: [
-      {
-        sectionTitle: 'Verse 1',
-        lines: [
-          {
-            lyrics: 'On a dark desert highway, cool wind in my hair',
-            chords: [{ chord: 'Bm', position: 0 }, { chord: 'F#', position: 22 }]
-          },
-          {
-            lyrics: 'Warm smell of colitas, rising up through the air',
-            chords: [{ chord: 'A', position: 0 }, { chord: 'E', position: 23 }]
-          },
-          {
-            lyrics: 'Up ahead in the distance, I saw a shimmering light',
-            chords: [{ chord: 'G', position: 0 }, { chord: 'D', position: 24 }]
-          },
-          {
-            lyrics: 'My head grew heavy and my sight grew dim, I had to stop for the night',
-            chords: [{ chord: 'Em', position: 0 }, { chord: 'F#', position: 36 }]
-          }
-        ]
-      },
-      {
-        sectionTitle: 'Chorus',
-        lines: [
-          {
-            lyrics: 'Welcome to the Hotel California',
-            chords: [{ chord: 'G', position: 0 }, { chord: 'D', position: 15 }]
-          },
-          {
-            lyrics: 'Such a lovely place (such a lovely place), such a lovely face',
-            chords: [{ chord: 'F#', position: 0 }, { chord: 'Bm', position: 35 }]
-          },
-          {
-            lyrics: 'Plenty of room at the Hotel California',
-            chords: [{ chord: 'G', position: 0 }, { chord: 'D', position: 18 }]
-          },
-          {
-            lyrics: 'Any time of year, you can find it here',
-            chords: [{ chord: 'Em', position: 0 }, { chord: 'F#', position: 20 }]
           }
         ]
       }
@@ -388,14 +821,12 @@ const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
 export function transposeChord(chord: string, semitones: number): string {
   if (semitones === 0) return chord;
-  // Match root (e.g. F# or Bb or C)
   const match = chord.match(/^([A-G][#b]?)(.*)$/);
   if (!match) return chord;
 
   let root = match[1];
   const suffix = match[2];
 
-  // Convert flats to sharps
   const flatToSharp: { [k: string]: string } = {
     'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#'
   };
@@ -436,7 +867,6 @@ export function calculateSmartCapo(originalKey: string, semitones = 0): CapoReco
   const targetIdx = (idx + semitones + 12 * 10) % 12;
   const targetNote = NOTES[targetIdx];
 
-  // Preferred open acoustic shapes
   const openShapes = isMinor
     ? [
         { shape: 'Em', baseIdx: 4 },
@@ -451,7 +881,6 @@ export function calculateSmartCapo(originalKey: string, semitones = 0): CapoReco
         { shape: 'A', baseIdx: 9 },
       ];
 
-  // Check if targetNote is already a natural open shape
   for (const s of openShapes) {
     if (s.baseIdx === targetIdx) {
       return {
@@ -462,7 +891,6 @@ export function calculateSmartCapo(originalKey: string, semitones = 0): CapoReco
     }
   }
 
-  // Find best capo placement between fret 1 and 5
   let bestCapo: { fret: number; shape: string } | null = null;
   for (const s of openShapes) {
     const fret = (targetIdx - s.baseIdx + 12) % 12;
@@ -483,4 +911,3 @@ export function calculateSmartCapo(originalKey: string, semitones = 0): CapoReco
 
   return null;
 }
-

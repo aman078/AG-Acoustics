@@ -1,4 +1,4 @@
-import { SongData } from '../data/popularSongs';
+import { SongData, POPULAR_SONGS } from '../data/popularSongs';
 import { REPERTOIRE_PIECES, RepertoirePiece } from '../data/repertoire';
 
 export interface SearchSongItem {
@@ -55,13 +55,31 @@ export async function searchOnlineSongs(query: string, signal?: AbortSignal): Pr
     .map((t) => t.replace(/[^a-z0-9]/g, ''))
     .filter((t) => t.length >= 2 && !stopWords.has(t));
 
-  // Search curated classical / fingerstyle / blues pieces by TITLE or ARTIST only (NEVER by category name!)
-  const localMatches: SearchSongItem[] = REPERTOIRE_PIECES.filter((p) => {
+  // Search curated popular songs & classical / fingerstyle / blues pieces by TITLE or ARTIST
+  const popularMatches: SearchSongItem[] = POPULAR_SONGS.filter((p) => {
+    const textClean = `${p.title} ${p.artist}`.toLowerCase();
+    if (textClean.includes(trimmed)) return true;
+    if (queryTokens.length === 0) return false;
+    const matchingTokens = queryTokens.filter((token) => {
+      const regex = new RegExp(`(^|\\b)${token}`, 'i');
+      return regex.test(textClean);
+    });
+    return matchingTokens.length >= Math.ceil(queryTokens.length * 0.7);
+  }).map((p) => ({
+    id: p.id,
+    title: p.title,
+    artist: p.artist,
+    url: p.id,
+    source: 'AGSoft Master Repertoire',
+    difficulty: p.difficulty,
+    hasChords: true,
+  }));
+
+  const repertoireMatches: SearchSongItem[] = REPERTOIRE_PIECES.filter((p) => {
     const textClean = `${p.title} ${p.artist}`.toLowerCase();
     if (textClean.includes(trimmed)) return true;
     if (queryTokens.length === 0) return false;
     
-    // For multi-word queries, at least 70% of words must match as actual word prefixes or boundaries
     const matchingTokens = queryTokens.filter((token) => {
       const regex = new RegExp(`(^|\\b)${token}`, 'i');
       return regex.test(textClean);
@@ -76,6 +94,8 @@ export async function searchOnlineSongs(query: string, signal?: AbortSignal): Pr
     difficulty: p.difficulty,
     hasChords: true,
   }));
+
+  const localMatches = [...popularMatches, ...repertoireMatches];
 
   try {
     const apiBase = getApiBaseUrl();
@@ -108,7 +128,15 @@ export async function searchOnlineSongs(query: string, signal?: AbortSignal): Pr
  * Fetches the complete song chord sheet dynamically on demand
  */
 export async function fetchCompleteSong(item: SearchSongItem): Promise<SongData> {
-  // Check if it's a curated classical / fingerstyle piece
+  // 1. Check curated popular songs repertoire first (instant zero-network playback)
+  const popMatch = POPULAR_SONGS.find(
+    (p) => p.id === item.id || p.title.toLowerCase() === item.title.toLowerCase()
+  );
+  if (popMatch) {
+    return popMatch;
+  }
+
+  // 2. Check if it's a curated classical / fingerstyle piece
   const repMatch = REPERTOIRE_PIECES.find((p) => p.id === item.id);
   if (repMatch) {
     return {
