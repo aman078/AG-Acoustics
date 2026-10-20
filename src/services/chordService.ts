@@ -42,19 +42,32 @@ export function getApiBaseUrl(): string {
  * Searches for songs dynamically across GuitarTuna & Ultimate Guitar with local repertoire support.
  * Returns empty array when query is empty (no preloaded dead songs).
  */
-export async function searchOnlineSongs(query: string): Promise<SearchSongItem[]> {
+export async function searchOnlineSongs(query: string, signal?: AbortSignal): Promise<SearchSongItem[]> {
   const trimmed = query.trim().toLowerCase();
   if (!trimmed) {
     return [];
   }
 
-  // Search curated classical / fingerstyle / blues pieces first
-  const localMatches: SearchSongItem[] = REPERTOIRE_PIECES.filter(
-    (p) =>
-      p.title.toLowerCase().includes(trimmed) ||
-      p.artist.toLowerCase().includes(trimmed) ||
-      p.category.toLowerCase().includes(trimmed)
-  ).map((p) => ({
+  // Tokenize query words (skip stop words, require word length >= 2)
+  const stopWords = new Set(['the', 'a', 'an', 'and', 'from', 'song', 'chords', 'tabs', 'lyrics', 'easy', 'guitar']);
+  const queryTokens = trimmed
+    .split(/[\s\-_\/]+/)
+    .map((t) => t.replace(/[^a-z0-9]/g, ''))
+    .filter((t) => t.length >= 2 && !stopWords.has(t));
+
+  // Search curated classical / fingerstyle / blues pieces by TITLE or ARTIST only (NEVER by category name!)
+  const localMatches: SearchSongItem[] = REPERTOIRE_PIECES.filter((p) => {
+    const textClean = `${p.title} ${p.artist}`.toLowerCase();
+    if (textClean.includes(trimmed)) return true;
+    if (queryTokens.length === 0) return false;
+    
+    // For multi-word queries, at least 70% of words must match as actual word prefixes or boundaries
+    const matchingTokens = queryTokens.filter((token) => {
+      const regex = new RegExp(`(^|\\b)${token}`, 'i');
+      return regex.test(textClean);
+    });
+    return matchingTokens.length >= Math.ceil(queryTokens.length * 0.7);
+  }).map((p) => ({
     id: p.id,
     title: p.title,
     artist: p.artist,
@@ -66,7 +79,7 @@ export async function searchOnlineSongs(query: string): Promise<SearchSongItem[]
 
   try {
     const apiBase = getApiBaseUrl();
-    const res = await fetch(`${apiBase}/api/search?q=${encodeURIComponent(query)}`);
+    const res = await fetch(`${apiBase}/api/search?q=${encodeURIComponent(query)}`, { signal });
     if (!res.ok) throw new Error('Search failed');
     const data = (await res.json()) as { songs?: SearchSongItem[] };
 
@@ -82,7 +95,10 @@ export async function searchOnlineSongs(query: string): Promise<SearchSongItem[]
     }
 
     return combined;
-  } catch (err) {
+  } catch (err: any) {
+    if (err?.name === 'AbortError') {
+      throw err;
+    }
     console.warn('Online search error, returning local repertoire matches:', err);
     return localMatches;
   }

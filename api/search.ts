@@ -37,34 +37,59 @@ function isRelevantMatch(query: string, title: string, artist: string): boolean 
 
   if (tokens.length === 0) return true;
 
-  const majorTokens = tokens.filter((t) => t.length >= 3);
+  const majorTokens = tokens.filter((t) => t.length >= 2);
+  if (majorTokens.length === 0) return false;
 
-  if (majorTokens.length > 0) {
-    const hasMajorMatch = majorTokens.some((token) => {
-      const regex = new RegExp(`(^|\\b)${token}`, 'i');
-      return regex.test(textClean);
-    });
-    if (!hasMajorMatch) return false;
+  const matchCount = majorTokens.filter((token) => {
+    const regex = new RegExp(`(^|\\b)${token}`, 'i');
+    return regex.test(textClean);
+  }).length;
+
+  if (majorTokens.length > 1) {
+    return matchCount >= Math.max(2, Math.ceil(majorTokens.length * 0.6));
   }
 
-  const shortTokens = tokens.filter((t) => t.length < 3);
-  for (const short of shortTokens) {
-    if (majorTokens.length === 0) {
-      const regex = new RegExp(`\\b${short}\\b`, 'i');
-      if (!regex.test(textClean)) return false;
+  return matchCount >= 1;
+}
+
+function generateSearchVariants(query: string): string[] {
+  const qClean = query.trim();
+  const variants = new Set<string>([qClean]);
+
+  const translitMap: [RegExp, string][] = [
+    [/\basa\b/gi, 'aisa'],
+    [/\baisa\b/gi, 'asa'],
+    [/\bna\b/gi, 'naa'],
+    [/\bme\b/gi, 'mein'],
+    [/\bmein\b/gi, 'me'],
+    [/\bke\b/gi, 'ki'],
+    [/\bpyar\b/gi, 'pyaar'],
+    [/\bpyaar\b/gi, 'pyar'],
+    [/\btum\b/gi, 'tumhi'],
+  ];
+
+  let mutated = qClean;
+  for (const [regex, replacement] of translitMap) {
+    if (regex.test(qClean)) {
+      mutated = mutated.replace(regex, replacement);
     }
   }
+  if (mutated !== qClean) variants.add(mutated);
 
-  return true;
+  const stripped = qClean.replace(/\b(from|song|movie|chords|tabs|lyrics|easy|guitar)\b/gi, '').trim();
+  if (stripped && stripped !== qClean) variants.add(stripped);
+
+  const words = qClean.split(/\s+/);
+  if (words.length > 2) {
+    variants.add(words.slice(0, 2).join(' '));
+    variants.add(words.slice(0, 3).join(' '));
+  }
+
+  return Array.from(variants).filter(Boolean);
 }
 
 async function searchUltimateGuitar(query: string) {
-  const stripped = query.replace(/\b(from|song|movie|chords|tabs|lyrics)\b/gi, '').trim();
-  const words = query.trim().split(/\s+/);
-  const firstTwoWords = words.slice(0, 2).join(' ');
-  const normalizedNaa = query.replace(/\bna\b/gi, 'naa');
-
-  const variants = Array.from(new Set([query, normalizedNaa, stripped, firstTwoWords])).filter(Boolean);
+  const variants = generateSearchVariants(query);
 
   for (const qVar of variants) {
     // Try both general value search and title search

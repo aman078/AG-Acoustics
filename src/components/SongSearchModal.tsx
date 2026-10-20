@@ -113,6 +113,8 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const scrollIntervalRef = useRef<number | null>(null);
   const debounceTimerRef = useRef<number | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const activeQueryRef = useRef<string>('');
 
   // Persist Favorites
   useEffect(() => {
@@ -141,11 +143,18 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
     }
   }, [recentSongs]);
 
-  // Search Debounce
+  // Search Debounce with In-Flight Request Cancellation & Sequence Safety
   useEffect(() => {
     if (!isOpen) return;
 
-    if (!searchQuery.trim()) {
+    const currentQuery = searchQuery.trim();
+    activeQueryRef.current = currentQuery;
+
+    if (!currentQuery) {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
       setSearchResults([]);
       setIsLoadingResults(false);
       return;
@@ -154,25 +163,39 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
 
     debounceTimerRef.current = window.setTimeout(async () => {
+      // Abort any previous request in-flight
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
       setIsLoadingResults(true);
       try {
-        const results = await searchOnlineSongs(searchQuery);
-        setSearchResults(results);
+        const results = await searchOnlineSongs(currentQuery, controller.signal);
+        
+        // Strictly ensure the response belongs to the current user input before committing to state
+        if (activeQueryRef.current === currentQuery && !controller.signal.aborted) {
+          setSearchResults(results);
 
-        // Save to search history if non-trivial
-        if (searchQuery.trim().length >= 3) {
-          setSearchHistory((prev) => {
-            const trimmed = searchQuery.trim();
-            const filtered = prev.filter((q) => q.toLowerCase() !== trimmed.toLowerCase());
-            return [trimmed, ...filtered].slice(0, 10);
-          });
+          // Save to search history if non-trivial and results were found
+          if (currentQuery.length >= 3 && results.length > 0) {
+            setSearchHistory((prev) => {
+              const filtered = prev.filter((q) => q.toLowerCase() !== currentQuery.toLowerCase());
+              return [currentQuery, ...filtered].slice(0, 10);
+            });
+          }
         }
-      } catch (err) {
-        console.error('Search error:', err);
+      } catch (err: any) {
+        if (err?.name !== 'AbortError') {
+          console.error('Search error:', err);
+        }
       } finally {
-        setIsLoadingResults(false);
+        if (activeQueryRef.current === currentQuery) {
+          setIsLoadingResults(false);
+        }
       }
-    }, 300);
+    }, 280);
 
     return () => {
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
