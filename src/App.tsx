@@ -30,6 +30,8 @@ import { ChordLibraryModal } from './components/ChordLibraryModal';
 import { TuningModal } from './components/TuningModal';
 import { SongSearchModal } from './components/SongSearchModal';
 import { InstallModal } from './components/InstallModal';
+import { AutoUpdateModal } from './components/AutoUpdateModal';
+import { checkForAppUpdate, AppUpdateInfo, CURRENT_APP_VERSION } from './services/updateService';
 import { App as CapApp } from '@capacitor/app';
 
 type ActiveTab = 'tuner' | 'songs' | 'metronome' | 'chords';
@@ -88,6 +90,42 @@ export const App: React.FC = () => {
   // Tuning Preset Modal
   const [isTuningModalOpen, setIsTuningModalOpen] = useState<boolean>(false);
 
+  // Auto-Update States
+  const [updateInfo, setUpdateInfo] = useState<AppUpdateInfo | null>(null);
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState<boolean>(false);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState<boolean>(false);
+  const [isManualUpdateCheck, setIsManualUpdateCheck] = useState<boolean>(false);
+
+  // Background auto-update check on application launch
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      try {
+        const info = await checkForAppUpdate();
+        if (info.updateAvailable) {
+          setUpdateInfo(info);
+          setIsUpdateModalOpen(true);
+        }
+      } catch {
+        // Silent failure in background
+      }
+    }, 1800);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleManualUpdateCheck = async () => {
+    setIsCheckingUpdate(true);
+    setIsManualUpdateCheck(true);
+    setIsUpdateModalOpen(true);
+    try {
+      const info = await checkForAppUpdate();
+      setUpdateInfo(info);
+    } catch {
+      // ignore
+    } finally {
+      setIsCheckingUpdate(false);
+    }
+  };
+
   // PWA Install Prompt State
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [canInstall, setCanInstall] = useState<boolean>(false);
@@ -105,6 +143,8 @@ export const App: React.FC = () => {
           if (isSongOpen) {
             // Close the full-screen song sheet or chord inspector
             window.dispatchEvent(new CustomEvent('agsoft_close_song'));
+          } else if (isUpdateModalOpen) {
+            setIsUpdateModalOpen(false);
           } else if (isTuningModalOpen) {
             setIsTuningModalOpen(false);
           } else if (isInstallModalOpen) {
@@ -442,6 +482,26 @@ export const App: React.FC = () => {
                 <span className="hidden sm:inline">INSTALL</span>
               </button>
             )}
+
+            {/* Auto-Update / Version Check Action */}
+            <button
+              onClick={handleManualUpdateCheck}
+              className={`relative p-2 rounded-xl transition cursor-pointer ${
+                updateInfo?.updateAvailable
+                  ? 'bg-emerald-500 text-black font-extrabold shadow-lg shadow-emerald-500/40 animate-pulse'
+                  : 'bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-slate-300 hover:text-emerald-400'
+              }`}
+              title={
+                updateInfo?.updateAvailable
+                  ? `Update Available: v${updateInfo.latestVersionName} (Tap to update)`
+                  : `AGSoft Acoustics v${CURRENT_APP_VERSION.versionName} • Tap to check for updates`
+              }
+            >
+              <Download className="w-4 h-4" />
+              {updateInfo?.updateAvailable && (
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-[#0A0D15] shadow-xs" />
+              )}
+            </button>
 
             <button
               onClick={() => setIsTuningModalOpen(true)}
@@ -803,6 +863,7 @@ export const App: React.FC = () => {
         onSelectTuning={handleSelectTuning}
         referenceA4={referenceA4}
         onSetReferenceA4={setReferenceA4}
+        onCheckForUpdates={handleManualUpdateCheck}
       />
 
       {/* PWA & Native App Installation Guide Modal */}
@@ -811,6 +872,18 @@ export const App: React.FC = () => {
         onClose={() => setIsInstallModalOpen(false)}
         canInstallPrompt={canInstall}
         onTriggerInstallPrompt={handleTriggerInstall}
+      />
+
+      {/* In-App Auto-Update Notification & APK Installer */}
+      <AutoUpdateModal
+        isOpen={isUpdateModalOpen}
+        onClose={() => {
+          setIsUpdateModalOpen(false);
+          setIsManualUpdateCheck(false);
+        }}
+        updateInfo={updateInfo}
+        isChecking={isCheckingUpdate}
+        isManualCheck={isManualUpdateCheck}
       />
     </div>
   );

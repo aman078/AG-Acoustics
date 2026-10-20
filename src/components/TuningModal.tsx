@@ -9,6 +9,7 @@ interface TuningModalProps {
   onSelectTuning: (tuning: TuningPreset) => void;
   referenceA4: number;
   onSetReferenceA4: (a4: number) => void;
+  onCheckForUpdates?: () => void;
 }
 
 export const TuningModal: React.FC<TuningModalProps> = ({
@@ -18,6 +19,7 @@ export const TuningModal: React.FC<TuningModalProps> = ({
   onSelectTuning,
   referenceA4,
   onSetReferenceA4,
+  onCheckForUpdates,
 }) => {
   const [selectedInstrument, setSelectedInstrument] = useState<string>(currentTuning.instrument);
 
@@ -133,6 +135,27 @@ export const TuningModal: React.FC<TuningModalProps> = ({
               </button>
             ))}
           </div>
+        </div>
+
+        {/* 4. App Version & In-App Auto-Update Action */}
+        <div className="pt-2.5 mt-2 border-t border-slate-200 dark:border-slate-800/80 shrink-0 flex items-center justify-between text-xs">
+          <div className="flex items-center gap-1.5 text-slate-500 font-mono text-[11px]">
+            <span>AGSoft Acoustics</span>
+            <span className="px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold">
+              v1.0.38
+            </span>
+          </div>
+          {onCheckForUpdates && (
+            <button
+              onClick={() => {
+                onClose();
+                onCheckForUpdates();
+              }}
+              className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 hover:underline font-bold cursor-pointer"
+            >
+              Check for Updates
+            </button>
+          )}
         </div>
       </div>
     </div>

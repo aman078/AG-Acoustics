@@ -558,6 +558,26 @@ export function guitarTunaScraperPlugin(): Plugin {
           res.end(JSON.stringify({ error: msg }));
         }
       });
+
+      // 3. App Version & In-App Auto-Updater Endpoint
+      server.middlewares.use('/api/version', async (_req: IncomingMessage, res: ServerResponse) => {
+        try {
+          res.setHeader('Content-Type', 'application/json');
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          res.end(JSON.stringify({
+            latest_version_code: 38,
+            latest_version_name: '1.0.38',
+            download_url: 'https://github.com/aman078/AG-Acoustics/releases/latest/download/AGSoft-Acoustics.apk',
+            release_notes: 'Optimized song search with in-flight cancellation, full 12-root Chord Dictionary with Sus4, Sus2, 7th, and in-app auto-updates.',
+            force_update: false,
+          }));
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : 'Version check failed';
+          res.statusCode = 500;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ error: msg }));
+        }
+      });
     },
   };
 }
