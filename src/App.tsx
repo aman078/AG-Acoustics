@@ -553,41 +553,39 @@ export const App: React.FC = () => {
               </div>
             )}
 
-            {/* Install App Button */}
+            {/* Single, Calm Install App Button (No bouncing, no attention grabbing) */}
             {!isInstalled && (
               <button
                 onClick={handleTriggerInstall}
-                className="px-2.5 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-[0_0_12px_rgba(16,185,129,0.15)]"
+                className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.1] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 font-medium text-xs flex items-center gap-1.5 transition cursor-pointer"
                 title="Install AGSoft Acoustics App"
               >
-                <Download className="w-3.5 h-3.5 animate-bounce" />
-                <span className="hidden sm:inline">INSTALL</span>
+                <Download className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                <span className="hidden sm:inline">Install</span>
               </button>
             )}
 
-            {/* Auto-Update / Version Check Action */}
-            <button
-              onClick={handleManualUpdateCheck}
-              className={`relative p-2 rounded-xl transition cursor-pointer ${
-                updateInfo?.updateAvailable
-                  ? 'bg-emerald-500 text-black font-extrabold shadow-lg shadow-emerald-500/40 animate-pulse'
-                  : 'bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-slate-300 hover:text-emerald-400'
-              }`}
-              title={
-                updateInfo?.updateAvailable
-                  ? `Update Available: v${updateInfo.latestVersionName} (Tap to update)`
-                  : `AGSoft Acoustics v${CURRENT_APP_VERSION.versionName} • Tap to check for updates`
-              }
-            >
-              <Download className="w-4 h-4" />
-              {updateInfo?.updateAvailable && (
-                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-[#0A0D15] shadow-xs" />
-              )}
-            </button>
+            {/* Version / Update Action (Only shown when installed or when an update is ready) */}
+            {isInstalled && (
+              <button
+                onClick={handleManualUpdateCheck}
+                className="relative p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.1] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 transition cursor-pointer"
+                title={
+                  updateInfo?.updateAvailable
+                    ? `Update Available: v${updateInfo.latestVersionName}`
+                    : `AGSoft Acoustics v${CURRENT_APP_VERSION.versionName}`
+                }
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                {updateInfo?.updateAvailable && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full" />
+                )}
+              </button>
+            )}
 
             <button
               onClick={() => setIsTuningModalOpen(true)}
-              className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-slate-300 hover:text-emerald-400 transition cursor-pointer"
+              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.1] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:text-emerald-500 transition cursor-pointer"
               title="Change Instrument / Alternate Tuning"
             >
               <SlidersHorizontal className="w-4 h-4" />
@@ -596,44 +594,19 @@ export const App: React.FC = () => {
         </div>
       </header>
 
-      {/* PWA In-App Banner if not installed */}
-      {!isInstalled && (
-        <div className="w-full max-w-4xl mx-auto px-4 pt-3 pb-1">
-          <div className="pwa-install-banner flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-slate-900/80 to-teal-950/60 border border-emerald-500/30 shadow-lg text-xs">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shrink-0">
-                <Smartphone className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
-              </div>
-              <div className="truncate">
-                <p className="font-bold text-slate-900 dark:text-white leading-tight">Install AGSoft Acoustics</p>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">Run full-screen without browser bar • Instant offline launch</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={handleTriggerInstall}
-                className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-[11px] font-mono tracking-wider transition shadow-[0_0_15px_rgba(16,185,129,0.4)] cursor-pointer"
-              >
-                INSTALL
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Main App Body Depending on Active Tab */}
       <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-4 flex flex-col items-center justify-start">
         {/* TAB 1: TUNER VIEW */}
         {activeTab === 'tuner' && (
           <div className="w-full max-w-xl mx-auto flex flex-col items-center justify-between flex-1 space-y-4">
             {/* Quick Tuning Selector Strip */}
-            <div className="w-full flex items-center justify-between gap-2.5 px-3 py-2 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+            <div className="w-full flex items-center justify-between gap-2.5 px-3 py-2 rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.06] shadow-xs">
               <button
                 onClick={() => setIsTuningModalOpen(true)}
                 className="flex items-center gap-2 text-left cursor-pointer group"
               >
-                <span className="text-[10px] font-mono uppercase text-slate-400">TUNING:</span>
-                <span className="text-xs font-bold text-white group-hover:text-emerald-400 transition">
+                <span className="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400 font-bold">TUNING:</span>
+                <span className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-emerald-500 transition">
                   {currentTuning.name}
                 </span>
               </button>
@@ -643,8 +616,8 @@ export const App: React.FC = () => {
                   onClick={() => setIsAutoMode(!isAutoMode)}
                   className={`px-2.5 py-1 rounded-xl border text-[11px] font-bold font-mono transition flex items-center gap-1.5 cursor-pointer ${
                     isAutoMode
-                      ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
-                      : 'bg-white/[0.04] border-white/[0.08] text-slate-400 hover:text-white'
+                      ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-800 dark:text-emerald-300'
+                      : 'bg-slate-100 dark:bg-white/[0.04] border-slate-200 dark:border-white/[0.08] text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   <Flame className="w-3.5 h-3.5" />
@@ -662,7 +635,7 @@ export const App: React.FC = () => {
             )}
 
             {/* HERO PITCH DISPLAY (The Centerpiece Note Badge) */}
-            <div className="w-full py-4 px-6 rounded-3xl bg-gradient-to-b from-white/[0.04] to-white/[0.01] border border-white/[0.08] shadow-2xl relative overflow-hidden flex flex-col items-center">
+            <div className="w-full py-5 px-6 rounded-3xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-sm dark:shadow-2xl relative overflow-hidden flex flex-col items-center">
               {/* In-Tune Background Ambient Beam */}
               {isInTune && (
                 <div className="absolute inset-0 bg-emerald-500/10 blur-2xl animate-pulse pointer-events-none" />
@@ -671,24 +644,24 @@ export const App: React.FC = () => {
               {/* Status Header Badge */}
               <div className="mb-2">
                 {isInTune ? (
-                  <span className="px-3 py-1 rounded-full bg-emerald-500 text-black text-xs font-extrabold tracking-widest flex items-center gap-1.5 shadow-[0_0_20px_rgba(16,185,129,0.8)] animate-bounce">
+                  <span className="px-3.5 py-1 rounded-full bg-emerald-500 text-black text-xs font-extrabold tracking-widest flex items-center gap-1.5 shadow-md animate-bounce">
                     <CheckCircle2 className="w-3.5 h-3.5" /> IN TUNE
                   </span>
                 ) : isFlat ? (
-                  <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-bold font-mono tracking-wider">
+                  <span className="px-3 py-1 rounded-full bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30 text-[11px] font-bold font-mono tracking-wider">
                     TUNE UP ▲
                   </span>
                 ) : isSharp ? (
-                  <span className="px-3 py-1 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[11px] font-bold font-mono tracking-wider">
+                  <span className="px-3 py-1 rounded-full bg-rose-500/15 text-rose-800 dark:text-rose-300 border border-rose-500/30 text-[11px] font-bold font-mono tracking-wider">
                     TUNE DOWN ▼
                   </span>
                 ) : isListening ? (
-                  <span className="text-[11px] font-mono tracking-widest text-slate-500 uppercase flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" />
+                  <span className="text-[11px] font-mono font-semibold tracking-widest text-slate-600 dark:text-slate-400 uppercase flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping inline-block" />
                     LISTENING FOR PLUCK...
                   </span>
                 ) : (
-                  <span className="text-[11px] font-mono tracking-widest text-slate-500 uppercase">
+                  <span className="text-[11px] font-mono font-semibold tracking-widest text-slate-500 dark:text-slate-400 uppercase">
                     MICROPHONE PAUSED
                   </span>
                 )}
@@ -698,28 +671,28 @@ export const App: React.FC = () => {
               <div className="flex items-baseline justify-center gap-1 my-1">
                 <span className={`text-6xl sm:text-7xl font-extrabold tracking-tighter transition-all duration-150 ${
                   isInTune 
-                    ? 'text-emerald-400 drop-shadow-[0_0_25px_rgba(16,185,129,0.7)] scale-105' 
+                    ? 'text-emerald-600 dark:text-emerald-400 drop-shadow-[0_0_25px_rgba(16,185,129,0.5)] scale-105' 
                     : isFlat
-                    ? 'text-amber-300 drop-shadow-[0_0_15px_rgba(251,191,36,0.4)]'
+                    ? 'text-amber-600 dark:text-amber-300'
                     : isSharp
-                    ? 'text-rose-400 drop-shadow-[0_0_15px_rgba(244,63,94,0.4)]'
-                    : 'text-white'
+                    ? 'text-rose-600 dark:text-rose-400'
+                    : 'text-slate-900 dark:text-white'
                 }`}>
                   {isListening && detectedNote ? detectedNote : currentTargetString.note}
                 </span>
-                <span className="text-xl sm:text-2xl font-mono font-bold text-slate-400">
+                <span className="text-xl sm:text-2xl font-mono font-bold text-slate-500 dark:text-slate-400">
                   {isListening && detectedOctave !== null ? detectedOctave : currentTargetString.octave}
                 </span>
               </div>
 
               {/* Deviation in Cents & Frequency */}
-              <div className="flex items-center gap-4 text-xs font-mono text-slate-400 mt-1">
+              <div className="flex items-center gap-4 text-xs font-mono text-slate-600 dark:text-slate-400 mt-1">
                 <span>
-                  FREQ: <strong className="text-white">{detectedFreq ? `${detectedFreq.toFixed(1)} Hz` : `${currentTargetString.targetFreq.toFixed(1)} Hz`}</strong>
+                  FREQ: <strong className="text-slate-900 dark:text-white font-bold">{detectedFreq ? `${detectedFreq.toFixed(1)} Hz` : `${currentTargetString.targetFreq.toFixed(1)} Hz`}</strong>
                 </span>
                 <span>•</span>
                 <span>
-                  DEV: <strong className={isInTune ? 'text-emerald-400' : 'text-slate-200'}>
+                  DEV: <strong className={isInTune ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-800 dark:text-slate-200 font-bold'}>
                     {isListening && detectedFreq ? `${centsOffset > 0 ? '+' : ''}${centsOffset.toFixed(1)}¢` : '0.0¢'}
                   </strong>
                 </span>
@@ -727,17 +700,17 @@ export const App: React.FC = () => {
 
               {/* High-Precision Deviation Visual Bar */}
               <div className="w-full max-w-md mt-4 flex flex-col items-center">
-                <div className="w-full relative h-3 bg-slate-950 rounded-full border border-white/[0.08] overflow-hidden flex items-center">
+                <div className="w-full relative h-3 bg-slate-200 dark:bg-slate-950 rounded-full border border-slate-300 dark:border-white/[0.08] overflow-hidden flex items-center">
                   {/* Center In-Tune Mark */}
-                  <div className="absolute left-1/2 -translate-x-1/2 w-1.5 h-full bg-emerald-400 z-10 shadow-[0_0_8px_rgba(16,185,129,0.9)]" />
+                  <div className="absolute left-1/2 -translate-x-1/2 w-1.5 h-full bg-emerald-500 z-10 shadow-[0_0_8px_rgba(16,185,129,0.9)]" />
                   {/* Tolerance Window (+/- 3 cents) */}
-                  <div className="absolute left-[47%] w-[6%] h-full bg-emerald-500/30 z-0" />
+                  <div className="absolute left-[47%] w-[6%] h-full bg-emerald-500/25 z-0" />
                   
                   {/* Real-time Needle Dot */}
                   {isListening && detectedFreq && (
                     <div
                       className={`absolute top-0 bottom-0 w-2.5 rounded-full transition-all duration-75 shadow-md ${
-                        isInTune ? 'bg-emerald-300' : isFlat ? 'bg-amber-400' : 'bg-rose-400'
+                        isInTune ? 'bg-emerald-500' : isFlat ? 'bg-amber-500' : 'bg-rose-500'
                       }`}
                       style={{
                         left: `calc(${Math.min(97, Math.max(3, 50 + centsOffset))}% - 5px)`
@@ -746,16 +719,16 @@ export const App: React.FC = () => {
                   )}
                 </div>
 
-                <div className="w-full flex justify-between text-[10px] font-mono text-slate-400 mt-1 px-1">
+                <div className="w-full flex justify-between text-[10px] font-mono font-medium text-slate-500 dark:text-slate-400 mt-1 px-1">
                   <span>-50¢ (FLAT)</span>
-                  <span className="text-emerald-400 font-bold">0¢ PERFECT</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">0¢ PERFECT</span>
                   <span>+50¢ (SHARP)</span>
                 </div>
               </div>
             </div>
 
             {/* Quick String Peg Bar (Direct Access to all 6 Strings) */}
-            <div className="w-full flex items-center justify-between gap-1.5 p-2 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+            <div className="w-full flex items-center justify-between gap-2 p-2 rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.06] shadow-xs">
               {currentTuning.strings.map((str, idx) => {
                 const isActive = activeStringIndex === idx;
                 return (
@@ -766,14 +739,14 @@ export const App: React.FC = () => {
                       setIsAutoMode(false);
                       handlePlayActiveString(str.targetFreq);
                     }}
-                    className={`flex-1 flex flex-col items-center py-2 px-1 rounded-xl transition cursor-pointer ${
+                    className={`flex-1 flex flex-col items-center py-2.5 px-1 rounded-xl transition cursor-pointer ${
                       isActive
-                        ? 'bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 font-bold shadow-[0_0_12px_rgba(16,185,129,0.3)]'
-                        : 'bg-white/[0.02] border border-white/[0.04] text-slate-400 hover:text-white hover:bg-white/[0.06]'
+                        ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 font-bold shadow-xs'
+                        : 'bg-slate-50 dark:bg-white/[0.02] border border-slate-200/80 dark:border-white/[0.04] text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06]'
                     }`}
                   >
                     <span className="text-sm font-bold font-mono">{str.note}</span>
-                    <span className="text-[9px] font-mono text-slate-400">{str.targetFreq.toFixed(0)}Hz</span>
+                    <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 font-medium">{str.targetFreq.toFixed(0)}Hz</span>
                   </button>
                 );
               })}

@@ -104,7 +104,8 @@ body.clean-theme .bg-slate-950\/90,
 body.clean-theme .bg-\[\#07090E\],
 body.clean-theme .bg-\[\#08090D\],
 body.clean-theme .bg-\[\#0A0D15\],
-body.clean-theme .bg-\[\#0A0D15\]\/95 {
+body.clean-theme .bg-\[\#0A0D15\]\/95,
+body.clean-theme .bg-\[\#0D111A\] {
   background-color: #ffffff !important;
   color: #0f172a !important;
 }
