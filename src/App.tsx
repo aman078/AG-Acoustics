@@ -38,22 +38,22 @@ import { SplashScreen } from '@capacitor/splash-screen';
 type ActiveTab = 'tuner' | 'songs' | 'metronome' | 'chords';
 
 export const App: React.FC = () => {
-  // Option A: Seamless Native Splash Screen Handshake
-  // Hold native splash screen until React finishes initial render, then fade out smoothly
+  // Seamless Native Splash Screen Handshake
+  // Dismiss native splash screen smoothly as soon as React is mounted
   useEffect(() => {
     const hideSplash = async () => {
       try {
         await SplashScreen.hide({
-          fadeOutDuration: 400
+          fadeOutDuration: 300
         });
       } catch {
         // Fallback for web browser execution
       }
     };
 
-    // Allow one animation frame for React to paint the UI
+    hideSplash();
     const raf = requestAnimationFrame(() => {
-      setTimeout(hideSplash, 120);
+      hideSplash();
     });
     return () => cancelAnimationFrame(raf);
   }, []);

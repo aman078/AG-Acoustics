@@ -8,9 +8,9 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    let latestTagName = 'v1.0.40';
+    let latestTagName = 'v1.0.41';
     let apkDownloadUrl = 'https://github.com/aman078/AG-Acoustics/releases/latest/download/AGSoft-Acoustics.apk';
-    let releaseNotes = 'Capacitor native splash screen hold & smooth cross-fade, comprehensive user preferences persistence (theme, tunings, tuner modes, metronome, scroll speed), offline favorite song caching, and fluid touch-aware song auto-scroll.';
+    let releaseNotes = 'Fixed splash screen freeze by removing Android 12 onPreDraw deadlock, and set pure seamless white splash background matching the AG monogram.';
 
     try {
       const ghRes = await fetch('https://api.github.com/repos/aman078/AG-Acoustics/releases/latest', {
@@ -36,7 +36,7 @@ export default async function handler(req: any, res: any) {
     }
 
     const match = latestTagName.match(/\d+$/);
-    const versionCode = match ? parseInt(match[0], 10) : 40;
+    const versionCode = match ? parseInt(match[0], 10) : 41;
     const versionName = latestTagName.replace(/^v/, '');
 
     res.setHeader('Content-Type', 'application/json');
