@@ -1,4 +1,5 @@
-const CACHE_NAME = 'agsoft-acoustics-v2';
+// AGSoft Acoustics Resilient Offline Service Worker (v4)
+const CACHE_NAME = 'agsoft-acoustics-v4';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -26,17 +27,46 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Let API requests go directly to network
-  if (event.request.url.includes('/api/')) {
+  const url = new URL(event.request.url);
+
+  // 1. Never intercept backend API requests
+  if (url.pathname.startsWith('/api/')) {
     return;
   }
 
+  // 2. Navigation / HTML Requests: ALWAYS Network-First with offline fallback
+  // This prevents the dreaded stale HTML -> 404 old JS hash -> white screen deadlock!
+  if (event.request.mode === 'navigate' || event.request.headers.get('accept')?.includes('text/html')) {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return networkResponse;
+        })
+        .catch(() => {
+          return caches.match('/index.html') || caches.match('/');
+        })
+    );
+    return;
+  }
+
+  // 3. Static Assets: Cache-First, fallback to network.
+  // CRITICAL: NEVER fallback to index.html for .js/.css, as returning HTML for JS causes SyntaxError!
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      return (
-        cachedResponse ||
-        fetch(event.request).catch(() => caches.match('/index.html'))
-      );
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+      return fetch(event.request).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const clone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return networkResponse;
+      });
     })
   );
 });

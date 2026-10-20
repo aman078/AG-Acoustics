@@ -167,7 +167,14 @@ export const App: React.FC = () => {
   const [detectedNote, setDetectedNote] = useState<string>('');
   const [detectedOctave, setDetectedOctave] = useState<number | null>(null);
   const [centsOffset, setCentsOffset] = useState<number>(0);
-  const [targetFreq, setTargetFreq] = useState<number | null>(currentTuning.strings[0].targetFreq);
+  const [targetFreq, setTargetFreq] = useState<number | null>(() => currentTuning?.strings?.[0]?.targetFreq || 82.41);
+
+  // Safety clamp activeStringIndex whenever currentTuning changes
+  useEffect(() => {
+    if (activeStringIndex >= currentTuning.strings.length) {
+      setActiveStringIndex(0);
+    }
+  }, [currentTuning, activeStringIndex]);
 
   // Tuning Preset Modal
   const [isTuningModalOpen, setIsTuningModalOpen] = useState<boolean>(false);
@@ -469,8 +476,13 @@ export const App: React.FC = () => {
     playGuitarStringTone(freq, 2.0);
   };
 
-  // Status helper calculations
-  const currentTargetString = currentTuning.strings[activeStringIndex];
+  // Status helper calculations (guarded against out-of-bound string indexing)
+  const currentTargetString = currentTuning?.strings?.[activeStringIndex] || currentTuning?.strings?.[0] || {
+    note: 'E',
+    octave: 2,
+    targetFreq: 82.41,
+    name: 'Low E'
+  };
   const isInTune = isListening && detectedFreq && Math.abs(centsOffset) <= 3;
   const isFlat = isListening && detectedFreq && centsOffset < -3;
   const isSharp = isListening && detectedFreq && centsOffset > 3;

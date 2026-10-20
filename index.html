@@ -49,11 +49,42 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch(console.error);
-        });
-      }
+      (function() {
+        var isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+        if (isNative) {
+          // Inside native Capacitor APK, unregister any legacy service worker and clear stale caches
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+              for (var i = 0; i < registrations.length; i++) {
+                registrations[i].unregister();
+              }
+            });
+          }
+          if ('caches' in window) {
+            caches.keys().then(function(keys) {
+              for (var i = 0; i < keys.length; i++) {
+                caches.delete(keys[i]);
+              }
+            });
+          }
+        } else if ('serviceWorker' in navigator) {
+          // On web browser, register resilient sw.js
+          window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/sw.js').then(function(reg) {
+              reg.onupdatefound = function() {
+                var installing = reg.installing;
+                if (installing) {
+                  installing.onstatechange = function() {
+                    if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+                      console.log('New AGSoft Acoustics update ready.');
+                    }
+                  };
+                }
+              };
+            }).catch(console.error);
+          });
+        }
+      })();
     </script>
   </body>
 </html>

@@ -8,9 +8,9 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    let latestTagName = 'v1.0.42';
+    let latestTagName = 'v1.0.43';
     let apkDownloadUrl = 'https://github.com/aman078/AG-Acoustics/releases/latest/download/AGSoft-Acoustics.apk';
-    let releaseNotes = 'High-contrast accessible theme overhaul for Install Modal and tuner displays, unified single calm install button without animations, and removed intrusive banners.';
+    let releaseNotes = 'Fixed white screen startup crash: purged WebView stale service worker cache, converted PWA worker to Network-First, added tuning index safety bounds, and implemented Root Error Boundary.';
 
     try {
       const ghRes = await fetch('https://api.github.com/repos/aman078/AG-Acoustics/releases/latest', {
@@ -36,7 +36,7 @@ export default async function handler(req: any, res: any) {
     }
 
     const match = latestTagName.match(/\d+$/);
-    const versionCode = match ? parseInt(match[0], 10) : 42;
+    const versionCode = match ? parseInt(match[0], 10) : 43;
     const versionName = latestTagName.replace(/^v/, '');
 
     res.setHeader('Content-Type', 'application/json');

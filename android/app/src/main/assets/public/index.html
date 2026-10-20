@@ -35,17 +35,48 @@
       })();
     </script>
     <style>html.clean-theme,html.clean-theme body{color:#0f172a!important;background-color:#fff!important}html.dark,html.dark body{color:#f1f5f9!important;background-color:#08090d!important}</style>
-    <script type="module" crossorigin src="/assets/index-BEqnEfar.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-CPkz2Ugj.css">
+    <script type="module" crossorigin src="/assets/index-CfJkWWc2.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-DmaTZEJc.css">
   </head>
   <body class="bg-white dark:bg-[#08090d] text-slate-900 dark:text-slate-100 antialiased overflow-x-hidden selection:bg-emerald-500 selection:text-black">
     <div id="root"></div>
     <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch(console.error);
-        });
-      }
+      (function() {
+        var isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+        if (isNative) {
+          // Inside native Capacitor APK, unregister any legacy service worker and clear stale caches
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+              for (var i = 0; i < registrations.length; i++) {
+                registrations[i].unregister();
+              }
+            });
+          }
+          if ('caches' in window) {
+            caches.keys().then(function(keys) {
+              for (var i = 0; i < keys.length; i++) {
+                caches.delete(keys[i]);
+              }
+            });
+          }
+        } else if ('serviceWorker' in navigator) {
+          // On web browser, register resilient sw.js
+          window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/sw.js').then(function(reg) {
+              reg.onupdatefound = function() {
+                var installing = reg.installing;
+                if (installing) {
+                  installing.onstatechange = function() {
+                    if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+                      console.log('New AGSoft Acoustics update ready.');
+                    }
+                  };
+                }
+              };
+            }).catch(console.error);
+          });
+        }
+      })();
     </script>
   </body>
 </html>
