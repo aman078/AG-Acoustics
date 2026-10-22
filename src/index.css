@@ -13,6 +13,37 @@
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: none;
   }
+
+  ::selection {
+    background-color: #f15a24;
+    color: #ffffff;
+  }
+}
+
+/* Zostel Brand Orange Accents */
+:root {
+  --brand-orange: #f15a24;
+  --brand-orange-hover: #d94816;
+  --brand-orange-light: #ff7a45;
+}
+
+.glow-orange {
+  box-shadow: 0 0 25px -3px rgba(241, 90, 36, 0.45), 0 0 10px -2px rgba(241, 90, 36, 0.25);
+}
+
+.song-chord-token {
+  color: #f15a24 !important;
+}
+html.dark .song-chord-token,
+body.dark .song-chord-token {
+  color: #ff7a45 !important;
+}
+.song-chord-token:hover {
+  color: #d94816 !important;
+}
+html.dark .song-chord-token:hover,
+body.dark .song-chord-token:hover {
+  color: #ffa07a !important;
 }
 
 .font-mono-num {

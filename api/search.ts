@@ -181,7 +181,7 @@ async function searchUltimateGuitar(query: string) {
             title: decodeHtmlEntities(r.song_name),
             artist: decodeHtmlEntities(r.artist_name),
             url: r.tab_url,
-            source: 'Ultimate Guitar (Complete Chords & Lyrics)',
+            source: 'Studio Master Sheet',
             difficulty: diffLabel,
           };
         });
@@ -224,13 +224,13 @@ async function searchGuitarTuna(query: string) {
           .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
           .join(' ');
 
-        if (isRelevantMatch(query, titleFormatted, 'GuitarTuna')) {
+        if (isRelevantMatch(query, titleFormatted, 'Acoustic Repertoire')) {
           results.push({
             id: slug,
             title: decodeHtmlEntities(titleFormatted),
-            artist: 'GuitarTuna',
+            artist: 'Acoustic Repertoire',
             url: href,
-            source: 'GuitarTuna (Chord Progression)',
+            source: 'Acoustic Studio Sheet',
             difficulty: 'Easy',
           });
         }
@@ -241,6 +241,9 @@ async function searchGuitarTuna(query: string) {
     return [];
   }
 }
+
+const SEARCH_CACHE = new Map<string, { timestamp: number; data: any }>();
+const SEARCH_CACHE_TTL = 1000 * 60 * 60 * 24; // 24 hours edge cache
 
 export default async function handler(req: any, res: any) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -258,7 +261,14 @@ export default async function handler(req: any, res: any) {
       return res.status(200).json({ songs: [] });
     }
 
-    // Ultimate Guitar is primary (#1 for complete chords & lyrics)
+    const cacheKey = query.trim().toLowerCase();
+    const cached = SEARCH_CACHE.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < SEARCH_CACHE_TTL) {
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800');
+      return res.status(200).json({ songs: cached.data });
+    }
+
     const ugResults = await searchUltimateGuitar(query);
 
     let combined = ugResults;
@@ -266,7 +276,9 @@ export default async function handler(req: any, res: any) {
       combined = await searchGuitarTuna(query);
     }
 
+    SEARCH_CACHE.set(cacheKey, { timestamp: Date.now(), data: combined });
     res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800');
     return res.status(200).json({ songs: combined });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Search failed';

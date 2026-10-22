@@ -982,11 +982,11 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                 <button
                   key={chord}
                   onClick={() => handleInspectChord(transposed)}
-                  className="group px-2.5 py-1 rounded-xl bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-500/20 border border-slate-300 dark:border-slate-700 hover:border-emerald-500/50 text-xs font-mono font-bold text-slate-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-300 transition flex items-center gap-1.5 cursor-pointer shrink-0 shadow-sm"
+                  className="group px-2.5 py-1 rounded-xl bg-white dark:bg-slate-800 hover:bg-orange-50 dark:hover:bg-[#f15a24]/15 border border-slate-300 dark:border-slate-700 hover:border-[#f15a24]/50 text-xs font-mono font-bold text-slate-900 dark:text-white hover:text-[#f15a24] dark:hover:text-[#ff7a45] transition flex items-center gap-1.5 cursor-pointer shrink-0 shadow-sm"
                   title={`Play ${transposed} & view fingering`}
                 >
                   <span>{transposed}</span>
-                  <Volume2 className="w-3 h-3 text-slate-400 group-hover:text-emerald-500" />
+                  <Volume2 className="w-3 h-3 text-slate-400 group-hover:text-[#f15a24]" />
                 </button>
               );
             })}
@@ -1010,7 +1010,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
           ) : (
             selectedSong.sections.map((section, sIdx) => (
               <div key={sIdx} className="space-y-3">
-                <div className="text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400 tracking-wider uppercase border-b border-emerald-500/20 dark:border-emerald-500/30 pb-1 flex items-center justify-between">
+                <div className="text-xs font-mono font-bold text-[#f15a24] dark:text-[#ff7a45] tracking-wider uppercase border-b border-[#f15a24]/30 pb-1 flex items-center justify-between">
                   <span>[{section.sectionTitle}]</span>
                   <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-normal">
                     {section.lines.length} lines
@@ -1046,8 +1046,8 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                                 }}
                                 className={`px-2 py-0.5 rounded-lg font-mono font-extrabold text-xs cursor-pointer transition-all shadow-sm ${
                                   isPlayingThisChord
-                                    ? 'bg-emerald-500 text-black shadow-md ring-2 ring-emerald-300 ring-offset-1 scale-110 font-black animate-pulse'
-                                    : 'bg-emerald-500/15 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300'
+                                    ? 'bg-[#f15a24] text-white shadow-md ring-2 ring-orange-300 ring-offset-1 scale-110 font-black animate-pulse'
+                                    : 'bg-[#f15a24]/15 hover:bg-[#f15a24]/25 border border-[#f15a24]/35 text-[#f15a24] dark:text-[#ff7a45]'
                                 }`}
                                 title={`Chord #${gIdx + 1}: ${transposed} (Click to jump practice player here)`}
                               >
@@ -1062,9 +1062,9 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                     let lastPos = 0;
                     return (
                       <div key={lIdx} className="flex flex-col py-1 overflow-x-auto">
-                        {/* Chords Line visually aligned over syllable columns */}
+                        {/* Chords Line visually aligned over syllable columns in Zostel Orange */}
                         {line.chords.length > 0 && (
-                          <div className="font-mono text-xs sm:text-sm font-extrabold text-emerald-700 dark:text-emerald-400 select-none flex items-center whitespace-pre leading-tight py-0.5">
+                          <div className="font-mono text-xs sm:text-sm font-extrabold text-[#f15a24] dark:text-[#ff7a45] select-none flex items-center whitespace-pre leading-tight py-0.5">
                             {line.chords.map((c, cIdx) => {
                               const transposed = transposeChord(c.chord, transposeOffset);
                               const targetPos = Math.max(lastPos, c.position || 0);
@@ -1085,8 +1085,8 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                                     }}
                                     className={`font-mono text-xs sm:text-sm font-black cursor-pointer transition-all select-none tracking-tight rounded-md px-1.5 py-0.5 ${
                                       isPlayingThisChord
-                                        ? 'bg-emerald-500 text-black shadow-lg ring-2 ring-emerald-300 ring-offset-1 scale-110 font-extrabold animate-pulse'
-                                        : 'text-emerald-700 dark:text-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-300 hover:bg-emerald-500/10'
+                                        ? 'bg-[#f15a24] text-white shadow-lg ring-2 ring-orange-300 ring-offset-1 scale-110 font-extrabold animate-pulse'
+                                        : 'text-[#f15a24] dark:text-[#ff7a45] hover:text-[#d94816] dark:hover:text-[#ffa07a] hover:bg-[#f15a24]/10'
                                     }`}
                                     title={`Chord #${gIdx + 1}: ${transposed} (Click to jump practice player here)`}
                                   >
@@ -1142,10 +1142,10 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                     className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer transition shadow-sm ${
                       isPracticing
                         ? 'bg-rose-500 text-white shadow-rose-500/30'
-                        : 'bg-emerald-500 text-black shadow-emerald-500/30 font-extrabold'
+                        : 'bg-[#f15a24] text-white shadow-[#f15a24]/30 font-extrabold hover:bg-[#d94816]'
                     }`}
                   >
-                    {isPracticing ? <Pause className="w-3.5 h-3.5 fill-white" /> : <Play className="w-3.5 h-3.5 fill-black" />}
+                    {isPracticing ? <Pause className="w-3.5 h-3.5 fill-white" /> : <Play className="w-3.5 h-3.5 fill-white" />}
                     <span>{isPracticing ? 'STOP PRACTICE' : 'START PRACTICE'}</span>
                   </button>
 
@@ -1157,8 +1157,8 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                         className={`w-2.5 h-2.5 rounded-full transition-all duration-100 ${
                           currentBeatInBar === bIdx && isPracticing
                             ? bIdx === 0
-                              ? 'bg-emerald-400 scale-125 shadow-[0_0_8px_#34d399]'
-                              : 'bg-cyan-400 scale-110 shadow-[0_0_6px_#22d3ee]'
+                              ? 'bg-[#f15a24] scale-125 shadow-[0_0_8px_#f15a24]'
+                              : 'bg-amber-400 scale-110 shadow-[0_0_6px_#fbbf24]'
                             : 'bg-slate-300 dark:bg-slate-700'
                         }`}
                       />
@@ -1208,7 +1208,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                     <button
                       onClick={() => setPracticeSoundMode('both')}
                       className={`px-2 py-0.5 rounded-md font-bold transition cursor-pointer ${
-                        practiceSoundMode === 'both' ? 'bg-emerald-500 text-black' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                        practiceSoundMode === 'both' ? 'bg-[#f15a24] text-white' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
                       Chords+Click
@@ -1216,7 +1216,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                     <button
                       onClick={() => setPracticeSoundMode('chords')}
                       className={`px-2 py-0.5 rounded-md font-bold transition cursor-pointer ${
-                        practiceSoundMode === 'chords' ? 'bg-emerald-500 text-black' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                        practiceSoundMode === 'chords' ? 'bg-[#f15a24] text-white' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
                       Chords
@@ -1224,7 +1224,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                     <button
                       onClick={() => setPracticeSoundMode('click')}
                       className={`px-2 py-0.5 rounded-md font-bold transition cursor-pointer ${
-                        practiceSoundMode === 'click' ? 'bg-emerald-500 text-black' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                        practiceSoundMode === 'click' ? 'bg-[#f15a24] text-white' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
                       Click
@@ -1232,7 +1232,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                     <button
                       onClick={() => setPracticeSoundMode('silent')}
                       className={`px-2 py-0.5 rounded-md font-bold transition cursor-pointer ${
-                        practiceSoundMode === 'silent' ? 'bg-emerald-500 text-black' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                        practiceSoundMode === 'silent' ? 'bg-[#f15a24] text-white' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
                       Silent
@@ -1247,7 +1247,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                     <button
                       onClick={() => setBeatsPerChord(4)}
                       className={`px-2 py-0.5 rounded-md font-bold transition cursor-pointer ${
-                        beatsPerChord === 4 ? 'bg-cyan-500 text-black' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                        beatsPerChord === 4 ? 'bg-[#f15a24] text-white' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
                       4 Beats (1 Bar)
@@ -1255,7 +1255,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                     <button
                       onClick={() => setBeatsPerChord(2)}
                       className={`px-2 py-0.5 rounded-md font-bold transition cursor-pointer ${
-                        beatsPerChord === 2 ? 'bg-cyan-500 text-black' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                        beatsPerChord === 2 ? 'bg-[#f15a24] text-white' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
                       2 Beats (½ Bar)
@@ -1273,7 +1273,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                     >
                       ◀ Prev
                     </button>
-                    <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-400 font-extrabold px-1">
+                    <span className="text-[10px] font-mono text-[#f15a24] dark:text-[#ff7a45] font-extrabold px-1">
                       #{currentChordIndex + 1}/{flatChords.length} ({transposeChord(flatChords[currentChordIndex]?.chord || '', transposeOffset)})
                     </span>
                     <button
@@ -1297,7 +1297,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
               className={`flex-1 sm:flex-initial px-3 sm:px-4 py-2.5 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-lg shrink-0 ${
                 isAutoScrolling
                   ? 'bg-rose-500 text-white shadow-rose-500/30'
-                  : 'bg-emerald-500 text-black shadow-emerald-500/30 font-extrabold'
+                  : 'bg-[#f15a24] text-white shadow-[#f15a24]/30 font-extrabold hover:bg-[#d94816]'
               }`}
               title="Toggle Auto-Scroll (Desktop Shortcut: Spacebar)"
             >
@@ -1309,9 +1309,9 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                 </>
               ) : (
                 <>
-                  <Play className="w-4 h-4 fill-black" />
+                  <Play className="w-4 h-4 fill-white" />
                   <span>AUTO SCROLL</span>
-                  <span className="hidden sm:inline-block px-1.5 py-0.5 text-[9px] font-mono bg-black/15 rounded text-black font-extrabold ml-0.5">Space</span>
+                  <span className="hidden sm:inline-block px-1.5 py-0.5 text-[9px] font-mono bg-white/20 rounded text-white font-extrabold ml-0.5">Space</span>
                 </>
               )}
             </button>
@@ -1326,7 +1326,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
               >
                 -
               </button>
-              <span className="font-mono font-extrabold text-emerald-700 dark:text-emerald-400 text-xs sm:text-sm min-w-[42px] text-center">
+              <span className="font-mono font-extrabold text-[#f15a24] dark:text-[#ff7a45] text-xs sm:text-sm min-w-[42px] text-center">
                 {scrollSpeed < 0.2 ? scrollSpeed.toFixed(2) : scrollSpeed.toFixed(1)}x
               </span>
               <button
@@ -1365,7 +1365,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
               onClick={() => setIsPracticeBarOpen(!isPracticeBarOpen)}
               className={`px-3 py-2 rounded-2xl text-xs font-bold font-mono transition flex items-center gap-1.5 cursor-pointer shadow-sm border shrink-0 ${
                 isPracticing
-                  ? 'bg-emerald-500 text-black border-emerald-400 font-extrabold ring-2 ring-emerald-300/50 animate-pulse'
+                  ? 'bg-[#f15a24] text-white border-orange-400 font-extrabold ring-2 ring-orange-300/50 animate-pulse'
                   : isPracticeBarOpen
                   ? 'bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white border-slate-300 dark:border-slate-700'
                   : 'bg-slate-100 dark:bg-slate-900/90 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-800 hover:text-slate-900 dark:hover:text-white'
@@ -1374,7 +1374,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
             >
               <Clock className="w-3.5 h-3.5" />
               <span>{practiceBpm} BPM</span>
-              {isPracticing && <span className="w-1.5 h-1.5 rounded-full bg-black"></span>}
+              {isPracticing && <span className="w-1.5 h-1.5 rounded-full bg-white"></span>}
             </button>
           </div>
         </div>
@@ -1524,7 +1524,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
       {/* Loading Overlay */}
       {isLoadingSong && (
         <div className="absolute inset-0 z-50 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center gap-3">
-          <Loader2 className="w-9 h-9 animate-spin text-emerald-400" />
+          <Loader2 className="w-9 h-9 animate-spin text-[#f15a24]" />
           <span className="text-sm font-bold text-white tracking-wide">Loading chord sheet & tablature...</span>
         </div>
       )}
@@ -1559,7 +1559,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
               onClick={() => setSectionTab('search')}
               className={`flex-1 py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer ${
                 sectionTab === 'search'
-                  ? 'bg-emerald-500 text-black shadow-md font-extrabold'
+                  ? 'bg-[#f15a24] text-white shadow-md font-extrabold'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
@@ -1619,7 +1619,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                       e.currentTarget.blur();
                     }
                   }}
-                  className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-2xl pl-11 pr-11 py-3 text-sm text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 shadow-inner"
+                  className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-2xl pl-11 pr-11 py-3 text-sm text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:border-[#f15a24] shadow-inner"
                 />
                 {searchQuery && (
                   <button
@@ -1631,7 +1631,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                   </button>
                 )}
                 {isLoadingResults && (
-                  <Loader2 className="w-4 h-4 animate-spin text-emerald-500 absolute right-4 top-1/2 -translate-y-1/2" />
+                  <Loader2 className="w-4 h-4 animate-spin text-[#f15a24] absolute right-4 top-1/2 -translate-y-1/2" />
                 )}
               </form>
 
@@ -1647,8 +1647,8 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
 
                     {isLoadingResults && searchResults.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-16 text-slate-500 text-xs gap-2">
-                        <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
-                        <span>Connecting to GuitarTuna database...</span>
+                        <Loader2 className="w-6 h-6 animate-spin text-[#f15a24]" />
+                        <span>Searching Acoustic Studio Cloud...</span>
                       </div>
                     ) : searchResults.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-16 text-slate-500 text-xs">
@@ -1665,11 +1665,11 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                               onClick={() => handleSelectSong(song)}
                               className="flex items-center gap-3.5 flex-1 cursor-pointer min-w-0"
                             >
-                              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 p-0.5 flex items-center justify-center font-bold text-white shadow-md shrink-0">
-                                <Guitar className="w-5 h-5 text-black" />
+                              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#f15a24] to-amber-500 p-0.5 flex items-center justify-center font-bold text-white shadow-md shrink-0">
+                                <Guitar className="w-5 h-5 text-white" />
                               </div>
                               <div className="truncate">
-                                <h3 className="font-bold text-sm text-white group-hover:text-emerald-400 transition truncate flex items-center gap-2">
+                                <h3 className="font-bold text-sm text-white group-hover:text-[#f15a24] transition truncate flex items-center gap-2">
                                   <span>{song.title}</span>
                                   {song.difficulty && (
                                     <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 shrink-0">
@@ -1680,7 +1680,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                                 <div className="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5 truncate">
                                   <span>{song.artist}</span>
                                   <span className="text-slate-600">•</span>
-                                  <span className="text-xs text-emerald-400 font-medium">{song.source}</span>
+                                  <span className="text-xs text-[#f15a24] font-medium">{song.source}</span>
                                 </div>
                               </div>
                             </div>
@@ -1700,7 +1700,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
 
                               <button
                                 onClick={() => handleSelectSong(song)}
-                                className="text-[11px] font-mono px-3 py-1.5 rounded-xl bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-semibold group-hover:bg-emerald-500/25 transition cursor-pointer"
+                                className="text-[11px] font-mono px-3 py-1.5 rounded-xl bg-[#f15a24]/15 text-[#f15a24] dark:text-[#ff7a45] border border-[#f15a24]/30 font-semibold group-hover:bg-[#f15a24]/25 transition cursor-pointer"
                               >
                                 PLAY
                               </button>
@@ -1732,7 +1732,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                             <button
                               key={idx}
                               onClick={() => setSearchQuery(query)}
-                              className="px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-emerald-500/40 text-xs text-slate-300 hover:text-emerald-300 transition flex items-center gap-1.5 cursor-pointer"
+                              className="px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-[#f15a24]/40 text-xs text-slate-300 hover:text-[#f15a24] transition flex items-center gap-1.5 cursor-pointer"
                             >
                               <Search className="w-3 h-3 text-slate-500" />
                               <span>{query}</span>
@@ -1766,11 +1766,11 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                                 onClick={() => handleSelectSong(song)}
                                 className="flex items-center gap-3 flex-1 cursor-pointer min-w-0"
                               >
-                                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+                                <div className="w-8 h-8 rounded-lg bg-[#f15a24]/10 border border-[#f15a24]/20 flex items-center justify-center text-[#f15a24] shrink-0">
                                   <Guitar className="w-4 h-4" />
                                 </div>
                                 <div className="truncate">
-                                  <h4 className="text-xs font-bold text-white group-hover:text-emerald-400 transition truncate">
+                                  <h4 className="text-xs font-bold text-white group-hover:text-[#f15a24] transition truncate">
                                     {song.title}
                                   </h4>
                                   <p className="text-[11px] text-slate-400 truncate">{song.artist}</p>
@@ -1790,7 +1790,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                                 </button>
                                 <button
                                   onClick={() => handleSelectSong(song)}
-                                  className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 cursor-pointer hover:bg-emerald-500/25 transition"
+                                  className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-[#f15a24]/15 text-[#f15a24] dark:text-[#ff7a45] border border-[#f15a24]/30 cursor-pointer hover:bg-[#f15a24]/25 transition"
                                 >
                                   PLAY
                                 </button>
@@ -1808,7 +1808,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                         </div>
                         <h4 className="text-sm font-bold text-white mb-1">Search Any Song or Artist</h4>
                         <p className="text-xs text-slate-400 max-w-sm">
-                          Type any song title above to pull real-time chords from GuitarTuna, or browse the <strong>Repertoire</strong> tab for classical and delta blues pieces.
+                          Type any song title above to pull real-time chords from our acoustic cloud archive, or browse the <strong>Repertoire</strong> tab for classical and delta blues pieces.
                         </p>
                       </div>
                     )}
@@ -1961,7 +1961,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                       No local pieces found matching "{discoverSearchQuery}"
                     </p>
                     <p className="text-xs text-slate-500 max-w-xs mb-4">
-                      Search online across GuitarTuna and millions of international tabs & chords.
+                      Search online across millions of verified international tabs & acoustic chords.
                     </p>
                     <button
                       onClick={() => {

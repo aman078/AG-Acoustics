@@ -8,9 +8,9 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    let latestTagName = 'v1.0.49';
+    let latestTagName = 'v1.0.50';
     let apkDownloadUrl = 'https://github.com/aman078/AG-Acoustics/releases/latest/download/AGSoft-Acoustics.apk';
-    let releaseNotes = 'iOS Safari & PWA standalone support: notch & Dynamic Island safe-area insets, ergonomic high-visibility Studio/Strobe tuner mode selector, dynamic 100dvh viewport height, and overscroll bounce fix.';
+    let releaseNotes = 'Zostel Orange signature theme (#F15A24), complete third-party white-labeling, high-contrast warm acoustic chord tokens, and multi-tier edge cache optimization.';
 
     try {
       const ghRes = await fetch('https://api.github.com/repos/aman078/AG-Acoustics/releases/latest', {
@@ -36,7 +36,7 @@ export default async function handler(req: any, res: any) {
     }
 
     const match = latestTagName.match(/\d+$/);
-    const versionCode = match ? parseInt(match[0], 10) : 49;
+    const versionCode = match ? parseInt(match[0], 10) : 50;
     const versionName = latestTagName.replace(/^v/, '');
 
     res.setHeader('Content-Type', 'application/json');

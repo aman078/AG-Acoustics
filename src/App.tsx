@@ -501,21 +501,21 @@ export const App: React.FC = () => {
   const isSharp = isListening && detectedFreq && centsOffset > 3;
 
   return (
-    <div className="min-h-screen min-h-[100dvh] bg-[#07090E] text-slate-100 flex flex-col justify-between selection:bg-emerald-500 selection:text-black font-sans pb-[max(80px,calc(5rem+env(safe-area-inset-bottom,0px)))]">
+    <div className="min-h-screen min-h-[100dvh] bg-[#07090E] text-slate-100 flex flex-col justify-between selection:bg-[#f15a24] selection:text-white font-sans pb-[max(80px,calc(5rem+env(safe-area-inset-bottom,0px)))]">
       {/* Top Studio Navbar with iOS Notch Safe-Area Inset */}
       <header className="border-b border-white/[0.08] bg-[#0A0D15]/90 backdrop-blur-xl sticky top-0 z-40 px-4 pt-[max(12px,env(safe-area-inset-top,0px))] pb-3">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
-          {/* Brand Identity */}
+          {/* Brand Identity with Zostel Orange Accent */}
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 via-teal-400 to-cyan-500 p-0.5 flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.35)] shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#f15a24] via-amber-500 to-orange-400 p-0.5 flex items-center justify-center shadow-[0_0_20px_rgba(241,90,36,0.35)] shrink-0">
               <div className="w-full h-full bg-[#07090E] rounded-[10px] flex items-center justify-center">
-                <Guitar className="w-5 h-5 text-emerald-400" />
+                <Guitar className="w-5 h-5 text-[#f15a24]" />
               </div>
             </div>
             <div>
               <div className="text-sm font-extrabold tracking-tight flex items-center gap-2">
                 <span className="text-white">AGSOFT</span>
-                <span className="text-emerald-400 tracking-wider">ACOUSTICS</span>
+                <span className="text-[#f15a24] tracking-wider font-black">ACOUSTICS</span>
                 <span className="hidden sm:inline-block text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-white/[0.06] text-slate-300 border border-white/[0.08]">
                   STUDIO SUITE
                 </span>
@@ -525,7 +525,7 @@ export const App: React.FC = () => {
                 <span>•</span>
                 <button
                   onClick={() => setIsTuningModalOpen(true)}
-                  className="hover:text-emerald-400 underline decoration-slate-600 transition cursor-pointer"
+                  className="hover:text-[#f15a24] underline decoration-slate-600 transition cursor-pointer"
                 >
                   A4 = {referenceA4}Hz
                 </button>
@@ -555,7 +555,7 @@ export const App: React.FC = () => {
                   onClick={() => setTunerMode('studio')}
                   className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer min-h-[32px] ${
                     tunerMode === 'studio'
-                      ? 'bg-emerald-500 text-black shadow-sm font-extrabold'
+                      ? 'bg-[#f15a24] text-white shadow-sm font-extrabold'
                       : 'text-slate-400 hover:text-white'
                   }`}
                   title="Studio Needle View"
@@ -603,14 +603,14 @@ export const App: React.FC = () => {
               >
                 <RotateCcw className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                 {updateInfo?.updateAvailable && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full" />
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-[#f15a24] rounded-full" />
                 )}
               </button>
             )}
 
             <button
               onClick={() => setIsTuningModalOpen(true)}
-              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.1] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:text-emerald-500 transition cursor-pointer min-h-[36px]"
+              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.1] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:text-[#f15a24] transition cursor-pointer min-h-[36px]"
               title="Change Instrument / Alternate Tuning"
             >
               <SlidersHorizontal className="w-4 h-4" />
@@ -630,7 +630,7 @@ export const App: React.FC = () => {
                 onClick={() => setTunerMode('studio')}
                 className={`py-2.5 px-3 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center gap-2 cursor-pointer ${
                   tunerMode === 'studio'
-                    ? 'bg-emerald-500 text-black shadow-md font-extrabold'
+                    ? 'bg-[#f15a24] text-white shadow-md font-extrabold'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.04]'
                 }`}
               >
@@ -657,7 +657,7 @@ export const App: React.FC = () => {
                 className="flex items-center gap-2 text-left cursor-pointer group"
               >
                 <span className="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400 font-bold">TUNING:</span>
-                <span className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-emerald-500 transition">
+                <span className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-[#f15a24] transition">
                   {currentTuning.name}
                 </span>
               </button>
@@ -667,7 +667,7 @@ export const App: React.FC = () => {
                   onClick={() => setIsAutoMode(!isAutoMode)}
                   className={`px-2.5 py-1 rounded-xl border text-[11px] font-bold font-mono transition flex items-center gap-1.5 cursor-pointer ${
                     isAutoMode
-                      ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-800 dark:text-emerald-300'
+                      ? 'bg-[#f15a24]/15 border-[#f15a24]/40 text-[#f15a24] dark:text-[#ff7a45]'
                       : 'bg-slate-100 dark:bg-white/[0.04] border-slate-200 dark:border-white/[0.08] text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
@@ -838,7 +838,7 @@ export const App: React.FC = () => {
                 className={`w-full max-w-sm py-4 rounded-2xl font-bold text-sm tracking-widest uppercase flex items-center justify-center gap-3 transition active:scale-[0.98] cursor-pointer shadow-xl ${
                   isListening
                     ? 'bg-slate-900 text-rose-400 border border-rose-500/30 hover:bg-slate-800'
-                    : 'bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400 text-black font-extrabold shadow-[0_0_30px_rgba(16,185,129,0.45)] hover:brightness-110'
+                    : 'bg-gradient-to-r from-[#f15a24] via-orange-500 to-[#ea580c] text-white font-extrabold shadow-[0_0_30px_rgba(241,90,36,0.45)] hover:brightness-110'
                 }`}
               >
                 {isListening ? (
@@ -912,7 +912,7 @@ export const App: React.FC = () => {
             onClick={() => setActiveTab('tuner')}
             className={`flex flex-col items-center justify-center py-1.5 px-2 rounded-2xl transition cursor-pointer ${
               activeTab === 'tuner'
-                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
+                ? 'bg-[#f15a24]/15 text-[#f15a24] dark:text-[#ff7a45] border border-[#f15a24]/40 shadow-[0_0_15px_rgba(241,90,36,0.25)]'
                 : 'text-slate-400 hover:text-white hover:bg-white/[0.03]'
             }`}
           >
@@ -929,7 +929,7 @@ export const App: React.FC = () => {
             }}
             className={`flex flex-col items-center justify-center py-1.5 px-2 rounded-2xl transition cursor-pointer ${
               activeTab === 'songs'
-                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
+                ? 'bg-[#f15a24]/15 text-[#f15a24] dark:text-[#ff7a45] border border-[#f15a24]/40 shadow-[0_0_15px_rgba(241,90,36,0.25)]'
                 : 'text-slate-400 hover:text-white hover:bg-white/[0.03]'
             }`}
           >
@@ -946,7 +946,7 @@ export const App: React.FC = () => {
             }}
             className={`flex flex-col items-center justify-center py-1.5 px-2 rounded-2xl transition cursor-pointer ${
               activeTab === 'metronome'
-                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
+                ? 'bg-[#f15a24]/15 text-[#f15a24] dark:text-[#ff7a45] border border-[#f15a24]/40 shadow-[0_0_15px_rgba(241,90,36,0.25)]'
                 : 'text-slate-400 hover:text-white hover:bg-white/[0.03]'
             }`}
           >
@@ -963,7 +963,7 @@ export const App: React.FC = () => {
             }}
             className={`flex flex-col items-center justify-center py-1.5 px-2 rounded-2xl transition cursor-pointer ${
               activeTab === 'chords'
-                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
+                ? 'bg-[#f15a24]/15 text-[#f15a24] dark:text-[#ff7a45] border border-[#f15a24]/40 shadow-[0_0_15px_rgba(241,90,36,0.25)]'
                 : 'text-slate-400 hover:text-white hover:bg-white/[0.03]'
             }`}
           >

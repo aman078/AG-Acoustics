@@ -209,7 +209,7 @@ async function searchUltimateGuitar(query: string) {
             title: decodeHtmlEntities(r.song_name),
             artist: decodeHtmlEntities(r.artist_name),
             url: r.tab_url,
-            source: 'Ultimate Guitar (Complete Chords & Lyrics)',
+            source: 'Studio Master Sheet',
             difficulty: diffLabel,
           };
         });
@@ -252,13 +252,13 @@ async function searchGuitarTuna(query: string) {
           .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
           .join(' ');
 
-        if (isRelevantMatch(query, titleFormatted, 'GuitarTuna')) {
+        if (isRelevantMatch(query, titleFormatted, 'Acoustic Repertoire')) {
           results.push({
             id: slug,
             title: decodeHtmlEntities(titleFormatted),
-            artist: 'GuitarTuna',
+            artist: 'Acoustic Repertoire',
             url: href,
-            source: 'GuitarTuna (Chord Progression)',
+            source: 'Acoustic Studio Sheet',
             difficulty: 'Easy',
           });
         }
@@ -501,6 +501,9 @@ export function guitarTunaScraperPlugin(): Plugin {
   return {
     name: 'guitartuna-scraper-plugin',
     configureServer(server) {
+      const searchCache = new Map<string, { timestamp: number; data: any }>();
+      const songCache = new Map<string, { timestamp: number; data: any }>();
+
       server.middlewares.use('/api/search', async (req: IncomingMessage, res: ServerResponse) => {
         try {
           const urlObj = new URL(req.url || '', `http://${req.headers.host}`);
@@ -512,12 +515,22 @@ export function guitarTunaScraperPlugin(): Plugin {
             return;
           }
 
+          const cacheKey = query.trim().toLowerCase();
+          const cached = searchCache.get(cacheKey);
+          if (cached && Date.now() - cached.timestamp < 1000 * 60 * 60 * 24) {
+            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.end(JSON.stringify({ songs: cached.data }));
+            return;
+          }
+
           const ugResults = await searchUltimateGuitar(query);
           let combined = ugResults;
           if (combined.length === 0) {
             combined = await searchGuitarTuna(query);
           }
 
+          searchCache.set(cacheKey, { timestamp: Date.now(), data: combined });
           res.setHeader('Content-Type', 'application/json');
           res.setHeader('Access-Control-Allow-Origin', '*');
           res.end(JSON.stringify({ songs: combined }));
@@ -540,11 +553,23 @@ export function guitarTunaScraperPlugin(): Plugin {
             return;
           }
 
+          const cached = songCache.get(songUrl);
+          if (cached && Date.now() - cached.timestamp < 1000 * 60 * 60 * 24 * 7) {
+            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.end(JSON.stringify(cached.data));
+            return;
+          }
+
           let songData;
           if (songUrl.includes('ultimate-guitar.com')) {
             songData = await parseUltimateGuitarTab(songUrl);
           } else {
             songData = await parseGuitarTunaSong(songUrl);
+          }
+
+          if (songData) {
+            songCache.set(songUrl, { timestamp: Date.now(), data: songData });
           }
 
           res.setHeader('Content-Type', 'application/json');
@@ -563,8 +588,8 @@ export function guitarTunaScraperPlugin(): Plugin {
           res.setHeader('Content-Type', 'application/json');
           res.setHeader('Access-Control-Allow-Origin', '*');
           res.end(JSON.stringify({
-            latest_version_code: 49,
-            latest_version_name: '1.0.49',
+            latest_version_code: 50,
+            latest_version_name: '1.0.50',
             download_url: 'https://github.com/aman078/AG-Acoustics/releases/latest/download/AGSoft-Acoustics.apk',
             release_notes: 'iOS Safari & PWA standalone support: notch & Dynamic Island safe-area insets, ergonomic high-visibility Studio/Strobe tuner mode selector, dynamic 100dvh viewport height, and overscroll bounce fix.',
             force_update: false,

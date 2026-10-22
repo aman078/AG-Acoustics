@@ -287,6 +287,9 @@ async function parseGuitarTunaSong(songUrl: string) {
   };
 }
 
+const SONG_CACHE = new Map<string, { timestamp: number; data: any }>();
+const SONG_CACHE_TTL = 1000 * 60 * 60 * 24 * 7; // 7 days edge cache
+
 export default async function handler(req: any, res: any) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -303,6 +306,13 @@ export default async function handler(req: any, res: any) {
       return res.status(400).json({ error: 'Missing song URL' });
     }
 
+    const cached = SONG_CACHE.get(songUrl);
+    if (cached && Date.now() - cached.timestamp < SONG_CACHE_TTL) {
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=604800, stale-while-revalidate=2592000');
+      return res.status(200).json(cached.data);
+    }
+
     let songData;
     if (songUrl.includes('ultimate-guitar.com')) {
       songData = await parseUltimateGuitarTab(songUrl);
@@ -310,7 +320,12 @@ export default async function handler(req: any, res: any) {
       songData = await parseGuitarTunaSong(songUrl);
     }
 
+    if (songData) {
+      SONG_CACHE.set(songUrl, { timestamp: Date.now(), data: songData });
+    }
+
     res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=604800, stale-while-revalidate=2592000');
     return res.status(200).json(songData);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Failed to fetch song';
