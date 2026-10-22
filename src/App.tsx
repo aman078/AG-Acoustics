@@ -501,13 +501,13 @@ export const App: React.FC = () => {
   const isSharp = isListening && detectedFreq && centsOffset > 3;
 
   return (
-    <div className="min-h-screen bg-[#07090E] text-slate-100 flex flex-col justify-between selection:bg-emerald-500 selection:text-black font-sans pb-20 sm:pb-24">
-      {/* Top Studio Navbar */}
-      <header className="border-b border-white/[0.08] bg-[#0A0D15]/90 backdrop-blur-xl sticky top-0 z-40 px-4 py-3">
+    <div className="min-h-screen min-h-[100dvh] bg-[#07090E] text-slate-100 flex flex-col justify-between selection:bg-emerald-500 selection:text-black font-sans pb-[max(80px,calc(5rem+env(safe-area-inset-bottom,0px)))]">
+      {/* Top Studio Navbar with iOS Notch Safe-Area Inset */}
+      <header className="border-b border-white/[0.08] bg-[#0A0D15]/90 backdrop-blur-xl sticky top-0 z-40 px-4 pt-[max(12px,env(safe-area-inset-top,0px))] pb-3">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
           {/* Brand Identity */}
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 via-teal-400 to-cyan-500 p-0.5 flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.35)]">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 via-teal-400 to-cyan-500 p-0.5 flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.35)] shrink-0">
               <div className="w-full h-full bg-[#07090E] rounded-[10px] flex items-center justify-center">
                 <Guitar className="w-5 h-5 text-emerald-400" />
               </div>
@@ -534,11 +534,11 @@ export const App: React.FC = () => {
           </div>
 
           {/* Header Controls: Tuning Preset + Dual Engine Switch */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {/* Theme Toggle: Clean Studio Light vs Stage Dark */}
             <button
               onClick={() => setTheme(theme === 'clean' ? 'dark' : 'clean')}
-              className={`p-2 rounded-xl border transition cursor-pointer flex items-center gap-1.5 text-xs font-bold ${
+              className={`p-2 rounded-xl border transition cursor-pointer flex items-center gap-1.5 text-xs font-bold min-h-[36px] ${
                 theme === 'clean'
                   ? 'bg-amber-100 text-amber-900 border-amber-300 hover:bg-amber-200'
                   : 'bg-white/[0.04] text-slate-300 border-white/[0.08] hover:bg-white/[0.08]'
@@ -550,10 +550,10 @@ export const App: React.FC = () => {
             </button>
 
             {activeTab === 'tuner' && (
-              <div className="flex items-center p-1 bg-white/[0.04] border border-white/[0.08] rounded-xl text-xs">
+              <div className="flex items-center p-1 bg-white/[0.04] border border-white/[0.08] rounded-xl text-xs shrink-0">
                 <button
                   onClick={() => setTunerMode('studio')}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer min-h-[32px] ${
                     tunerMode === 'studio'
                       ? 'bg-emerald-500 text-black shadow-sm font-extrabold'
                       : 'text-slate-400 hover:text-white'
@@ -565,7 +565,7 @@ export const App: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setTunerMode('strobe')}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer min-h-[32px] ${
                     tunerMode === 'strobe'
                       ? 'bg-cyan-500 text-black shadow-sm font-extrabold'
                       : 'text-slate-400 hover:text-white'
@@ -582,7 +582,7 @@ export const App: React.FC = () => {
             {!isInstalled && (
               <button
                 onClick={handleTriggerInstall}
-                className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.1] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 font-medium text-xs flex items-center gap-1.5 transition cursor-pointer"
+                className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.1] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 font-medium text-xs flex items-center gap-1.5 transition cursor-pointer min-h-[36px]"
                 title="Install AGSoft Acoustics App"
               >
                 <Download className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
@@ -594,7 +594,7 @@ export const App: React.FC = () => {
             {isInstalled && (
               <button
                 onClick={handleManualUpdateCheck}
-                className="relative p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.1] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 transition cursor-pointer"
+                className="relative p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.1] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 transition cursor-pointer min-h-[36px]"
                 title={
                   updateInfo?.updateAvailable
                     ? `Update Available: v${updateInfo.latestVersionName}`
@@ -610,7 +610,7 @@ export const App: React.FC = () => {
 
             <button
               onClick={() => setIsTuningModalOpen(true)}
-              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.1] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:text-emerald-500 transition cursor-pointer"
+              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.1] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:text-emerald-500 transition cursor-pointer min-h-[36px]"
               title="Change Instrument / Alternate Tuning"
             >
               <SlidersHorizontal className="w-4 h-4" />
@@ -623,7 +623,33 @@ export const App: React.FC = () => {
       <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-4 flex flex-col items-center justify-start">
         {/* TAB 1: TUNER VIEW */}
         {activeTab === 'tuner' && (
-          <div className="w-full max-w-xl mx-auto flex flex-col items-center justify-between flex-1 space-y-4">
+          <div className="w-full max-w-xl mx-auto flex flex-col items-center justify-between flex-1 space-y-3.5">
+            {/* Tuner Engine Mode Selector Strip (Instant Thumb Access for Mobile & iPhone) */}
+            <div className="w-full grid grid-cols-2 p-1 rounded-2xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-xs">
+              <button
+                onClick={() => setTunerMode('studio')}
+                className={`py-2.5 px-3 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  tunerMode === 'studio'
+                    ? 'bg-emerald-500 text-black shadow-md font-extrabold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.04]'
+                }`}
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>STUDIO NEEDLE</span>
+              </button>
+              <button
+                onClick={() => setTunerMode('strobe')}
+                className={`py-2.5 px-3 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  tunerMode === 'strobe'
+                    ? 'bg-cyan-500 text-black shadow-md font-extrabold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.04]'
+                }`}
+              >
+                <Radio className="w-4 h-4" />
+                <span>0.1¢ STROBE</span>
+              </button>
+            </div>
+
             {/* Quick Tuning Selector Strip */}
             <div className="w-full flex items-center justify-between gap-2.5 px-3 py-2 rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.06] shadow-xs">
               <button
@@ -878,8 +904,8 @@ export const App: React.FC = () => {
         )}
       </main>
 
-      {/* Persistent Bottom Glass Dock Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.08] bg-[#0A0D15]/95 backdrop-blur-2xl px-4 py-2.5">
+      {/* Persistent Bottom Glass Dock Navigation with iOS Home-Indicator Safe-Area Inset */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.08] bg-[#0A0D15]/95 backdrop-blur-2xl px-4 pt-2 pb-[max(10px,env(safe-area-inset-bottom,0px))]">
         <div className="max-w-md mx-auto grid grid-cols-4 gap-2">
           {/* 1. Tuner */}
           <button

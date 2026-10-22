@@ -883,8 +883,8 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
   if (selectedSong) {
     return (
       <div className="song-sheet-container fixed inset-0 z-[100] w-full h-full bg-white dark:bg-[#08090D] flex flex-col overflow-hidden text-slate-950 dark:text-slate-100 select-text">
-        {/* Fullscreen Sticky Header */}
-        <div className="song-player-header flex items-center justify-between px-3 sm:px-6 py-2.5 border-b border-slate-200 dark:border-slate-800/80 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl shrink-0 z-20">
+        {/* Fullscreen Sticky Header with iOS Notch Safe Area Inset */}
+        <div className="song-player-header flex items-center justify-between px-3 sm:px-6 pt-[max(10px,env(safe-area-inset-top,0px))] pb-2.5 border-b border-slate-200 dark:border-slate-800/80 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl shrink-0 z-20">
           <div className="flex items-center gap-2.5 min-w-0">
             <button
               onClick={() => {
@@ -1117,8 +1117,8 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
           </div>
         </div>
 
-        {/* Dedicated Fixed Bottom Playback Bar (NEVER CUT OFF ON MOBILE!) */}
-        <div className="song-player-footer fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-[#0A0D15]/95 backdrop-blur-2xl border-t border-slate-200 dark:border-slate-800/90 px-3 sm:px-6 py-2.5 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] dark:shadow-[0_-8px_30px_rgba(0,0,0,0.7)] flex flex-col gap-2">
+        {/* Dedicated Fixed Bottom Playback Bar with iOS Home-Indicator Safe Area Inset */}
+        <div className="song-player-footer fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-[#0A0D15]/95 backdrop-blur-2xl border-t border-slate-200 dark:border-slate-800/90 px-3 sm:px-6 pt-2.5 pb-[max(10px,env(safe-area-inset-bottom,0px))] shadow-[0_-8px_30px_rgba(0,0,0,0.06)] dark:shadow-[0_-8px_30px_rgba(0,0,0,0.7)] flex flex-col gap-2">
           {/* Smart Capo & Transposition Calculator Advice */}
           {smartCapo && (
             <div className="max-w-3xl mx-auto w-full flex items-center justify-between px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] font-mono text-amber-600 dark:text-amber-300">

@@ -563,10 +563,10 @@ export function guitarTunaScraperPlugin(): Plugin {
           res.setHeader('Content-Type', 'application/json');
           res.setHeader('Access-Control-Allow-Origin', '*');
           res.end(JSON.stringify({
-            latest_version_code: 48,
-            latest_version_name: '1.0.48',
+            latest_version_code: 49,
+            latest_version_name: '1.0.49',
             download_url: 'https://github.com/aman078/AG-Acoustics/releases/latest/download/AGSoft-Acoustics.apk',
-            release_notes: 'Interactive song practice accompaniment engine with tempo detection, beat pulse, and acoustic chord strumming; ultra-slow auto-scroll speeds down to 0.05x.',
+            release_notes: 'iOS Safari & PWA standalone support: notch & Dynamic Island safe-area insets, ergonomic high-visibility Studio/Strobe tuner mode selector, dynamic 100dvh viewport height, and overscroll bounce fix.',
             force_update: false,
           }));
         } catch (err: unknown) {
