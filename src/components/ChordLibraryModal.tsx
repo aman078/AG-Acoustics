@@ -475,7 +475,7 @@ export const ChordLibraryModal: React.FC<ChordLibraryModalProps> = ({
         <div>
           <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <span>CHORD DICTIONARY</span>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 font-semibold">
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#f15a24]/15 text-[#f15a24] dark:text-[#ff7a45] border border-[#f15a24]/30 font-semibold">
               {filteredChords.length} CHORDS
             </span>
           </h2>
@@ -503,7 +503,7 @@ export const ChordLibraryModal: React.FC<ChordLibraryModalProps> = ({
             placeholder="Search any chord (e.g. Sus4, Cadd9, Dm7, F#m, B7)..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-slate-100 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-xl pl-9.5 pr-8 py-2 text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500 transition"
+            className="w-full bg-slate-100 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-xl pl-9.5 pr-8 py-2 text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#f15a24] transition"
           />
           {searchTerm && (
             <button
@@ -528,7 +528,7 @@ export const ChordLibraryModal: React.FC<ChordLibraryModalProps> = ({
                 onClick={() => setSelectedRoot(root)}
                 className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition cursor-pointer shrink-0 ${
                   isActive
-                    ? 'bg-emerald-500 text-black shadow-xs font-extrabold'
+                    ? 'bg-[#f15a24] text-white shadow-xs font-extrabold'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:text-white border border-slate-200 dark:border-transparent'
                 }`}
               >
@@ -551,7 +551,7 @@ export const ChordLibraryModal: React.FC<ChordLibraryModalProps> = ({
                 onClick={() => setSelectedQuality(quality)}
                 className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-semibold transition cursor-pointer shrink-0 ${
                   isActive
-                    ? 'bg-teal-500 text-black shadow-xs font-bold'
+                    ? 'bg-[#f15a24] text-white shadow-xs font-bold'
                     : 'bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:text-white'
                 }`}
               >
@@ -577,7 +577,7 @@ export const ChordLibraryModal: React.FC<ChordLibraryModalProps> = ({
                 setSelectedRoot('ALL');
                 setSelectedQuality('ALL');
               }}
-              className="mt-3 px-3 py-1.5 rounded-xl bg-emerald-500 text-black text-xs font-bold shadow-md hover:bg-emerald-400 cursor-pointer"
+              className="mt-3 px-3 py-1.5 rounded-xl bg-[#f15a24] text-white text-xs font-bold shadow-md hover:bg-[#d94816] cursor-pointer"
             >
               Reset Filters
             </button>
@@ -605,7 +605,7 @@ export const ChordLibraryModal: React.FC<ChordLibraryModalProps> = ({
                     <div>
                       <h4 className="font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
                         <span>{chord.name}</span>
-                        <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold">
+                        <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#f15a24]/15 text-[#f15a24] dark:text-[#ff7a45] font-bold">
                           {chord.type}
                         </span>
                       </h4>
@@ -613,7 +613,7 @@ export const ChordLibraryModal: React.FC<ChordLibraryModalProps> = ({
 
                     <button
                       onClick={() => handleStrum(activeVoicing.frets, activeVoicing.baseFret)}
-                      className="p-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/30 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 transition cursor-pointer flex items-center gap-1 text-[11px] font-mono font-bold"
+                      className="p-1.5 rounded-lg bg-[#f15a24]/15 hover:bg-[#f15a24]/25 text-[#f15a24] dark:text-[#ff7a45] border border-[#f15a24]/30 transition cursor-pointer flex items-center gap-1 text-[11px] font-mono font-bold"
                       title="Strum Chord Voicing"
                     >
                       <Volume2 className="w-3.5 h-3.5" />
@@ -635,7 +635,7 @@ export const ChordLibraryModal: React.FC<ChordLibraryModalProps> = ({
                             }}
                             className={`flex-1 py-0.5 px-1.5 rounded text-[10px] font-mono font-bold transition cursor-pointer truncate ${
                               isSelected
-                                ? 'bg-emerald-500 text-black shadow-xs font-extrabold'
+                                ? 'bg-[#f15a24] text-white shadow-xs font-extrabold'
                                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                             }`}
                           >
@@ -650,7 +650,7 @@ export const ChordLibraryModal: React.FC<ChordLibraryModalProps> = ({
                   <div className="w-36 h-44 flex items-center justify-center select-none relative">
                     {/* Base Fret Badge when higher up neck */}
                     {baseFret > 1 && (
-                      <span className="absolute top-3 left-0 text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 px-1 rounded">
+                      <span className="absolute top-3 left-0 text-[10px] font-mono font-bold text-[#f15a24] dark:text-[#ff7a45] bg-[#f15a24]/15 px-1 rounded">
                         fr.{baseFret}
                       </span>
                     )}
@@ -710,7 +710,7 @@ export const ChordLibraryModal: React.FC<ChordLibraryModalProps> = ({
                               cy="13"
                               r="3.2"
                               fill="none"
-                              stroke="#10b981"
+                              stroke="#f15a24"
                               strokeWidth="1.5"
                             />
                           );
@@ -729,13 +729,13 @@ export const ChordLibraryModal: React.FC<ChordLibraryModalProps> = ({
 
                             return (
                               <g key={sIdx}>
-                                <circle cx={x} cy={y} r="6.5" fill="#10b981" className="shadow-xs" />
+                                <circle cx={x} cy={y} r="6.5" fill="#f15a24" className="shadow-xs" />
                                 {finger && (
                                   <text
                                     x={x}
                                     y={y + 3}
                                     textAnchor="middle"
-                                    fill="#000"
+                                    fill="#fff"
                                     fontSize="8"
                                     fontWeight="900"
                                     fontFamily="monospace"

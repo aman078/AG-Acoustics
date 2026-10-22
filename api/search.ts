@@ -91,6 +91,53 @@ function generateSearchVariants(query: string): string[] {
 /**
  * Searches Ultimate Guitar for complete human-verified chords & lyrics sheets
  */
+// Multi-Tier Anti-Blocking Stealth Headers & User-Agent Rotation
+const ROTATING_USER_AGENTS = [
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0',
+  'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+];
+
+function getStealthHeaders() {
+  const ua = ROTATING_USER_AGENTS[Math.floor(Math.random() * ROTATING_USER_AGENTS.length)];
+  return {
+    'User-Agent': ua,
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Sec-Ch-Ua': '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+    'Sec-Ch-Ua-Mobile': '?0',
+    'Sec-Ch-Ua-Platform': '"Windows"',
+    'Sec-Fetch-Dest': 'document',
+    'Sec-Fetch-Mode': 'navigate',
+    'Sec-Fetch-Site': 'none',
+    'Sec-Fetch-User': '?1',
+    'Upgrade-Insecure-Requests': '1',
+  };
+}
+
+async function fetchWithStealth(url: string, retries = 2): Promise<string | null> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, { headers: getStealthHeaders() });
+      if (res.status === 429 || res.status === 503) {
+        if (attempt < retries) {
+          await new Promise((r) => setTimeout(r, 400 + Math.random() * 400));
+          continue;
+        }
+      }
+      if (!res.ok) return null;
+      return await res.text();
+    } catch {
+      if (attempt < retries) {
+        await new Promise((r) => setTimeout(r, 300));
+      }
+    }
+  }
+  return null;
+}
+
 async function searchUltimateGuitar(query: string) {
   const variants = generateSearchVariants(query);
 
@@ -102,13 +149,8 @@ async function searchUltimateGuitar(query: string) {
 
     for (const url of urls) {
       try {
-        const res = await fetch(url, {
-          headers: {
-            'User-Agent':
-              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          },
-        });
-        const html = await res.text();
+        const html = await fetchWithStealth(url);
+        if (!html) continue;
         const match = html.match(/class="js-store"\s+data-content="(.*?)"/);
         if (!match) continue;
 
@@ -244,6 +286,7 @@ async function searchGuitarTuna(query: string) {
 
 const SEARCH_CACHE = new Map<string, { timestamp: number; data: any }>();
 const SEARCH_CACHE_TTL = 1000 * 60 * 60 * 24; // 24 hours edge cache
+const IN_FLIGHT_SEARCHES = new Map<string, Promise<any>>();
 
 export default async function handler(req: any, res: any) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -269,14 +312,23 @@ export default async function handler(req: any, res: any) {
       return res.status(200).json({ songs: cached.data });
     }
 
-    const ugResults = await searchUltimateGuitar(query);
-
-    let combined = ugResults;
-    if (combined.length === 0) {
-      combined = await searchGuitarTuna(query);
+    // In-flight deduplication: prevent thundering herd
+    let searchPromise = IN_FLIGHT_SEARCHES.get(cacheKey);
+    if (!searchPromise) {
+      searchPromise = (async () => {
+        const ugResults = await searchUltimateGuitar(query);
+        let combined = ugResults;
+        if (combined.length === 0) {
+          combined = await searchGuitarTuna(query);
+        }
+        SEARCH_CACHE.set(cacheKey, { timestamp: Date.now(), data: combined });
+        IN_FLIGHT_SEARCHES.delete(cacheKey);
+        return combined;
+      })();
+      IN_FLIGHT_SEARCHES.set(cacheKey, searchPromise);
     }
 
-    SEARCH_CACHE.set(cacheKey, { timestamp: Date.now(), data: combined });
+    const combined = await searchPromise;
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800');
     return res.status(200).json({ songs: combined });

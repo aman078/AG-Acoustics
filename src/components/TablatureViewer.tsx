@@ -32,7 +32,7 @@ export const TablatureViewer: React.FC<TablatureViewerProps> = ({
       // Ordinary text or section header inside tab block
       if (line.startsWith('[') || line.startsWith('//') || line.toLowerCase().includes('verse') || line.toLowerCase().includes('intro')) {
         return (
-          <div key={lineIdx} className="text-xs font-bold text-emerald-700 dark:text-emerald-400 font-mono tracking-wider pt-3 pb-1 uppercase border-b border-slate-200 dark:border-white/[0.06]">
+          <div key={lineIdx} className="text-xs font-bold text-[#f15a24] dark:text-[#ff7a45] font-mono tracking-wider pt-3 pb-1 uppercase border-b border-slate-200 dark:border-white/[0.06]">
             {line}
           </div>
         );
@@ -108,7 +108,7 @@ export const TablatureViewer: React.FC<TablatureViewerProps> = ({
       {/* Top Toolbar */}
       <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 dark:bg-white/[0.03] border-b border-slate-200 dark:border-white/[0.06] text-xs">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-500" />
+          <span className="w-2 h-2 rounded-full bg-[#f15a24]" />
           <span className="font-mono font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider text-[11px]">
             {title || '6-STRING STUDIO TABLATURE'}
           </span>
@@ -144,8 +144,8 @@ export const TablatureViewer: React.FC<TablatureViewerProps> = ({
           >
             {isCopied ? (
               <>
-                <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                <span className="text-emerald-600 dark:text-emerald-400">Copied</span>
+                <Check className="w-3 h-3 text-[#f15a24] dark:text-[#ff7a45]" />
+                <span className="text-[#f15a24] dark:text-[#ff7a45]">Copied</span>
               </>
             ) : (
               <>

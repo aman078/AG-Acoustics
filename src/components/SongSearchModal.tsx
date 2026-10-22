@@ -25,6 +25,7 @@ import { TablatureViewer } from './TablatureViewer';
 import { findChordDiagram, ChordDef, ChordVoicing, getChordVoicings, strumChordVoicing } from './ChordLibraryModal';
 import { cacheSongOffline, getCachedSongOffline, isSongCachedOffline } from '../services/offlineStorage';
 import { requestScreenWakeLock, releaseScreenWakeLock } from '../utils/wakeLock';
+import { detectSongTempo } from '../data/songTempos';
 
 interface SongSearchModalProps {
   isOpen?: boolean;
@@ -37,36 +38,57 @@ interface SongSearchModalProps {
 type SongSectionTab = 'search' | 'favorites' | 'repertoire';
 type RepertoireFilter = 'all' | 'classical' | 'fingerstyle' | 'blues';
 
-function getEstimatedSongBpm(song: SongData | null): number {
-  if (!song) return 80;
-  const t = (song.title || '').toLowerCase();
-  if (t.includes('hotel california')) return 74;
-  if (t.includes('let it be')) return 72;
-  if (t.includes('hallelujah')) return 58;
-  if (t.includes('perfect')) return 63;
-  if (t.includes('yellow')) return 88;
-  if (t.includes('wonderwall')) return 87;
-  if (t.includes('fast car')) return 104;
-  if (t.includes('knockin')) return 68;
-  if (t.includes('wish you were here')) return 60;
-  if (t.includes('dust in the wind')) return 94;
-  if (t.includes('blackbird')) return 94;
-  if (t.includes('here comes the sun')) return 129;
-  if (t.includes('im yours') || t.includes("i'm yours")) return 76;
-  if (t.includes('stairway to heaven')) return 72;
-  if (t.includes('tears in heaven')) return 78;
-  if (t.includes('shape of my heart')) return 84;
-  if (t.includes('nothing else matters')) return 48;
+export interface EstimatedBpmResult {
+  bpm: number;
+  label: string;
+  isAutoDetected: boolean;
+}
 
+function getEstimatedSongBpm(song: SongData | null): EstimatedBpmResult {
+  if (!song) return { bpm: 84, label: 'Standard Practice Tempo', isAutoDetected: false };
+
+  // 1. Direct song sheet metadata
+  if (song.tempo) {
+    if (typeof song.tempo === 'number' && song.tempo >= 40 && song.tempo <= 240) {
+      return { bpm: song.tempo, label: `Original Master Tempo (${song.tempo} BPM)`, isAutoDetected: true };
+    }
+    if (typeof song.tempo === 'string') {
+      const match = song.tempo.match(/(\d+)\s*bpm/i) || song.tempo.match(/(\d{2,3})/);
+      if (match) {
+        const parsed = parseInt(match[1], 10);
+        if (parsed >= 40 && parsed <= 240) {
+          return { bpm: parsed, label: `Master Tempo (${parsed} BPM)`, isAutoDetected: true };
+        }
+      }
+    }
+  }
+
+  // 2. Check curated master classical/fingerstyle repertoire
   const repPiece = REPERTOIRE_PIECES.find(
     (p) => p.id === song.id || p.title.toLowerCase() === song.title.toLowerCase()
   );
   if (repPiece && repPiece.tempo) {
     const m = repPiece.tempo.match(/(\d+)\s*bpm/i);
-    if (m) return parseInt(m[1], 10);
+    if (m) {
+      const parsed = parseInt(m[1], 10);
+      return { bpm: parsed, label: repPiece.tempo, isAutoDetected: true };
+    }
   }
 
-  return 80;
+  // 3. Detect against verified acoustic database or explicit sheet lines
+  const lyricsText = (song.sections || [])
+    .flatMap((s) => s.lines.map((l) => l.lyrics))
+    .join('\n');
+  const detected = detectSongTempo(song.title, song.artist, song.tabContent || lyricsText);
+  const isOriginal = detected.source === 'verified_catalog' || detected.source === 'sheet_meta';
+
+  return {
+    bpm: detected.bpm,
+    label: isOriginal
+      ? `Original Song Tempo (${detected.bpm} BPM)`
+      : `Recommended Acoustic Tempo (${detected.bpm} BPM)`,
+    isAutoDetected: isOriginal,
+  };
 }
 
 export const SongSearchModal: React.FC<SongSearchModalProps> = ({
@@ -129,6 +151,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
   // Practice Accompaniment & Song Tempo Engine
   const [isPracticing, setIsPracticing] = useState<boolean>(false);
   const [practiceBpm, setPracticeBpm] = useState<number>(80);
+  const [detectedTempoInfo, setDetectedTempoInfo] = useState<EstimatedBpmResult | null>(null);
   const [practiceSoundMode, setPracticeSoundMode] = useState<'both' | 'chords' | 'click' | 'silent'>('both');
   const [beatsPerChord, setBeatsPerChord] = useState<number>(4);
   const [currentBeatInBar, setCurrentBeatInBar] = useState<number>(0);
@@ -375,8 +398,9 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
   useEffect(() => {
     if (selectedSong?.id) {
       isSongCachedOffline(selectedSong.id).then(setIsCurrentSongOffline);
-      const detectedBpm = getEstimatedSongBpm(selectedSong);
-      setPracticeBpm(detectedBpm);
+      const tempoRes = getEstimatedSongBpm(selectedSong);
+      setPracticeBpm(tempoRes.bpm);
+      setDetectedTempoInfo(tempoRes);
       setCurrentChordIndex(0);
       setCurrentBeatInBar(0);
       setIsPracticing(false);
@@ -384,6 +408,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
       setIsCurrentSongOffline(false);
       setIsPracticing(false);
       setIsPracticeBarOpen(false);
+      setDetectedTempoInfo(null);
     }
   }, [selectedSong]);
 
@@ -1169,8 +1194,30 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                   </div>
                 </div>
 
-                {/* Tempo Steppers & Tap */}
-                <div className="flex items-center gap-1.5">
+                {/* Tempo Steppers, Tap & Auto-detect Badge */}
+                <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                  {detectedTempoInfo && (
+                    <div className="flex items-center gap-1 mr-1">
+                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold flex items-center gap-1 ${
+                        detectedTempoInfo.isAutoDetected
+                          ? 'bg-[#f15a24]/15 text-[#f15a24] dark:text-[#ff7a45] border border-[#f15a24]/30'
+                          : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                      }`}>
+                        <Sparkles className="w-2.5 h-2.5 text-[#f15a24]" />
+                        <span>{detectedTempoInfo.label}</span>
+                      </span>
+                      {practiceBpm !== detectedTempoInfo.bpm && (
+                        <button
+                          onClick={() => setPracticeBpm(detectedTempoInfo.bpm)}
+                          className="text-[10px] font-mono text-[#f15a24] hover:underline cursor-pointer"
+                          title="Reset to detected original tempo"
+                        >
+                          Reset
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   <div className="flex items-center bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-1.5 py-1">
                     <button
                       onClick={() => setPracticeBpm((prev) => Math.max(40, prev - 2))}

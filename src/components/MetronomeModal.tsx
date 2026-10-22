@@ -179,7 +179,7 @@ export const MetronomeModal: React.FC<MetronomeModalProps> = ({ isOpen = true, o
         </button>
       )}
 
-      <h3 className="text-xs sm:text-sm font-extrabold tracking-wider uppercase text-emerald-700 dark:text-emerald-400 mb-4 sm:mb-6 flex items-center gap-2">
+      <h3 className="text-xs sm:text-sm font-extrabold tracking-wider uppercase text-[#f15a24] dark:text-[#ff7a45] mb-4 sm:mb-6 flex items-center gap-2">
         <span>AGSOFT PRO METRONOME</span>
       </h3>
 
@@ -201,8 +201,8 @@ export const MetronomeModal: React.FC<MetronomeModalProps> = ({ isOpen = true, o
             className={`w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full transition-all duration-75 ${
               isPlaying && currentBeat === idx
                 ? idx === 0
-                  ? 'bg-emerald-500 scale-125 shadow-[0_0_15px_#10b981]'
-                  : 'bg-cyan-500 scale-110 shadow-[0_0_10px_#06b6d4]'
+                  ? 'bg-[#f15a24] scale-125 shadow-[0_0_15px_rgba(241,90,36,0.6)]'
+                  : 'bg-amber-400 scale-110 shadow-[0_0_10px_rgba(251,191,36,0.6)]'
                 : 'metronome-dot-inactive bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700'
             }`}
           />
@@ -248,7 +248,7 @@ export const MetronomeModal: React.FC<MetronomeModalProps> = ({ isOpen = true, o
         max="260"
         value={bpm}
         onChange={(e) => setBpm(Number(e.target.value))}
-        className="w-full accent-emerald-500 my-4 cursor-pointer h-2 bg-slate-200 dark:bg-slate-800 rounded-lg"
+        className="w-full accent-[#f15a24] my-4 cursor-pointer h-2 bg-slate-200 dark:bg-slate-800 rounded-lg"
       />
 
       {/* Bottom Actions: Tap Tempo & Play */}
@@ -265,7 +265,7 @@ export const MetronomeModal: React.FC<MetronomeModalProps> = ({ isOpen = true, o
           className={`py-3.5 px-4 rounded-xl font-black text-xs tracking-wider uppercase flex items-center justify-center gap-2 active:scale-95 transition cursor-pointer shadow-lg ${
             isPlaying
               ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/30'
-              : 'bg-emerald-500 hover:bg-emerald-400 text-black shadow-emerald-500/30 font-extrabold'
+              : 'bg-[#f15a24] hover:bg-[#d94816] text-white shadow-orange-500/30 font-extrabold'
           }`}
         >
           {isPlaying ? (
@@ -274,7 +274,7 @@ export const MetronomeModal: React.FC<MetronomeModalProps> = ({ isOpen = true, o
             </>
           ) : (
             <>
-              <Play className="w-4 h-4 fill-black" /> <span>START</span>
+              <Play className="w-4 h-4 fill-white" /> <span>START</span>
             </>
           )}
         </button>
@@ -292,7 +292,7 @@ export const MetronomeModal: React.FC<MetronomeModalProps> = ({ isOpen = true, o
             }}
             className={`px-3 py-1 rounded-xl font-mono text-xs font-bold transition cursor-pointer ${
               beatsPerMeasure === num
-                ? 'bg-emerald-500 text-black font-extrabold shadow-sm'
+                ? 'bg-[#f15a24] text-white font-extrabold shadow-sm'
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700'
             }`}
           >
@@ -314,7 +314,7 @@ export const MetronomeModal: React.FC<MetronomeModalProps> = ({ isOpen = true, o
         }}
         className={`w-full mt-4 py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer ${
           isHapticEnabled
-            ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-300 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300'
+            ? 'bg-orange-50 dark:bg-[#f15a24]/10 border-orange-200 dark:border-[#f15a24]/30 text-[#f15a24] dark:text-[#ff7a45]'
             : 'bg-slate-100 dark:bg-slate-800/40 border-slate-300 dark:border-slate-700/60 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
         }`}
         title="Vibrate phone on each beat so you feel the tempo in your pocket"

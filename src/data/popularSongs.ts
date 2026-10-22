@@ -17,6 +17,7 @@ export interface SongData {
   difficulty: 'Easy' | 'Intermediate' | 'Advanced' | string;
   allChords: string[];
   tabContent?: string;
+  tempo?: number | string;
   sections: SongChordSection[];
 }
 
