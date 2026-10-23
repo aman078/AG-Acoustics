@@ -549,43 +549,14 @@ export const App: React.FC = () => {
               <span className="hidden sm:inline">{theme === 'clean' ? 'CLEAN' : 'DARK'}</span>
             </button>
 
-            {activeTab === 'tuner' && (
-              <div className="flex items-center p-1 bg-white/[0.04] border border-white/[0.08] rounded-xl text-xs shrink-0">
-                <button
-                  onClick={() => setTunerMode('studio')}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer min-h-[32px] ${
-                    tunerMode === 'studio'
-                      ? 'bg-[#f15a24] text-white shadow-sm font-extrabold'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                  title="Studio Needle View"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">STUDIO</span>
-                </button>
-                <button
-                  onClick={() => setTunerMode('strobe')}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer min-h-[32px] ${
-                    tunerMode === 'strobe'
-                      ? 'bg-cyan-500 text-black shadow-sm font-extrabold'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                  title="Peterson 0.1¢ Mechanical Strobe"
-                >
-                  <Radio className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">STROBE</span>
-                </button>
-              </div>
-            )}
-
-            {/* Single, Calm Install App Button (No bouncing, no attention grabbing) */}
+            {/* Single, Direct 1-Click Install App Button */}
             {!isInstalled && (
               <button
                 onClick={handleTriggerInstall}
                 className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.1] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 font-medium text-xs flex items-center gap-1.5 transition cursor-pointer min-h-[36px]"
-                title="Install AGSoft Acoustics App"
+                title="Add to Home Screen / Install App"
               >
-                <Download className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                <Download className="w-3.5 h-3.5 text-[#f15a24]" />
                 <span className="hidden sm:inline">Install</span>
               </button>
             )}
@@ -776,31 +747,6 @@ export const App: React.FC = () => {
                   <span>+50¢ (SHARP)</span>
                 </div>
               </div>
-            </div>
-
-            {/* Quick String Peg Bar (Direct Access to all 6 Strings) */}
-            <div className="w-full flex items-center justify-between gap-2 p-2 rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.06] shadow-xs">
-              {currentTuning.strings.map((str, idx) => {
-                const isActive = activeStringIndex === idx;
-                return (
-                  <button
-                    key={idx}
-                    onClick={() => {
-                      setActiveStringIndex(idx);
-                      setIsAutoMode(false);
-                      handlePlayActiveString(str.targetFreq);
-                    }}
-                    className={`flex-1 flex flex-col items-center py-2.5 px-1 rounded-xl transition cursor-pointer ${
-                      isActive
-                        ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 font-bold shadow-xs'
-                        : 'bg-slate-50 dark:bg-white/[0.02] border border-slate-200/80 dark:border-white/[0.04] text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06]'
-                    }`}
-                  >
-                    <span className="text-sm font-bold font-mono">{str.note}</span>
-                    <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 font-medium">{str.targetFreq.toFixed(0)}Hz</span>
-                  </button>
-                );
-              })}
             </div>
 
             {/* DUAL TUNER ENGINE: Studio Headstock OR Peterson Strobe */}

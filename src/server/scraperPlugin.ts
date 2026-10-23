@@ -645,8 +645,8 @@ export function guitarTunaScraperPlugin(): Plugin {
           res.setHeader('Content-Type', 'application/json');
           res.setHeader('Access-Control-Allow-Origin', '*');
           res.end(JSON.stringify({
-            latest_version_code: 51,
-            latest_version_name: '1.0.51',
+            latest_version_code: 52,
+            latest_version_name: '1.0.52',
             download_url: 'https://github.com/aman078/AG-Acoustics/releases/latest/download/AGSoft-Acoustics.apk',
             release_notes: 'iOS Safari & PWA standalone support: notch & Dynamic Island safe-area insets, ergonomic high-visibility Studio/Strobe tuner mode selector, dynamic 100dvh viewport height, and overscroll bounce fix.',
             force_update: false,

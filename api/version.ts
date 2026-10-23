@@ -8,9 +8,9 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    let latestTagName = 'v1.0.51';
+    let latestTagName = 'v1.0.52';
     let apkDownloadUrl = 'https://github.com/aman078/AG-Acoustics/releases/latest/download/AGSoft-Acoustics.apk';
-    let releaseNotes = 'Zostel Orange theme across Metronome and Chord Dictionary, automatic original song tempo detection, and 4-tier anti-blocking stealth edge caching.';
+    let releaseNotes = 'Intelligent Voice Search with movie soundtrack & artist entity resolution, streamlined tuner UI without duplicate string strips or headers, and 1-click home screen install.';
 
     try {
       const ghRes = await fetch('https://api.github.com/repos/aman078/AG-Acoustics/releases/latest', {
@@ -36,7 +36,7 @@ export default async function handler(req: any, res: any) {
     }
 
     const match = latestTagName.match(/\d+$/);
-    const versionCode = match ? parseInt(match[0], 10) : 51;
+    const versionCode = match ? parseInt(match[0], 10) : 52;
     const versionName = latestTagName.replace(/^v/, '');
 
     res.setHeader('Content-Type', 'application/json');

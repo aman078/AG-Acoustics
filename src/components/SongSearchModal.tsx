@@ -15,7 +15,10 @@ import {
   Music,
   Trash2,
   Sparkles,
-  BookOpen
+  BookOpen,
+  Mic,
+  MicOff,
+  Film
 } from 'lucide-react';
 import { SongData, transposeChord, calculateSmartCapo, CapoRecommendation } from '../data/popularSongs';
 import { searchOnlineSongs, fetchCompleteSong, SearchSongItem } from '../services/chordService';
@@ -26,6 +29,7 @@ import { findChordDiagram, ChordDef, ChordVoicing, getChordVoicings, strumChordV
 import { cacheSongOffline, getCachedSongOffline, isSongCachedOffline } from '../services/offlineStorage';
 import { requestScreenWakeLock, releaseScreenWakeLock } from '../utils/wakeLock';
 import { detectSongTempo } from '../data/songTempos';
+import { resolveVoiceContext, VoiceResolvedResult } from '../data/soundtrackResolver';
 
 interface SongSearchModalProps {
   isOpen?: boolean;
@@ -107,6 +111,9 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchSongItem[]>([]);
   const [isLoadingResults, setIsLoadingResults] = useState<boolean>(false);
+  const [isListeningVoice, setIsListeningVoice] = useState<boolean>(false);
+  const [voiceBanner, setVoiceBanner] = useState<{ title: string; hitSongs: string[]; type: 'movie' | 'artist' } | null>(null);
+  const recognitionRef = useRef<any>(null);
 
   // Song View State
   const [selectedSong, setSelectedSong] = useState<SongData | null>(null);
@@ -243,6 +250,69 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
       if (bpm >= 40 && bpm <= 240) {
         setPracticeBpm(bpm);
       }
+    }
+  };
+
+  const handleStartVoiceSearch = () => {
+    if (isListeningVoice) {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+      }
+      setIsListeningVoice(false);
+      return;
+    }
+
+    const SpeechRecognitionClass =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognitionClass) {
+      alert('Voice search is not supported on this browser. Try Google Chrome or Safari.');
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognitionClass();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = navigator.language || 'en-US';
+
+      recognition.onstart = () => {
+        setIsListeningVoice(true);
+      };
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0]?.[0]?.transcript || '';
+        if (transcript.trim()) {
+          const resolved = resolveVoiceContext(transcript);
+          setSearchQuery(resolved.cleanedQuery);
+          if (resolved.suggestedSongs && resolved.suggestedSongs.length > 0) {
+            setVoiceBanner({
+              title: resolved.title,
+              hitSongs: resolved.suggestedSongs,
+              type: resolved.type === 'movie' ? 'movie' : 'artist',
+            });
+          } else {
+            setVoiceBanner(null);
+          }
+        }
+        setIsListeningVoice(false);
+      };
+
+      recognition.onerror = () => {
+        setIsListeningVoice(false);
+      };
+
+      recognition.onend = () => {
+        setIsListeningVoice(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err) {
+      console.error(err);
+      setIsListeningVoice(false);
     }
   };
 
@@ -1666,21 +1736,79 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                       e.currentTarget.blur();
                     }
                   }}
-                  className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-2xl pl-11 pr-11 py-3 text-sm text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:border-[#f15a24] shadow-inner"
+                  className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-2xl pl-11 pr-20 py-3 text-sm text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:border-[#f15a24] shadow-inner"
                 />
                 {searchQuery && (
                   <button
                     type="button"
-                    onClick={() => setSearchQuery('')}
-                    className="p-1 rounded-full text-slate-500 hover:text-slate-900 dark:hover:text-white absolute right-10 top-1/2 -translate-y-1/2 transition cursor-pointer"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setVoiceBanner(null);
+                    }}
+                    className="p-1 rounded-full text-slate-500 hover:text-slate-900 dark:hover:text-white absolute right-11 top-1/2 -translate-y-1/2 transition cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 )}
+                {/* Intelligent Voice Search Button */}
+                <button
+                  type="button"
+                  onClick={handleStartVoiceSearch}
+                  className={`p-2 rounded-xl transition cursor-pointer absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center ${
+                    isListeningVoice
+                      ? 'bg-[#f15a24] text-white animate-pulse shadow-md ring-2 ring-orange-300'
+                      : 'text-slate-400 hover:text-[#f15a24] dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800'
+                  }`}
+                  title={isListeningVoice ? 'Listening... speak movie name, artist, or song title' : 'Intelligent Voice Search (Movies, Artists, Songs)'}
+                >
+                  <Mic className={`w-4 h-4 ${isListeningVoice ? 'animate-bounce' : ''}`} />
+                </button>
                 {isLoadingResults && (
-                  <Loader2 className="w-4 h-4 animate-spin text-[#f15a24] absolute right-4 top-1/2 -translate-y-1/2" />
+                  <Loader2 className="w-4 h-4 animate-spin text-[#f15a24] absolute right-20 top-1/2 -translate-y-1/2" />
                 )}
               </form>
+
+              {/* Intelligent Movie / Artist Voice Context Banner */}
+              {voiceBanner && (
+                <div className="mb-3 p-3 rounded-2xl bg-[#f15a24]/10 border border-[#f15a24]/30 shrink-0">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      {voiceBanner.type === 'movie' ? (
+                        <Film className="w-4 h-4 text-[#f15a24]" />
+                      ) : (
+                        <Music className="w-4 h-4 text-[#f15a24]" />
+                      )}
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">
+                        {voiceBanner.type === 'movie' ? '🎬 Movie Soundtrack' : '🎤 Artist Hits'}:{' '}
+                        <span className="text-[#f15a24] font-extrabold">{voiceBanner.title}</span>
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setVoiceBanner(null)}
+                      className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-0.5"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <div className="text-[11px] text-slate-600 dark:text-slate-300 mb-2 font-medium">
+                    Tap any hit song from this {voiceBanner.type === 'movie' ? 'movie' : 'artist'} to view verified chords:
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {voiceBanner.hitSongs.map((songTitle) => (
+                      <button
+                        key={songTitle}
+                        onClick={() => {
+                          setSearchQuery(songTitle);
+                        }}
+                        className="px-2.5 py-1 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-[#f15a24] text-xs font-semibold text-slate-800 dark:text-slate-200 hover:text-[#f15a24] transition cursor-pointer shadow-2xs flex items-center gap-1"
+                      >
+                        <Play className="w-2.5 h-2.5 fill-current text-[#f15a24]" />
+                        <span>{songTitle}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Body: Either Search Results OR Search History + Recent Songs */}
               <div className="flex-1 overflow-y-auto space-y-4 pr-1">
