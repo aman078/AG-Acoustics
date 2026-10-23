@@ -12,6 +12,7 @@ interface HeadstockTunerProps {
   clarity: number;
   isAutoMode: boolean;
   onPlayTone: (freq: number) => void;
+  theme?: 'clean' | 'dark';
 }
 
 export const HeadstockTuner: React.FC<HeadstockTunerProps> = ({
@@ -23,9 +24,12 @@ export const HeadstockTuner: React.FC<HeadstockTunerProps> = ({
   clarity,
   isAutoMode,
   onPlayTone,
+  theme = 'dark',
 }) => {
   const [isDroneMode, setIsDroneMode] = useState<boolean>(false);
   const [droningFreq, setDroningFreq] = useState<number | null>(null);
+
+  const isClean = theme === 'clean';
 
   useEffect(() => {
     return () => {
@@ -66,14 +70,27 @@ export const HeadstockTuner: React.FC<HeadstockTunerProps> = ({
   // Y-coordinates for peg levels
   const yCoords = [250, 170, 90]; // Bottom (Low E), Middle (A), Top (D)
 
+  // Architectural blueprint theme colors
+  const defaultStroke = isClean ? '#0284c7' : '#38bdf8';
+  const defaultFill = isClean ? '#ffffff' : '#0a0e17';
+  const defaultBadgeBorder = isClean ? '#94a3b8' : '#38bdf8';
+  const defaultBadgeText = isClean ? '#0f172a' : '#38bdf8';
+  const gridStroke = isClean ? '#94a3b8' : '#38bdf8';
+
   return (
     <div className="flex flex-col items-center w-full select-none max-w-lg mx-auto">
       
-      {/* Top HUD Readout: Note, Frequency, and Cent Meter */}
-      <div className="w-full bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 sm:p-5 shadow-xl mb-3 backdrop-blur-xl">
+      {/* Top HUD Readout: Note, Frequency, and Cent Meter (Seamless Card) */}
+      <div className={`w-full rounded-2xl p-3 sm:p-4 mb-2 transition-all backdrop-blur-md border ${
+        isClean
+          ? 'bg-white/80 border-slate-200/90 shadow-sm'
+          : 'bg-white/[0.03] border-white/[0.08] shadow-lg'
+      }`}>
         
         {/* Top Status Bar: Drone Toggle & Auto Status */}
-        <div className="flex items-center justify-between text-xs font-mono pb-2.5 mb-2.5 border-b border-slate-200 dark:border-slate-800/80">
+        <div className={`flex items-center justify-between text-xs font-mono pb-2 mb-2 border-b ${
+          isClean ? 'border-slate-200' : 'border-white/[0.08]'
+        }`}>
           <button
             onClick={() => {
               if (isDroneMode) {
@@ -87,7 +104,9 @@ export const HeadstockTuner: React.FC<HeadstockTunerProps> = ({
             className={`px-2.5 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border ${
               isDroneMode
                 ? 'bg-amber-500/20 text-amber-600 dark:text-amber-300 border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.3)] animate-pulse'
-                : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:text-slate-900 dark:hover:text-white'
+                : isClean
+                ? 'bg-slate-100 text-slate-600 border-slate-200 hover:text-slate-900'
+                : 'bg-white/[0.04] text-slate-400 border-white/[0.08] hover:text-white'
             }`}
             title="Ear training reference drone mode"
           >
@@ -103,7 +122,9 @@ export const HeadstockTuner: React.FC<HeadstockTunerProps> = ({
                 ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30'
                 : isSharp
                 ? 'bg-[#f15a24]/15 text-[#f15a24] dark:text-[#ff7a45] border-[#f15a24]/30'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+                : isClean
+                ? 'bg-slate-100 text-slate-500 border-slate-200'
+                : 'bg-white/[0.04] text-slate-400 border-white/[0.08]'
             }`}
           >
             {hasAudio ? (
@@ -128,32 +149,36 @@ export const HeadstockTuner: React.FC<HeadstockTunerProps> = ({
         </div>
 
         {/* Big Detected Note & Cent Meter */}
-        <div className="flex flex-col items-center my-1">
-          <div className="flex items-baseline gap-2">
+        <div className="flex flex-col items-center">
+          <div className="flex items-baseline gap-1.5">
             <span
-              className={`text-5xl sm:text-6xl font-black tracking-tight font-mono transition-colors duration-200 ${
+              className={`text-4xl sm:text-5xl font-black tracking-tight font-mono transition-colors duration-200 ${
                 isInTune
                   ? 'text-emerald-500 dark:text-emerald-400 drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]'
                   : hasAudio
                   ? 'text-[#f15a24] dark:text-[#ff7a45]'
-                  : 'text-slate-900 dark:text-white'
+                  : isClean
+                  ? 'text-slate-900'
+                  : 'text-white'
               }`}
             >
               {activeString.note}
             </span>
-            <span className="text-xl font-bold text-slate-400 dark:text-slate-500">{activeString.octave}</span>
+            <span className="text-lg font-bold text-slate-400 dark:text-slate-500">{activeString.octave}</span>
           </div>
 
-          <div className="text-xs font-mono text-slate-500 dark:text-slate-400 mt-0.5">
+          <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400 mt-0.5">
             FREQ:{' '}
-            <strong className="text-slate-800 dark:text-slate-200">
+            <strong className={isClean ? 'text-slate-800' : 'text-slate-200'}>
               {frequency ? `${frequency.toFixed(1)} Hz` : `${activeString.targetFreq.toFixed(1)} Hz`}
             </strong>
           </div>
 
           {/* Cent Meter Needle Gauge Bar */}
-          <div className="w-full max-w-xs mt-3 relative">
-            <div className="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden relative">
+          <div className="w-full max-w-xs mt-2 relative">
+            <div className={`w-full h-2 rounded-full overflow-hidden relative ${
+              isClean ? 'bg-slate-200' : 'bg-slate-800'
+            }`}>
               {/* Center target zone */}
               <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-4 bg-emerald-500/30 rounded-full" />
               {/* Cursor indicator */}
@@ -181,27 +206,27 @@ export const HeadstockTuner: React.FC<HeadstockTunerProps> = ({
         </div>
       </div>
 
-      {/* Main Luthier Blueprint Vector Headstock Stage */}
-      <div className="relative w-full max-w-sm sm:max-w-md h-[470px] flex items-center justify-center bg-[#070b12] rounded-3xl border border-cyan-500/20 shadow-2xl overflow-hidden">
+      {/* Main Luthier Blueprint Vector Headstock Stage (100% Seamless Canvas) */}
+      <div className="relative w-full max-w-sm sm:max-w-md h-[440px] flex items-center justify-center bg-transparent overflow-visible">
         
-        {/* Subtle Blueprint Technical Coordinate Grid */}
-        <svg className="absolute inset-0 w-full h-full opacity-15 pointer-events-none" xmlns="http://www.w3.org/2000/svg">
+        {/* Subtle Technical Coordinate Grid */}
+        <svg className={`absolute inset-0 w-full h-full pointer-events-none ${isClean ? 'opacity-10' : 'opacity-15'}`} xmlns="http://www.w3.org/2000/svg">
           <defs>
             <pattern id="luthier-grid" width="20" height="20" patternUnits="userSpaceOnUse">
-              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#38bdf8" strokeWidth="0.75" />
+              <path d="M 20 0 L 0 0 0 20" fill="none" stroke={gridStroke} strokeWidth="0.75" />
             </pattern>
           </defs>
           <rect width="100%" height="100%" fill="url(#luthier-grid)" />
         </svg>
 
         {/* Technical Blueprint Specs Markings */}
-        <div className="absolute top-3 left-3 text-[9px] font-mono text-cyan-400/50">SEC: 3L3R ACOUSTIC</div>
-        <div className="absolute top-3 right-3 text-[9px] font-mono text-cyan-400/50">TOL: ±0.1¢</div>
-        <div className="absolute bottom-3 left-3 text-[9px] font-mono text-cyan-400/50">SCALE: 25.5&quot;</div>
-        <div className="absolute bottom-3 right-3 text-[9px] font-mono text-cyan-400/50">NUT: 43.0mm</div>
+        <div className={`absolute top-2 left-3 text-[9px] font-mono ${isClean ? 'text-slate-400' : 'text-cyan-400/50'}`}>SEC: 3L3R ACOUSTIC</div>
+        <div className={`absolute top-2 right-3 text-[9px] font-mono ${isClean ? 'text-slate-400' : 'text-cyan-400/50'}`}>TOL: ±0.1¢</div>
+        <div className={`absolute bottom-2 left-3 text-[9px] font-mono ${isClean ? 'text-slate-400' : 'text-cyan-400/50'}`}>SCALE: 25.5&quot;</div>
+        <div className={`absolute bottom-2 right-3 text-[9px] font-mono ${isClean ? 'text-slate-400' : 'text-cyan-400/50'}`}>NUT: 43.0mm</div>
 
         {/* Master Vector Headstock Schematic SVG */}
-        <svg viewBox="0 0 340 460" className="w-full h-full max-w-[360px]">
+        <svg viewBox="0 0 340 450" className="w-full h-full max-w-[360px]">
           <defs>
             <marker id="bp-arrow-orange" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
               <path d="M 0 1 L 10 5 L 0 9 z" fill="#f15a24" />
@@ -211,11 +236,11 @@ export const HeadstockTuner: React.FC<HeadstockTunerProps> = ({
             </marker>
           </defs>
 
-          {/* Headstock Architectural Outer Contour (Cyan Dashed) */}
+          {/* Headstock Architectural Outer Contour (Blueprint Cyan/Slate Dashed) */}
           <path
             d="M 96 410 L 96 295 C 90 250, 78 145, 90 70 C 100 38, 145 28, 170 44 C 195 28, 240 38, 250 70 C 262 145, 250 250, 244 295 L 244 410 Z"
             fill="none"
-            stroke="#38bdf8"
+            stroke={defaultStroke}
             strokeWidth="2.5"
             strokeDasharray="5 3"
           />
@@ -223,22 +248,54 @@ export const HeadstockTuner: React.FC<HeadstockTunerProps> = ({
           {/* Headstock Inner Chamfer Contour */}
           <path
             d="M 103 408 L 103 295 C 97 252, 86 148, 97 75 C 106 45, 144 36, 170 51 C 196 36, 234 45, 243 75 C 254 148, 243 252, 237 295 L 237 408 Z"
-            fill="rgba(56, 189, 248, 0.03)"
-            stroke="#0284c7"
+            fill={isClean ? 'rgba(2, 132, 199, 0.02)' : 'rgba(56, 189, 248, 0.03)'}
+            stroke={isClean ? '#0284c7' : '#0284c7'}
+            strokeOpacity={isClean ? 0.35 : 1}
             strokeWidth="1.4"
           />
 
           {/* Center AG Inlay */}
-          <text x="170" y="96" textAnchor="middle" fill="#38bdf8" fontSize="13" fontFamily="monospace" fontWeight="900" letterSpacing="4">AGSOFT</text>
-          <text x="170" y="110" textAnchor="middle" fill="#0284c7" fontSize="8" fontFamily="monospace" fontWeight="bold" letterSpacing="2">ACOUSTICS STUDIO</text>
+          <text
+            x="170"
+            y="96"
+            textAnchor="middle"
+            fill={isClean ? '#0f172a' : '#38bdf8'}
+            fontSize="13"
+            fontFamily="monospace"
+            fontWeight="900"
+            letterSpacing="4"
+          >
+            AGSOFT
+          </text>
+          <text
+            x="170"
+            y="110"
+            textAnchor="middle"
+            fill={isClean ? '#64748b' : '#0284c7'}
+            fontSize="8"
+            fontFamily="monospace"
+            fontWeight="bold"
+            letterSpacing="2"
+          >
+            ACOUSTICS STUDIO
+          </text>
           {/* Blueprint Compass Rose */}
-          <circle cx="170" cy="132" r="10" fill="none" stroke="#38bdf8" strokeWidth="1" strokeDasharray="2 2" />
-          <line x1="170" y1="118" x2="170" y2="146" stroke="#38bdf8" strokeWidth="1" />
-          <line x1="156" y1="132" x2="184" y2="132" stroke="#38bdf8" strokeWidth="1" />
+          <circle cx="170" cy="132" r="10" fill="none" stroke={isClean ? '#94a3b8' : '#38bdf8'} strokeWidth="1" strokeDasharray="2 2" />
+          <line x1="170" y1="118" x2="170" y2="146" stroke={isClean ? '#94a3b8' : '#38bdf8'} strokeWidth="1" />
+          <line x1="156" y1="132" x2="184" y2="132" stroke={isClean ? '#94a3b8' : '#38bdf8'} strokeWidth="1" />
 
           {/* Bone Nut Bar (Bottom) */}
-          <rect x="94" y="405" width="152" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2" />
-          <line x1="94" y1="410" x2="246" y2="410" stroke="#94a3b8" strokeWidth="1" strokeDasharray="3 3" />
+          <rect
+            x="94"
+            y="405"
+            width="152"
+            height="10"
+            rx="2"
+            fill={isClean ? '#f8fafc' : 'none'}
+            stroke={isClean ? '#94a3b8' : '#e2e8f0'}
+            strokeWidth="2"
+          />
+          <line x1="94" y1="410" x2="246" y2="410" stroke={isClean ? '#cbd5e1' : '#94a3b8'} strokeWidth="1" strokeDasharray="3 3" />
 
           {/* ========================================== */}
           {/* 6 STRINGS: Authentic Gauge Paths           */}
@@ -267,10 +324,12 @@ export const HeadstockTuner: React.FC<HeadstockTunerProps> = ({
                     ? isInTune
                       ? '#10b981'
                       : '#f15a24'
+                    : isClean
+                    ? '#94a3b8'
                     : '#38bdf8'
                 }
                 strokeWidth={gaugeWidth}
-                opacity={isSelected ? 1 : 0.35}
+                opacity={isSelected ? 1 : isClean ? 0.5 : 0.35}
                 className={
                   isSelected
                     ? isInTune
@@ -298,7 +357,7 @@ export const HeadstockTuner: React.FC<HeadstockTunerProps> = ({
               ? isInTune
                 ? '#10b981'
                 : '#f15a24'
-              : '#38bdf8';
+              : defaultStroke;
 
             const gearAnimationClass = isSelected && hasAudio
               ? isFlat
@@ -320,7 +379,7 @@ export const HeadstockTuner: React.FC<HeadstockTunerProps> = ({
                     cx="120"
                     cy={y}
                     r={isSelected ? 12 : 10}
-                    fill={isSelected ? 'rgba(241, 90, 36, 0.15)' : '#0f172a'}
+                    fill={isSelected ? (isInTune ? 'rgba(16, 185, 129, 0.15)' : 'rgba(241, 90, 36, 0.15)') : defaultFill}
                     stroke={pegColor}
                     strokeWidth={isSelected ? 2 : 1.5}
                   />
@@ -349,8 +408,8 @@ export const HeadstockTuner: React.FC<HeadstockTunerProps> = ({
                   width="24"
                   height={isSelected ? 22 : 18}
                   rx="6"
-                  fill={isSelected ? pegColor : '#0f172a'}
-                  stroke={isSelected ? '#fff' : '#38bdf8'}
+                  fill={isSelected ? pegColor : defaultFill}
+                  stroke={isSelected ? '#fff' : defaultBadgeBorder}
                   strokeWidth={isSelected ? 2 : 1.5}
                   className="transition-all"
                 />
@@ -360,8 +419,8 @@ export const HeadstockTuner: React.FC<HeadstockTunerProps> = ({
                   cx="26"
                   cy={y}
                   r={isSelected ? 17 : 14}
-                  fill={isSelected ? pegColor : '#0f172a'}
-                  stroke={isSelected ? '#fff' : '#38bdf8'}
+                  fill={isSelected ? pegColor : defaultFill}
+                  stroke={isSelected ? '#fff' : defaultBadgeBorder}
                   strokeWidth={isSelected ? 2 : 1.5}
                   className="transition-all"
                 />
@@ -369,7 +428,7 @@ export const HeadstockTuner: React.FC<HeadstockTunerProps> = ({
                   x="26"
                   y={y + (isSelected ? 5 : 4.5)}
                   textAnchor="middle"
-                  fill={isSelected ? '#fff' : '#38bdf8'}
+                  fill={isSelected ? '#fff' : defaultBadgeText}
                   fontSize={isSelected ? 14 : 12}
                   fontFamily="monospace"
                   fontWeight={isSelected ? 900 : 'bold'}
@@ -467,7 +526,7 @@ export const HeadstockTuner: React.FC<HeadstockTunerProps> = ({
               ? isInTune
                 ? '#10b981'
                 : '#f15a24'
-              : '#38bdf8';
+              : defaultStroke;
 
             const gearAnimationClass = isSelected && hasAudio
               ? isFlat
@@ -489,7 +548,7 @@ export const HeadstockTuner: React.FC<HeadstockTunerProps> = ({
                     cx="220"
                     cy={y}
                     r={isSelected ? 12 : 10}
-                    fill={isSelected ? 'rgba(241, 90, 36, 0.15)' : '#0f172a'}
+                    fill={isSelected ? (isInTune ? 'rgba(16, 185, 129, 0.15)' : 'rgba(241, 90, 36, 0.15)') : defaultFill}
                     stroke={pegColor}
                     strokeWidth={isSelected ? 2 : 1.5}
                   />
@@ -518,8 +577,8 @@ export const HeadstockTuner: React.FC<HeadstockTunerProps> = ({
                   width="24"
                   height={isSelected ? 22 : 18}
                   rx="6"
-                  fill={isSelected ? pegColor : '#0f172a'}
-                  stroke={isSelected ? '#fff' : '#38bdf8'}
+                  fill={isSelected ? pegColor : defaultFill}
+                  stroke={isSelected ? '#fff' : defaultBadgeBorder}
                   strokeWidth={isSelected ? 2 : 1.5}
                   className="transition-all"
                 />
@@ -529,8 +588,8 @@ export const HeadstockTuner: React.FC<HeadstockTunerProps> = ({
                   cx="314"
                   cy={y}
                   r={isSelected ? 17 : 14}
-                  fill={isSelected ? pegColor : '#0f172a'}
-                  stroke={isSelected ? '#fff' : '#38bdf8'}
+                  fill={isSelected ? pegColor : defaultFill}
+                  stroke={isSelected ? '#fff' : defaultBadgeBorder}
                   strokeWidth={isSelected ? 2 : 1.5}
                   className="transition-all"
                 />
@@ -538,7 +597,7 @@ export const HeadstockTuner: React.FC<HeadstockTunerProps> = ({
                   x="314"
                   y={y + (isSelected ? 5 : 4.5)}
                   textAnchor="middle"
-                  fill={isSelected ? '#fff' : '#38bdf8'}
+                  fill={isSelected ? '#fff' : defaultBadgeText}
                   fontSize={isSelected ? 14 : 12}
                   fontFamily="monospace"
                   fontWeight={isSelected ? 900 : 'bold'}

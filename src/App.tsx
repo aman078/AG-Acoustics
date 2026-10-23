@@ -459,6 +459,32 @@ export const App: React.FC = () => {
     animFrameRef.current = requestAnimationFrame(processAudio);
   }, [currentTuning, activeStringIndex, isAutoMode, referenceA4, isListening, activeTab, isSongOpen]);
 
+  // Auto-start microphone immediately on launch & when on Tuner tab (Android, iOS, Web)
+  useEffect(() => {
+    if (activeTab === 'tuner' && !isSongOpen && !isListening) {
+      startListening().catch(() => {});
+    }
+
+    // Fallback: auto-resume AudioContext or start mic on first tap/interaction
+    const handleAutoStartGesture = () => {
+      if (activeTab === 'tuner' && !isSongOpen && !isListening) {
+        startListening().catch(() => {});
+      } else if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+        audioContextRef.current.resume().catch(() => {});
+      }
+    };
+
+    window.addEventListener('click', handleAutoStartGesture, { passive: true });
+    window.addEventListener('touchstart', handleAutoStartGesture, { passive: true });
+    window.addEventListener('pointerdown', handleAutoStartGesture, { passive: true });
+
+    return () => {
+      window.removeEventListener('click', handleAutoStartGesture);
+      window.removeEventListener('touchstart', handleAutoStartGesture);
+      window.removeEventListener('pointerdown', handleAutoStartGesture);
+    };
+  }, [activeTab, isSongOpen, isListening]);
+
   // Completely shut down tuner microphone & audio processing when leaving the Tuner tab or when a song is open
   useEffect(() => {
     if (activeTab !== 'tuner' || isSongOpen) {
@@ -772,7 +798,7 @@ export const App: React.FC = () => {
             )}
 
             {/* DUAL TUNER ENGINE: Studio Headstock OR Peterson Strobe */}
-            <div className="w-full flex-1 flex flex-col items-center justify-center py-1">
+            <div className="w-full flex-1 flex flex-col items-center justify-center py-0">
               {tunerMode === 'studio' ? (
                 <HeadstockTuner
                   strings={currentTuning.strings}
@@ -786,6 +812,7 @@ export const App: React.FC = () => {
                   clarity={detectedClarity}
                   isAutoMode={isAutoMode}
                   onPlayTone={handlePlayActiveString}
+                  theme={theme}
                 />
               ) : (
                 <StrobeTuner
@@ -799,38 +826,26 @@ export const App: React.FC = () => {
               )}
             </div>
 
-            {/* Big Mic Start / Listen Action */}
-            <div className="w-full flex flex-col items-center gap-2.5 my-2">
-              <button
-                onClick={isListening ? stopListening : startListening}
-                className={`w-full max-w-sm py-4 rounded-2xl font-bold text-sm tracking-widest uppercase flex items-center justify-center gap-3 transition active:scale-[0.98] cursor-pointer shadow-xl ${
-                  isListening
-                    ? 'bg-slate-900 text-rose-400 border border-rose-500/30 hover:bg-slate-800'
-                    : 'bg-gradient-to-r from-[#f15a24] via-orange-500 to-[#ea580c] text-white font-extrabold shadow-[0_0_30px_rgba(241,90,36,0.45)] hover:brightness-110'
-                }`}
-              >
-                {isListening ? (
-                  <>
-                    <MicOff className="w-5 h-5" /> PAUSE TUNER
-                  </>
-                ) : (
-                  <>
-                    <Mic className="w-5 h-5" /> START STUDIO TUNER (MIC)
-                  </>
-                )}
-              </button>
-
-              {/* Real-time volume signal visualizer bar */}
-              {isListening && (
-                <div className="w-full max-w-sm flex items-center gap-2 px-2 text-[10px] text-slate-400 font-mono">
-                  <span>INPUT LEVEL</span>
-                  <div className="flex-1 h-1.5 bg-slate-950 rounded-full overflow-hidden border border-white/[0.08]">
+            {/* Seamless, Non-intrusive Mic Signal Status (Auto-Started on all platforms) */}
+            <div className="w-full flex items-center justify-center py-1">
+              {isListening ? (
+                <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping inline-block" />
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">MIC LIVE</span>
+                  <span>•</span>
+                  <span>INPUT:</span>
+                  <div className="w-16 h-1 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-emerald-400 transition-all duration-75"
+                      className="h-full bg-[#f15a24] transition-all duration-75"
                       style={{ width: `${Math.min(100, rmsVolume * 600)}%` }}
                     />
                   </div>
                   <span>{Math.round(rmsVolume * 100)}%</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-mono">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
+                  <span>INITIALIZING MICROPHONE...</span>
                 </div>
               )}
             </div>

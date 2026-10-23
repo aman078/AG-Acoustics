@@ -8,9 +8,9 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    let latestTagName = 'v1.0.53';
+    let latestTagName = 'v1.0.54';
     let apkDownloadUrl = 'https://github.com/aman078/AG-Acoustics/releases/latest/download/AGSoft-Acoustics.apk';
-    let releaseNotes = 'Interactive Luthier Blueprint Vector Headstock Tuner: animated open-gear mechanical cogs, authentic gauge strings, contextual tighten/loosen guidance, integrated drone mode, and clean single-view layout.';
+    let releaseNotes = 'Seamless Clean White & Stage Dark Luthier Blueprint Vector Headstock Tuner, auto-starting microphone on Android/iOS/Web, and removed manual start button.';
 
     try {
       const ghRes = await fetch('https://api.github.com/repos/aman078/AG-Acoustics/releases/latest', {
@@ -36,7 +36,7 @@ export default async function handler(req: any, res: any) {
     }
 
     const match = latestTagName.match(/\d+$/);
-    const versionCode = match ? parseInt(match[0], 10) : 53;
+    const versionCode = match ? parseInt(match[0], 10) : 54;
     const versionName = latestTagName.replace(/^v/, '');
 
     res.setHeader('Content-Type', 'application/json');

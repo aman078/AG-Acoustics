@@ -6,8 +6,8 @@ export interface AppVersionData {
 }
 
 export const CURRENT_APP_VERSION: AppVersionData = {
-  versionCode: 53,
-  versionName: '1.0.53',
+  versionCode: 54,
+  versionName: '1.0.54',
 };
 
 export interface AppUpdateInfo {

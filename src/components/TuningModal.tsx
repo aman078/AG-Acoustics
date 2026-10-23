@@ -142,7 +142,7 @@ export const TuningModal: React.FC<TuningModalProps> = ({
           <div className="flex items-center gap-1.5 text-slate-500 font-mono text-[11px]">
             <span>AGSoft Acoustics</span>
             <span className="px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold">
-              v1.0.53
+              v1.0.54
             </span>
           </div>
           {onCheckForUpdates && (
