@@ -645,10 +645,10 @@ export function guitarTunaScraperPlugin(): Plugin {
           res.setHeader('Content-Type', 'application/json');
           res.setHeader('Access-Control-Allow-Origin', '*');
           res.end(JSON.stringify({
-            latest_version_code: 52,
-            latest_version_name: '1.0.52',
+            latest_version_code: 53,
+            latest_version_name: '1.0.53',
             download_url: 'https://github.com/aman078/AG-Acoustics/releases/latest/download/AGSoft-Acoustics.apk',
-            release_notes: 'iOS Safari & PWA standalone support: notch & Dynamic Island safe-area insets, ergonomic high-visibility Studio/Strobe tuner mode selector, dynamic 100dvh viewport height, and overscroll bounce fix.',
+            release_notes: 'Interactive Luthier Blueprint Vector Headstock Tuner: animated open-gear mechanical cogs, authentic gauge strings, contextual tighten/loosen guidance, integrated drone mode, and clean single-view layout.',
             force_update: false,
           }));
         } catch (err: unknown) {

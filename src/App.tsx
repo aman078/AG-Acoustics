@@ -656,98 +656,120 @@ export const App: React.FC = () => {
               </div>
             )}
 
-            {/* HERO PITCH DISPLAY (The Centerpiece Note Badge) */}
-            <div className="w-full py-5 px-6 rounded-3xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-sm dark:shadow-2xl relative overflow-hidden flex flex-col items-center">
-              {/* In-Tune Background Ambient Beam */}
-              {isInTune && (
-                <div className="absolute inset-0 bg-emerald-500/10 blur-2xl animate-pulse pointer-events-none" />
-              )}
-
-              {/* Status Header Badge */}
-              <div className="mb-2">
-                {isInTune ? (
-                  <span className="px-3.5 py-1 rounded-full bg-emerald-500 text-black text-xs font-extrabold tracking-widest flex items-center gap-1.5 shadow-md animate-bounce">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> IN TUNE
-                  </span>
-                ) : isFlat ? (
-                  <span className="px-3 py-1 rounded-full bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30 text-[11px] font-bold font-mono tracking-wider">
-                    TUNE UP ▲
-                  </span>
-                ) : isSharp ? (
-                  <span className="px-3 py-1 rounded-full bg-rose-500/15 text-rose-800 dark:text-rose-300 border border-rose-500/30 text-[11px] font-bold font-mono tracking-wider">
-                    TUNE DOWN ▼
-                  </span>
-                ) : isListening ? (
-                  <span className="text-[11px] font-mono font-semibold tracking-widest text-slate-600 dark:text-slate-400 uppercase flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping inline-block" />
-                    LISTENING FOR PLUCK...
-                  </span>
-                ) : (
-                  <span className="text-[11px] font-mono font-semibold tracking-widest text-slate-500 dark:text-slate-400 uppercase">
-                    MICROPHONE PAUSED
-                  </span>
+            {/* HERO PITCH DISPLAY (Active in 0.1¢ Strobe Mode; in Studio Mode, Luthier Blueprint contains its integrated HUD) */}
+            {tunerMode === 'strobe' && (
+              <div className="w-full py-5 px-6 rounded-3xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-sm dark:shadow-2xl relative overflow-hidden flex flex-col items-center">
+                {/* In-Tune Background Ambient Beam */}
+                {isInTune && (
+                  <div className="absolute inset-0 bg-emerald-500/10 blur-2xl animate-pulse pointer-events-none" />
                 )}
-              </div>
 
-              {/* Big Giant Note Readout */}
-              <div className="flex items-baseline justify-center gap-1 my-1">
-                <span className={`text-6xl sm:text-7xl font-extrabold tracking-tighter transition-all duration-150 ${
-                  isInTune 
-                    ? 'text-emerald-600 dark:text-emerald-400 drop-shadow-[0_0_25px_rgba(16,185,129,0.5)] scale-105' 
-                    : isFlat
-                    ? 'text-amber-600 dark:text-amber-300'
-                    : isSharp
-                    ? 'text-rose-600 dark:text-rose-400'
-                    : 'text-slate-900 dark:text-white'
-                }`}>
-                  {isListening && detectedNote ? detectedNote : currentTargetString.note}
-                </span>
-                <span className="text-xl sm:text-2xl font-mono font-bold text-slate-500 dark:text-slate-400">
-                  {isListening && detectedOctave !== null ? detectedOctave : currentTargetString.octave}
-                </span>
-              </div>
-
-              {/* Deviation in Cents & Frequency */}
-              <div className="flex items-center gap-4 text-xs font-mono text-slate-600 dark:text-slate-400 mt-1">
-                <span>
-                  FREQ: <strong className="text-slate-900 dark:text-white font-bold">{detectedFreq ? `${detectedFreq.toFixed(1)} Hz` : `${currentTargetString.targetFreq.toFixed(1)} Hz`}</strong>
-                </span>
-                <span>•</span>
-                <span>
-                  DEV: <strong className={isInTune ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-800 dark:text-slate-200 font-bold'}>
-                    {isListening && detectedFreq ? `${centsOffset > 0 ? '+' : ''}${centsOffset.toFixed(1)}¢` : '0.0¢'}
-                  </strong>
-                </span>
-              </div>
-
-              {/* High-Precision Deviation Visual Bar */}
-              <div className="w-full max-w-md mt-4 flex flex-col items-center">
-                <div className="w-full relative h-3 bg-slate-200 dark:bg-slate-950 rounded-full border border-slate-300 dark:border-white/[0.08] overflow-hidden flex items-center">
-                  {/* Center In-Tune Mark */}
-                  <div className="absolute left-1/2 -translate-x-1/2 w-1.5 h-full bg-emerald-500 z-10 shadow-[0_0_8px_rgba(16,185,129,0.9)]" />
-                  {/* Tolerance Window (+/- 3 cents) */}
-                  <div className="absolute left-[47%] w-[6%] h-full bg-emerald-500/25 z-0" />
-                  
-                  {/* Real-time Needle Dot */}
-                  {isListening && detectedFreq && (
-                    <div
-                      className={`absolute top-0 bottom-0 w-2.5 rounded-full transition-all duration-75 shadow-md ${
-                        isInTune ? 'bg-emerald-500' : isFlat ? 'bg-amber-500' : 'bg-rose-500'
-                      }`}
-                      style={{
-                        left: `calc(${Math.min(97, Math.max(3, 50 + centsOffset))}% - 5px)`
-                      }}
-                    />
+                {/* Status Header Badge */}
+                <div className="mb-2">
+                  {isInTune ? (
+                    <span className="px-3.5 py-1 rounded-full bg-emerald-500 text-black text-xs font-extrabold tracking-widest flex items-center gap-1.5 shadow-md animate-bounce">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> IN TUNE
+                    </span>
+                  ) : isFlat ? (
+                    <span className="px-3 py-1 rounded-full bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30 text-[11px] font-bold font-mono tracking-wider">
+                      TUNE UP ▲
+                    </span>
+                  ) : isSharp ? (
+                    <span className="px-3 py-1 rounded-full bg-rose-500/15 text-rose-800 dark:text-rose-300 border border-rose-500/30 text-[11px] font-bold font-mono tracking-wider">
+                      TUNE DOWN ▼
+                    </span>
+                  ) : isListening ? (
+                    <span className="text-[11px] font-mono font-semibold tracking-widest text-slate-600 dark:text-slate-400 uppercase flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping inline-block" />
+                      LISTENING FOR PLUCK...
+                    </span>
+                  ) : (
+                    <span className="text-[11px] font-mono font-semibold tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                      MICROPHONE PAUSED
+                    </span>
                   )}
                 </div>
 
-                <div className="w-full flex justify-between text-[10px] font-mono font-medium text-slate-500 dark:text-slate-400 mt-1 px-1">
-                  <span>-50¢ (FLAT)</span>
-                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">0¢ PERFECT</span>
-                  <span>+50¢ (SHARP)</span>
+                {/* Big Giant Note Readout */}
+                <div className="flex items-baseline justify-center gap-1 my-1">
+                  <span className={`text-6xl sm:text-7xl font-extrabold tracking-tighter transition-all duration-150 ${
+                    isInTune 
+                      ? 'text-emerald-600 dark:text-emerald-400 drop-shadow-[0_0_25px_rgba(16,185,129,0.5)] scale-105' 
+                      : isFlat
+                      ? 'text-amber-600 dark:text-amber-300'
+                      : isSharp
+                      ? 'text-rose-600 dark:text-rose-400'
+                      : 'text-slate-900 dark:text-white'
+                  }`}>
+                    {isListening && detectedNote ? detectedNote : currentTargetString.note}
+                  </span>
+                  <span className="text-xl sm:text-2xl font-mono font-bold text-slate-500 dark:text-slate-400">
+                    {isListening && detectedOctave !== null ? detectedOctave : currentTargetString.octave}
+                  </span>
+                </div>
+
+                {/* Deviation in Cents & Frequency */}
+                <div className="flex items-center gap-4 text-xs font-mono text-slate-600 dark:text-slate-400 mt-1">
+                  <span>
+                    FREQ: <strong className="text-slate-900 dark:text-white font-bold">{detectedFreq ? `${detectedFreq.toFixed(1)} Hz` : `${currentTargetString.targetFreq.toFixed(1)} Hz`}</strong>
+                  </span>
+                  <span>•</span>
+                  <span>
+                    DEV: <strong className={isInTune ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-800 dark:text-slate-200 font-bold'}>
+                      {isListening && detectedFreq ? `${centsOffset > 0 ? '+' : ''}${centsOffset.toFixed(1)}¢` : '0.0¢'}
+                    </strong>
+                  </span>
+                </div>
+
+                {/* High-Precision Deviation Visual Bar */}
+                <div className="w-full max-w-md mt-4 flex flex-col items-center">
+                  <div className="w-full relative h-3 bg-slate-200 dark:bg-slate-950 rounded-full border border-slate-300 dark:border-white/[0.08] overflow-hidden flex items-center">
+                    {/* Center In-Tune Mark */}
+                    <div className="absolute left-1/2 -translate-x-1/2 w-1.5 h-full bg-emerald-500 z-10 shadow-[0_0_8px_rgba(16,185,129,0.9)]" />
+                    {/* Tolerance Window (+/- 3 cents) */}
+                    <div className="absolute left-[47%] w-[6%] h-full bg-emerald-500/25 z-0" />
+                    
+                    {/* Real-time Needle Dot */}
+                    {isListening && detectedFreq && (
+                      <div
+                        className={`absolute top-0 bottom-0 w-2.5 rounded-full transition-all duration-75 shadow-md ${
+                          isInTune ? 'bg-emerald-500' : isFlat ? 'bg-amber-500' : 'bg-rose-500'
+                        }`}
+                        style={{
+                          left: `calc(${Math.min(97, Math.max(3, 50 + centsOffset))}% - 5px)`
+                        }}
+                      />
+                    )}
+                  </div>
+
+                  <div className="w-full flex justify-between text-[10px] font-mono font-medium text-slate-500 dark:text-slate-400 mt-1 px-1">
+                    <span>-50¢ (FLAT)</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">0¢ PERFECT</span>
+                    <span>+50¢ (SHARP)</span>
+                  </div>
+                </div>
+
+                {/* Strobe Mode String Selector Bar */}
+                <div className="w-full flex items-center justify-center gap-1.5 pt-4 mt-3 border-t border-slate-200 dark:border-white/[0.08]">
+                  {currentTuning.strings.map((str, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        setActiveStringIndex(idx);
+                        setIsAutoMode(false);
+                      }}
+                      className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-mono font-bold transition ${
+                        activeStringIndex === idx
+                          ? 'bg-cyan-500 text-black font-extrabold shadow-sm'
+                          : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/10'
+                      }`}
+                    >
+                      {str.note}{str.octave}
+                    </button>
+                  ))}
                 </div>
               </div>
-            </div>
+            )}
 
             {/* DUAL TUNER ENGINE: Studio Headstock OR Peterson Strobe */}
             <div className="w-full flex-1 flex flex-col items-center justify-center py-1">

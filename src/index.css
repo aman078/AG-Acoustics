@@ -253,3 +253,38 @@ html.dark .song-sheet-container {
   color: #f8fafc !important;
 }
 
+/* Luthier Blueprint Vector Animations */
+@keyframes gearSpinClockwise {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes gearSpinCounter {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(-360deg); }
+}
+@keyframes blueprintPulseGlow {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(241, 90, 36, 0.45)); }
+  50% { filter: drop-shadow(0 0 14px rgba(241, 90, 36, 0.95)); }
+}
+@keyframes inTuneLockGlow {
+  0%, 100% { filter: drop-shadow(0 0 5px rgba(16, 185, 129, 0.45)); }
+  50% { filter: drop-shadow(0 0 16px rgba(16, 185, 129, 0.95)); }
+}
+.gear-spinning-cw {
+  animation: gearSpinClockwise 3s linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.gear-spinning-ccw {
+  animation: gearSpinCounter 3s linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.string-active-orange {
+  animation: blueprintPulseGlow 1.8s infinite ease-in-out;
+}
+.string-active-green {
+  animation: inTuneLockGlow 1.8s infinite ease-in-out;
+}
+
+
