@@ -1,21 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  Sparkles, 
+  Flower2, 
   Mic, 
   MicOff, 
   Volume2, 
   Play, 
   Pause, 
-  RotateCcw, 
-  Music, 
+  Sparkles, 
   Compass, 
-  Sun, 
-  Moon, 
+  Clock, 
   Info,
-  CheckCircle2,
-  ChevronRight,
-  Flame,
-  Clock
+  Waves
 } from 'lucide-react';
 import { RAGAS_DATABASE, Raga } from '../data/ragas';
 import { tanpura } from '../audio/tanpuraEngine';
@@ -30,6 +25,39 @@ interface RasaViewProps {
   onBackToTuner?: () => void;
 }
 
+const SEMITONES_MAP: Record<string, number> = {
+  'C': 0, 'C#': 1, 'Db': 1, 'D': 2, 'D#': 3, 'Eb': 3,
+  'E': 4, 'F': 5, 'F#': 6, 'Gb': 6, 'G': 7, 'G#': 8,
+  'Ab': 8, 'A': 9, 'A#': 10, 'Bb': 10, 'B': 11
+};
+
+const CHROMATIC_NOTES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
+
+const STRINGS_OPEN = [
+  { stringNum: 1, openSemitone: 4, baseFreq: 329.63, name: 'e' }, // High E
+  { stringNum: 2, openSemitone: 11, baseFreq: 246.94, name: 'B' }, // B
+  { stringNum: 3, openSemitone: 7, baseFreq: 196.00, name: 'G' },  // G
+  { stringNum: 4, openSemitone: 2, baseFreq: 146.83, name: 'D' },  // D
+  { stringNum: 5, openSemitone: 9, baseFreq: 110.00, name: 'A' },  // A
+  { stringNum: 6, openSemitone: 4, baseFreq: 82.41, name: 'E' },   // Low E
+];
+
+const INTERVAL_OFFSETS: Record<string, number[]> = {
+  '1': [0],
+  'b2': [1],
+  '2': [2],
+  'b3': [3],
+  '3': [4],
+  '4': [5],
+  '#4': [6],
+  '5': [7],
+  'b6': [8],
+  '6': [9],
+  'b7': [10],
+  '7': [11],
+  'b7/7': [10, 11]
+};
+
 export const RasaView: React.FC<RasaViewProps> = () => {
   // State for user narrative
   const [userStory, setUserStory] = useState<string>('');
@@ -42,7 +70,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
   const [isTanpuraPlaying, setIsTanpuraPlaying] = useState<boolean>(false);
   const [tanpuraStep, setTanpuraStep] = useState<number>(0);
   const [tanpuraKey, setTanpuraKey] = useState<string>('C');
-  const [tanpuraVolume, setTanpuraVolume] = useState<number>(0.75);
+  const [tanpuraVolume, setTanpuraVolume] = useState<number>(0.8);
   const [isRiffPlaying, setIsRiffPlaying] = useState<boolean>(false);
 
   // Time context
@@ -74,7 +102,6 @@ export const RasaView: React.FC<RasaViewProps> = () => {
     if (isRecordingVoice) {
       speechService.stop();
       setIsRecordingVoice(false);
-      // Auto analyze when voice stops
       if (userStory.trim()) {
         const result = analyzeMoodAndMatchRaag(userStory);
         setAnalysis(result);
@@ -127,14 +154,71 @@ export const RasaView: React.FC<RasaViewProps> = () => {
 
   const currentRaga = analysis.primaryRaga;
 
+  // Calculate dynamic scale notes across all 12 frets based on selected root key
+  const rootSemitone = SEMITONES_MAP[tanpuraKey] ?? 0;
+  const scaleSemitones = new Set<number>();
+  currentRaga.scaleIntervals.forEach((interval) => {
+    const offsets = INTERVAL_OFFSETS[interval] || [0];
+    offsets.forEach((off) => {
+      scaleSemitones.add((rootSemitone + off) % 12);
+    });
+  });
+
+  // Calculate soul note semitone offset
+  let soulOffset = 4; // default Major 3rd
+  if (currentRaga.soulNote.swara.includes('Gandhar')) {
+    soulOffset = currentRaga.scaleIntervals.includes('b3') ? 3 : 4;
+  } else if (currentRaga.soulNote.swara.includes('Madhyam')) {
+    soulOffset = 5;
+  } else if (currentRaga.soulNote.swara.includes('Pancham')) {
+    soulOffset = 7;
+  } else if (currentRaga.soulNote.swara.includes('Rishabh')) {
+    soulOffset = 2;
+  }
+  const soulSemitone = (rootSemitone + soulOffset) % 12;
+
+  // Generate complete 12-fret neck note mapping
+  const fretboardNotes: {
+    stringNum: number;
+    fret: number;
+    noteName: string;
+    freq: number;
+    isRoot: boolean;
+    isSoul: boolean;
+  }[] = [];
+
+  STRINGS_OPEN.forEach((str) => {
+    for (let fret = 0; fret <= 12; fret++) {
+      const noteSemitone = (str.openSemitone + fret) % 12;
+      if (scaleSemitones.has(noteSemitone)) {
+        const noteName = CHROMATIC_NOTES[noteSemitone];
+        const isRoot = noteSemitone === rootSemitone;
+        const isSoul = noteSemitone === soulSemitone;
+        const freq = str.baseFreq * Math.pow(2, fret / 12);
+        fretboardNotes.push({
+          stringNum: str.stringNum,
+          fret,
+          noteName,
+          freq,
+          isRoot,
+          isSoul
+        });
+      }
+    }
+  });
+
+  const handlePlayFretNote = (freq: number) => {
+    tanpura.playMagicRiff([freq], [0.6]);
+  };
+
   return (
-    <div className="w-full max-w-2xl mx-auto flex flex-col space-y-4 pb-20 select-none">
+    <div className="w-full max-w-2xl mx-auto flex flex-col space-y-4 pb-24 select-none">
       
-      {/* 1. Header with Time Prahar Alignment */}
+      {/* 1. Header with Sacred Lotus Icon & Time Prahar Alignment */}
       <div className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-xs">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#f15a24] to-amber-500 flex items-center justify-center text-white shadow-md">
-            <Sparkles className="w-5 h-5" />
+            <Flower2 className="w-5 h-5" />
           </div>
           <div>
             <h1 className="text-sm font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
@@ -240,7 +324,6 @@ export const RasaView: React.FC<RasaViewProps> = () => {
 
       {/* 3. Matched Raag Hero Card */}
       <div className="w-full p-4 sm:p-5 rounded-3xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-sm flex flex-col space-y-3 relative overflow-hidden">
-        {/* Ambient Glow */}
         <div className="absolute top-0 right-0 w-48 h-48 bg-[#f15a24]/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="flex items-start justify-between">
@@ -275,13 +358,13 @@ export const RasaView: React.FC<RasaViewProps> = () => {
         </div>
       </div>
 
-      {/* 4. Acoustic Tanpura Bed Engine */}
+      {/* 4. Acoustic Tanpura Bed Engine (Miraj Sound Model) */}
       <div className="w-full p-4 sm:p-5 rounded-3xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-sm flex flex-col space-y-3">
         <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-white/[0.08]">
           <div className="flex items-center gap-2">
-            <Volume2 className="w-4 h-4 text-[#f15a24]" />
+            <Waves className="w-4 h-4 text-[#f15a24]" />
             <span className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 uppercase">
-              ACOUSTIC TANPURA BED (JAVARI DRONE)
+              ACOUSTIC TANPURA BED (CONCERT MIRAJ JAVARI)
             </span>
           </div>
 
@@ -302,7 +385,6 @@ export const RasaView: React.FC<RasaViewProps> = () => {
               </select>
             </div>
 
-            {/* String 1 tuning */}
             <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-white/[0.06] text-slate-500 font-bold">
               {currentRaga.tanpuraTuning} Tuning
             </span>
@@ -461,12 +543,17 @@ export const RasaView: React.FC<RasaViewProps> = () => {
         </div>
       </div>
 
-      {/* 7. Interactive Fretboard Visualizer */}
+      {/* 7. FULL 12-FRET INTERACTIVE GUITAR FRETBOARD (Zero Wobble, Complete Scale Map) */}
       <div className="w-full p-4 sm:p-5 rounded-3xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-sm flex flex-col space-y-3">
         <div className="flex items-center justify-between pb-1 border-b border-slate-200 dark:border-white/[0.08]">
-          <span className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 uppercase">
-            FRETBOARD EXPLORER ({tanpuraKey} Root)
-          </span>
+          <div>
+            <span className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 uppercase block">
+              FULL 12-FRET GUITAR FRETBOARD
+            </span>
+            <span className="text-[10px] font-mono text-slate-400">
+              Root Key: {tanpuraKey} • Tap any note to play
+            </span>
+          </div>
           <div className="flex items-center gap-3 text-[10px] font-mono">
             <span className="flex items-center gap-1">
               <span className="w-2.5 h-2.5 rounded-full bg-[#f15a24] inline-block" /> Root (Sa)
@@ -477,88 +564,115 @@ export const RasaView: React.FC<RasaViewProps> = () => {
           </div>
         </div>
 
-        {/* Fretboard SVG (12 Frets) */}
-        <div className="w-full overflow-x-auto py-2">
-          <svg viewBox="0 0 600 130" className="w-full min-w-[540px] max-w-full">
+        {/* Fretboard SVG (Full 12 Frets across all 6 strings) */}
+        <div className="w-full overflow-x-auto py-2 scrollbar-thin">
+          <svg viewBox="0 0 710 145" className="w-full min-w-[660px] max-w-full select-none">
             {/* Wooden Fretboard base */}
-            <rect x="20" y="10" width="560" height="110" rx="6" fill="#1e293b" opacity="0.15" />
+            <rect x="25" y="10" width="675" height="115" rx="6" fill="#1e293b" opacity="0.12" />
 
             {/* Nut Bar */}
-            <line x1="30" y1="10" x2="30" y2="120" stroke="#94a3b8" strokeWidth="4" />
+            <line x1="38" y1="10" x2="38" y2="125" stroke="#94a3b8" strokeWidth="5" />
 
             {/* 12 Fret Wires */}
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((fret) => {
-              const x = 30 + fret * 44;
+              const x = 38 + fret * 52;
               return (
                 <g key={fret}>
-                  <line x1={x} y1="10" x2={x} y2="120" stroke="#cbd5e1" strokeWidth="1.5" strokeOpacity="0.4" />
-                  <text x={x - 22} y="128" textAnchor="middle" fill="#94a3b8" fontSize="8" fontFamily="monospace">
+                  <line x1={x} y1="10" x2={x} y2="125" stroke="#cbd5e1" strokeWidth="1.5" strokeOpacity="0.4" />
+                  <text x={x - 26} y="138" textAnchor="middle" fill="#94a3b8" fontSize="9" fontFamily="monospace" fontWeight="bold">
                     {fret}
                   </text>
-                  {/* Fret marker dots on 3, 5, 7, 9, 12 */}
+                  {/* Classical Inlay Marker Dots (3, 5, 7, 9, double at 12) */}
                   {[3, 5, 7, 9].includes(fret) && (
-                    <circle cx={x - 22} cy="65" r="3" fill="#94a3b8" opacity="0.3" />
+                    <circle cx={x - 26} cy="67.5" r="3.5" fill="#94a3b8" opacity="0.25" />
                   )}
                   {fret === 12 && (
                     <>
-                      <circle cx={x - 22} cy="45" r="2.5" fill="#94a3b8" opacity="0.3" />
-                      <circle cx={x - 22} cy="85" r="2.5" fill="#94a3b8" opacity="0.3" />
+                      <circle cx={x - 26} cy="45" r="3" fill="#94a3b8" opacity="0.25" />
+                      <circle cx={x - 26} cy="90" r="3" fill="#94a3b8" opacity="0.25" />
                     </>
                   )}
                 </g>
               );
             })}
 
-            {/* 6 Guitar Strings (Low E to High e) */}
+            {/* 6 Guitar Strings (1=High e to 6=Low E) */}
             {[1, 2, 3, 4, 5, 6].map((str) => {
-              const y = 15 + (str - 1) * 20;
-              const width = 2.5 - (str - 1) * 0.35;
+              const y = 17 + (str - 1) * 20;
+              const width = 2.6 - (str - 1) * 0.35;
               return (
                 <line
                   key={str}
-                  x1="30"
+                  x1="38"
                   y1={y}
-                  x2="570"
+                  x2="695"
                   y2={y}
                   stroke="#94a3b8"
                   strokeWidth={width}
-                  strokeOpacity="0.6"
+                  strokeOpacity="0.55"
                 />
               );
             })}
 
-            {/* Raag Note Position Badges */}
-            {currentRaga.fretboardPositionsAtC.map((pos, idx) => {
-              const y = 15 + (pos.string - 1) * 20;
-              const x = pos.fret === 0 ? 20 : 30 + pos.fret * 44 - 22;
+            {/* Dynamic Scale Note Badges Across the Entire 12 Frets */}
+            {fretboardNotes.map((pos, idx) => {
+              const y = 17 + (pos.stringNum - 1) * 20;
+              const x = pos.fret === 0 ? 25 : 38 + pos.fret * 52 - 26;
               const isRoot = pos.isRoot;
-              const isSoul = pos.isSoulNote;
+              const isSoul = pos.isSoul;
 
               const badgeFill = isRoot ? '#f15a24' : isSoul ? '#10b981' : '#38bdf8';
 
               return (
-                <g key={idx} className="cursor-pointer">
+                <g 
+                  key={idx} 
+                  onClick={() => handlePlayFretNote(pos.freq)}
+                  className="cursor-pointer group"
+                >
+                  {/* Clean stationary halo ring for Soul Note (Zero erratic spinning) */}
                   {isSoul && (
-                    <circle cx={x} cy={y} r="10" fill="none" stroke="#10b981" strokeWidth="1.5" strokeDasharray="2 2" className="animate-spin" />
+                    <circle 
+                      cx={x} 
+                      cy={y} 
+                      r="11" 
+                      fill="none" 
+                      stroke="#10b981" 
+                      strokeWidth="2" 
+                      strokeDasharray="3 2"
+                      opacity="0.85"
+                    />
+                  )}
+                  {isRoot && (
+                    <circle 
+                      cx={x} 
+                      cy={y} 
+                      r="10.5" 
+                      fill="none" 
+                      stroke="#f15a24" 
+                      strokeWidth="1.5" 
+                      opacity="0.7"
+                    />
                   )}
                   <circle
                     cx={x}
                     cy={y}
-                    r={isRoot || isSoul ? 8 : 6.5}
+                    r={isRoot || isSoul ? 8.5 : 7}
                     fill={badgeFill}
                     stroke="#ffffff"
                     strokeWidth="1.2"
+                    className="group-hover:scale-110 transition-transform"
                   />
                   <text
                     x={x}
                     y={y + 3}
                     textAnchor="middle"
                     fill="#ffffff"
-                    fontSize={isRoot || isSoul ? "8" : "7"}
+                    fontSize={isRoot || isSoul ? "8.5" : "7.5"}
                     fontFamily="monospace"
                     fontWeight="bold"
+                    className="pointer-events-none"
                   >
-                    {pos.note}
+                    {pos.noteName}
                   </text>
                 </g>
               );

@@ -645,10 +645,10 @@ export function guitarTunaScraperPlugin(): Plugin {
           res.setHeader('Content-Type', 'application/json');
           res.setHeader('Access-Control-Allow-Origin', '*');
           res.end(JSON.stringify({
-            latest_version_code: 56,
-            latest_version_name: '1.0.56',
+            latest_version_code: 57,
+            latest_version_name: '1.0.57',
             download_url: 'https://github.com/aman078/AG-Acoustics/releases/latest/download/AGSoft-Acoustics.apk',
-            release_notes: 'Introduce Rasa: Emotional AI Mood Matching, Acoustic Tanpura Javari Drone, Demystified Raags through C Major / A Minor, 3-Note Magic Riffs, and Interactive Fretboard.',
+            release_notes: 'Acoustic Miraj Tanpura Droid Javari physical sound model, full 12-fret neck scale visualizer, and Sacred Lotus icon.',
             force_update: false,
           }));
         } catch (err: unknown) {
