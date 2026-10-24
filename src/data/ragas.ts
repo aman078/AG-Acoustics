@@ -39,6 +39,34 @@ export interface Raga {
     durations: number[];
     guitarTip: string;
   };
+  // Classical Raga Grammar & Anatomy:
+  thaat: string;
+  thaatMode: string;
+  jati: string;
+  jatiSummary: string;
+  vadi: {
+    swara: string;
+    roman: string;
+    offset: number;
+    role: string;
+  };
+  samvadi: {
+    swara: string;
+    roman: string;
+    offset: number;
+    role: string;
+  };
+  varjit: {
+    swaras: string[];
+    offsets: number[];
+    scope: 'Always Forbidden' | 'Ascending Only' | 'Direct Ascent Avoided' | 'None (All 7 Notes)';
+    rule: string;
+  };
+  nyas: {
+    swaras: string[];
+    offsets: number[];
+    rule: string;
+  };
 }
 
 export const CHROMATIC_NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'Bb', 'B'];
@@ -114,6 +142,33 @@ export const RAGAS_DATABASE: Raga[] = [
       frequenciesAtC: [246.94, 293.66, 329.63, 293.66, 246.94, 220.00, 329.63],
       durations: [0.4, 0.4, 0.8, 0.4, 0.4, 0.5, 1.0],
       guitarTip: 'Slide smoothly into the Ga note and let it breathe with slow finger vibrato.'
+    },
+    thaat: 'Kalyan',
+    thaatMode: 'Lydian Mode (♯4)',
+    jati: 'Sampurna - Sampurna',
+    jatiSummary: 'Full 7-note Lydian framework with zigzag ascent',
+    vadi: {
+      swara: 'Ga (Gandhar)',
+      roman: 'III',
+      offset: 4,
+      role: 'King Note — Linger with gentle warmth and vibrato'
+    },
+    samvadi: {
+      swara: 'Ni (Nishad)',
+      roman: 'VII',
+      offset: 11,
+      role: 'Consort Note — Leads upward resolution to Ga'
+    },
+    varjit: {
+      swaras: ['Sa (Ascent)', 'Pa (Ascent)'],
+      offsets: [0, 7],
+      scope: 'Ascending Only',
+      rule: 'Avoid initiating ascending runs on Sa or Pa; start on Ni (7th) instead.'
+    },
+    nyas: {
+      swaras: ['Ga', 'Pa', 'Ni'],
+      offsets: [4, 7, 11],
+      rule: 'Rest and cadence your guitar licks on Ga (3rd), Pa (5th), or Ni (7th).'
     }
   },
   {
@@ -176,6 +231,33 @@ export const RAGAS_DATABASE: Raga[] = [
       frequenciesAtC: [220.00, 196.00, 220.00, 196.00, 174.61, 164.81, 146.83, 220.00],
       durations: [0.5, 0.3, 0.3, 0.3, 0.5, 0.6, 0.8, 1.0],
       guitarTip: 'Play the bRe to bGa transition with a subtle slide or micro-hammer to evoke the authentic weeping Meend of the sitar.'
+    },
+    thaat: 'Bhairavi',
+    thaatMode: 'Phrygian Mode (♭2, ♭3, ♭6, ♭7)',
+    jati: 'Sampurna - Sampurna',
+    jatiSummary: 'Full 7-note Phrygian scale of tender solace',
+    vadi: {
+      swara: 'Ma (Madhyam)',
+      roman: 'IV',
+      offset: 5,
+      role: 'King Note — Deep compassionate resting pillar'
+    },
+    samvadi: {
+      swara: 'Sa (Shadj)',
+      roman: 'I',
+      offset: 0,
+      role: 'Consort Note — Foundational home anchor'
+    },
+    varjit: {
+      swaras: ['None'],
+      offsets: [],
+      scope: 'None (All 7 Notes)',
+      rule: 'No forbidden notes — all 7 chromatic modal notes are embraced.'
+    },
+    nyas: {
+      swaras: ['Sa', 'Ga (♭3)', 'Pa (5)'],
+      offsets: [0, 3, 7],
+      rule: 'Conclude longing melodies on Sa, flat 3rd (♭Ga), or 5th (Pa).'
     }
   },
   {
@@ -235,6 +317,33 @@ export const RAGAS_DATABASE: Raga[] = [
       frequenciesAtC: [220.00, 196.00, 174.61, 164.81, 146.83, 110.00],
       durations: [0.6, 0.4, 0.8, 0.5, 0.8, 1.2],
       guitarTip: 'Do not rush. Hit the bDha note and vibrate the string slowly up and down like a heavy swinging bell.'
+    },
+    thaat: 'Asavari',
+    thaatMode: 'Natural Minor / Aeolian Mode (♭3, ♭6, ♭7)',
+    jati: 'Sampurna - Sampurna (Vakra)',
+    jatiSummary: 'Heptatonic with undulating meends and heavy vibrato',
+    vadi: {
+      swara: 'Re (Rishabh)',
+      roman: 'II',
+      offset: 2,
+      role: 'King Note — Royal, heavy sustained note'
+    },
+    samvadi: {
+      swara: 'Pa (Pancham)',
+      roman: 'V',
+      offset: 7,
+      role: 'Consort Note — Majestic anchoring consonant'
+    },
+    varjit: {
+      swaras: ['Direct Ascent'],
+      offsets: [],
+      scope: 'Direct Ascent Avoided',
+      rule: 'Avoid straight ladder-like climbs; weave undulating meends (glides) across notes.'
+    },
+    nyas: {
+      swaras: ['Re (2)', 'Pa (5)', 'Sa (1)'],
+      offsets: [2, 7, 0],
+      rule: 'Rest phrases heavily on Re (2nd) or Pa (5th) with deep vibrato.'
     }
   },
   {
@@ -293,6 +402,33 @@ export const RAGAS_DATABASE: Raga[] = [
       frequenciesAtC: [146.83, 164.81, 196.00, 246.94, 220.00, 164.81],
       durations: [0.3, 0.4, 0.4, 0.6, 0.5, 0.9],
       guitarTip: 'Add a little rhythmic bounce and syncopation—this is the quintessential groove raag.'
+    },
+    thaat: 'Kafi',
+    thaatMode: 'Dorian Mode (♭3, ♮6, ♭7)',
+    jati: 'Sampurna - Sampurna',
+    jatiSummary: 'Full 7-note Heptatonic with bright natural 6th',
+    vadi: {
+      swara: 'Pa (Pancham)',
+      roman: 'V',
+      offset: 7,
+      role: 'King Note — Uplifting devotional center'
+    },
+    samvadi: {
+      swara: 'Sa (Shadj)',
+      roman: 'I',
+      offset: 0,
+      role: 'Consort Note — Grounded tonal center'
+    },
+    varjit: {
+      swaras: ['None'],
+      offsets: [],
+      scope: 'None (All 7 Notes)',
+      rule: 'All 7 Dorian notes are active without omission.'
+    },
+    nyas: {
+      swaras: ['Sa', 'Ga (♭3)', 'Pa (5)', 'Re (2)'],
+      offsets: [0, 3, 7, 2],
+      rule: 'Cadence on Pa (5th) or Sa (Root) for sweet resolution.'
     }
   },
   {
@@ -353,6 +489,33 @@ export const RAGAS_DATABASE: Raga[] = [
       frequenciesAtC: [164.81, 196.00, 220.00, 261.63, 246.94, 220.00],
       durations: [0.4, 0.4, 0.5, 0.7, 0.4, 0.9],
       guitarTip: 'Every note here is resonant and harmonically sweet. Let each string ring out fully.'
+    },
+    thaat: 'Kalyan',
+    thaatMode: 'Major Pentatonic (1, 2, 3, 5, 6)',
+    jati: 'Audav - Audav',
+    jatiSummary: '5 Notes Up, 5 Notes Down (Zero half-steps)',
+    vadi: {
+      swara: 'Ga (Gandhar)',
+      roman: 'III',
+      offset: 4,
+      role: 'King Note — Bright radiant core note'
+    },
+    samvadi: {
+      swara: 'Dha (Dhaivat)',
+      roman: 'VI',
+      offset: 9,
+      role: 'Consort Note — Joyful uplifting counterpart'
+    },
+    varjit: {
+      swaras: ['Ma (4th)', 'Ni (7th)'],
+      offsets: [5, 11],
+      scope: 'Always Forbidden',
+      rule: 'Strictly avoid the 4th (Ma) and 7th (Ni) — never play them in Bhopali.'
+    },
+    nyas: {
+      swaras: ['Ga (3)', 'Dha (6)', 'Sa (1)'],
+      offsets: [4, 9, 0],
+      rule: 'Land phrases on Ga (Major 3rd) or Dha (Major 6th).'
     }
   },
   {
@@ -411,6 +574,33 @@ export const RAGAS_DATABASE: Raga[] = [
       frequenciesAtC: [220.00, 196.00, 174.61, 146.83, 130.81, 110.00],
       durations: [0.6, 0.4, 0.8, 0.5, 0.5, 1.2],
       guitarTip: 'Notice there is no 5th note (Pa). This absence gives Malkauns its mysterious, bottomless feel.'
+    },
+    thaat: 'Bhairavi',
+    thaatMode: 'Minor Pentatonic with ♭6 (1, ♭3, 4, ♭6, ♭7)',
+    jati: 'Audav - Audav',
+    jatiSummary: '5 Notes Up, 5 Notes Down (Midnight Trance)',
+    vadi: {
+      swara: 'Ma (Madhyam)',
+      roman: 'IV',
+      offset: 5,
+      role: 'King Note — Deep contemplative stillness'
+    },
+    samvadi: {
+      swara: 'Sa (Shadj)',
+      roman: 'I',
+      offset: 0,
+      role: 'Consort Note — Infinite ground silence'
+    },
+    varjit: {
+      swaras: ['Re (2nd)', 'Pa (5th)'],
+      offsets: [2, 7],
+      scope: 'Always Forbidden',
+      rule: 'Strictly omit the 2nd (Re) and 5th (Pa) — never touch them in Malkauns.'
+    },
+    nyas: {
+      swaras: ['Ma (4)', 'Sa (1)', 'Ga (♭3)'],
+      offsets: [5, 0, 3],
+      rule: 'Conclude solemn phrases on Ma (4th) or Sa (Root).'
     }
   },
   {
@@ -469,6 +659,33 @@ export const RAGAS_DATABASE: Raga[] = [
       frequenciesAtC: [261.63, 233.08, 220.00, 196.00, 174.61, 164.81],
       durations: [0.5, 0.4, 0.5, 0.4, 0.5, 1.0],
       guitarTip: 'Notice the contrast: natural 7th when climbing upward, sweet flat 7th when trickling down.'
+    },
+    thaat: 'Khamaj',
+    thaatMode: 'Mixolydian with Dual 7ths',
+    jati: 'Shadav - Sampurna',
+    jatiSummary: '6 Notes Up (omit Re), 7 Notes Down',
+    vadi: {
+      swara: 'Ga (Gandhar)',
+      roman: 'III',
+      offset: 4,
+      role: 'King Note — Sensual romantic inflection point'
+    },
+    samvadi: {
+      swara: 'Ni (Nishad)',
+      roman: 'VII',
+      offset: 11,
+      role: 'Consort Note — Playful dual-7th partner'
+    },
+    varjit: {
+      swaras: ['Re (Ascending)'],
+      offsets: [2],
+      scope: 'Ascending Only',
+      rule: 'Skip Re in climbing upward; use Natural 7th going up, Flat 7th falling down.'
+    },
+    nyas: {
+      swaras: ['Ga (3)', 'Ni (7)', 'Pa (5)'],
+      offsets: [4, 11, 7],
+      rule: 'Rest phrases on Ga (3rd) or Pa (5th).'
     }
   },
   {
@@ -527,6 +744,33 @@ export const RAGAS_DATABASE: Raga[] = [
       frequenciesAtC: [220.00, 246.94, 261.63, 220.00, 196.00, 164.81],
       durations: [0.4, 0.4, 0.6, 0.4, 0.4, 0.9],
       guitarTip: 'Play with a light, crisp touch. Let the open strings shimmer over the Tanpura drone.'
+    },
+    thaat: 'Bilawal',
+    thaatMode: 'Major / Ionian Mode',
+    jati: 'Shadav - Sampurna',
+    jatiSummary: '6 Notes Up (indirect 4th), 7 Notes Down',
+    vadi: {
+      swara: 'Dha (Dhaivat)',
+      roman: 'VI',
+      offset: 9,
+      role: 'King Note — Luminous morning optimism'
+    },
+    samvadi: {
+      swara: 'Ga (Gandhar)',
+      roman: 'III',
+      offset: 4,
+      role: 'Consort Note — Sweet foundational support'
+    },
+    varjit: {
+      swaras: ['Ma (Direct Ascent)'],
+      offsets: [5],
+      scope: 'Direct Ascent Avoided',
+      rule: 'Avoid playing straight direct Ma in ascending runs; curve around it.'
+    },
+    nyas: {
+      swaras: ['Sa (1)', 'Ga (3)', 'Pa (5)', 'Dha (6)'],
+      offsets: [0, 4, 7, 9],
+      rule: 'Land phrases on Dha (6th), Ga (3rd), or Sa (Root).'
     }
   }
 ];
@@ -594,6 +838,84 @@ export function getTransposedSoulNote(raga: Raga, rootKey: string): { note: stri
     note: soulNoteName,
     swara: raga.soulNote.swara,
     description: raga.soulNote.description
+  };
+}
+
+/**
+ * Get Transposed Vadi Swara (King Note) with Western Roman & Note Name
+ */
+export function getTransposedVadi(raga: Raga, rootKey: string): {
+  note: string;
+  swara: string;
+  roman: string;
+  role: string;
+  offset: number;
+} {
+  const rootSemi = SEMITONES_MAP[rootKey] ?? 0;
+  const note = CHROMATIC_NOTES[(rootSemi + raga.vadi.offset) % 12];
+  return {
+    note,
+    swara: raga.vadi.swara,
+    roman: raga.vadi.roman,
+    role: raga.vadi.role,
+    offset: raga.vadi.offset
+  };
+}
+
+/**
+ * Get Transposed Samvadi Swara (Queen / Consort Note) with Western Roman & Note Name
+ */
+export function getTransposedSamvadi(raga: Raga, rootKey: string): {
+  note: string;
+  swara: string;
+  roman: string;
+  role: string;
+  offset: number;
+} {
+  const rootSemi = SEMITONES_MAP[rootKey] ?? 0;
+  const note = CHROMATIC_NOTES[(rootSemi + raga.samvadi.offset) % 12];
+  return {
+    note,
+    swara: raga.samvadi.swara,
+    roman: raga.samvadi.roman,
+    role: raga.samvadi.role,
+    offset: raga.samvadi.offset
+  };
+}
+
+/**
+ * Get Transposed Varjit Swaras (Omitted / Forbidden Notes) in the current Root Key
+ */
+export function getTransposedVarjit(raga: Raga, rootKey: string): {
+  notes: string[];
+  swaras: string[];
+  scope: string;
+  rule: string;
+} {
+  const rootSemi = SEMITONES_MAP[rootKey] ?? 0;
+  const notes = raga.varjit.offsets.map((off) => CHROMATIC_NOTES[(rootSemi + off) % 12]);
+  return {
+    notes,
+    swaras: raga.varjit.swaras,
+    scope: raga.varjit.scope,
+    rule: raga.varjit.rule
+  };
+}
+
+/**
+ * Get Transposed Nyas Swaras (Landing / Resolution Notes) in the current Root Key
+ */
+export function getTransposedNyas(raga: Raga, rootKey: string): {
+  notes: string[];
+  swaras: string[];
+  rule: string;
+} {
+  const rootSemi = SEMITONES_MAP[rootKey] ?? 0;
+  const notes = raga.nyas.offsets.map((off) => CHROMATIC_NOTES[(rootSemi + off) % 12]);
+  return {
+    notes,
+    swaras: raga.nyas.swaras,
+    rule: raga.nyas.rule
   };
 }
 

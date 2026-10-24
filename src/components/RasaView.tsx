@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Mic, 
-  MicOff, 
-  Volume2, 
-  Play, 
-  Pause, 
-  Clock, 
+import {
+  Mic,
+  MicOff,
+  Volume2,
+  Play,
+  Pause,
+  Clock,
   Info,
   Waves,
   ChevronDown,
@@ -13,28 +13,39 @@ import {
   Sparkles,
   Compass,
   Check,
-  Music
+  Music,
+  Crown,
+  ShieldAlert,
+  Layers,
+  Ban,
+  Target,
+  Eye,
+  EyeOff
 } from 'lucide-react';
-import { 
-  RAGAS_DATABASE, 
+import {
+  RAGAS_DATABASE,
   Raga,
-  CHROMATIC_NOTES, 
+  CHROMATIC_NOTES,
   SEMITONES_MAP,
   getTransposedNotes,
   getTransposedAscendingNotes,
   getTransposedDescendingNotes,
   getTransposedTwist,
   getTransposedSoulNote,
+  getTransposedVadi,
+  getTransposedSamvadi,
+  getTransposedVarjit,
+  getTransposedNyas,
   getTransposedRiffTab,
   getTransposedRiffFrequencies
 } from '../data/ragas';
 import { tanpura } from '../audio/tanpuraEngine';
-import { 
-  speechService, 
-  analyzeMoodAndMatchRaag, 
-  getCurrentTimeContext, 
+import {
+  speechService,
+  analyzeMoodAndMatchRaag,
+  getCurrentTimeContext,
   getRagasForCurrentTime,
-  RasaAnalysisResult 
+  RasaAnalysisResult
 } from '../services/rasaAI';
 
 interface RasaViewProps {
@@ -51,65 +62,65 @@ const STRINGS_OPEN = [
 ];
 
 const ALL_CURATED_MOODS = [
-  { 
-    label: '🧘 Peaceful Sunset', 
+  {
+    label: '🧘 Peaceful Sunset',
     sentence: 'Feeling peaceful and serene, unwinding after a long day and taking in the sunset.',
-    keywords: 'peaceful evening sunset unwind grateful serene calm' 
+    keywords: 'peaceful evening sunset unwind grateful serene calm'
   },
-  { 
-    label: '🌧️ Heavy & Exhausted', 
+  {
+    label: '🌧️ Heavy & Exhausted',
     sentence: 'Feeling heavy and emotionally exhausted, looking for solace and rest.',
-    keywords: 'exhausted tired stressed heavy heart solace burnout' 
+    keywords: 'exhausted tired stressed heavy heart solace burnout'
   },
-  { 
-    label: '🌌 Midnight Thoughts', 
+  {
+    label: '🌌 Midnight Thoughts',
     sentence: 'Quiet midnight thoughts, feeling deep, existential, and reflective.',
-    keywords: 'midnight insomnia overthinking dark quiet thoughts deep' 
+    keywords: 'midnight insomnia overthinking dark quiet thoughts deep'
   },
-  { 
-    label: '☕ Rainy Groove', 
+  {
+    label: '☕ Rainy Groove',
     sentence: 'Cozy rainy day mood, listening to the rain with a warm cup of coffee.',
-    keywords: 'rain monsoon cozy blues coffee chill groove creative' 
+    keywords: 'rain monsoon cozy blues coffee chill groove creative'
   },
-  { 
-    label: '🌅 Morning Awakening', 
+  {
+    label: '🌅 Morning Awakening',
     sentence: 'Fresh morning energy, feeling optimistic, bright, and clear.',
-    keywords: 'fresh start morning sun clarity optimistic bright awakening' 
+    keywords: 'fresh start morning sun clarity optimistic bright awakening'
   },
-  { 
-    label: '💖 Sweet Romance', 
+  {
+    label: '💖 Sweet Romance',
     sentence: 'Warm, romantic and nostalgic, reminiscing by candlelight.',
-    keywords: 'warm flirtatious romantic sweet crush nostalgia candlelight' 
+    keywords: 'warm flirtatious romantic sweet crush nostalgia candlelight'
   },
-  { 
-    label: '🌀 Deep Meditation', 
+  {
+    label: '🌀 Deep Meditation',
     sentence: 'Seeking deep inner stillness, meditation, and spiritual grounding.',
-    keywords: 'meditation trance silence spiritual mystic intense focus' 
+    keywords: 'meditation trance silence spiritual mystic intense focus'
   },
-  { 
-    label: '🦁 Triumphant & Bold', 
+  {
+    label: '🦁 Triumphant & Bold',
     sentence: 'Feeling inspired, victorious, confident, and full of energy.',
-    keywords: 'confident inspired victorious triumphant energy clear light' 
+    keywords: 'confident inspired victorious triumphant energy clear light'
   },
-  { 
-    label: '🕊️ Solace & Letting Go', 
+  {
+    label: '🕊️ Solace & Letting Go',
     sentence: 'Letting go of heartache, finding bittersweet peace and quiet acceptance.',
-    keywords: 'letting go bittersweet acceptance heartache healing peace' 
+    keywords: 'letting go bittersweet acceptance heartache healing peace'
   },
-  { 
-    label: '🍂 Nostalgic Reminiscing', 
+  {
+    label: '🍂 Nostalgic Reminiscing',
     sentence: 'Thinking about old memories, simpler days, and sweet longing.',
-    keywords: 'nostalgia old memories reminiscing simpler days college longing' 
+    keywords: 'nostalgia old memories reminiscing simpler days college longing'
   },
-  { 
-    label: '⚡ Work Burnout Relief', 
+  {
+    label: '⚡ Work Burnout Relief',
     sentence: 'Relieving screen fatigue and work pressure, needing to disconnect.',
-    keywords: 'burnout screens all day pressure fatigue release disconnect' 
+    keywords: 'burnout screens all day pressure fatigue release disconnect'
   },
-  { 
-    label: '🛋️ Cozy & Unwinding', 
+  {
+    label: '🛋️ Cozy & Unwinding',
     sentence: 'Cozy evening unwinding, resting warmly and letting thoughts quiet down.',
-    keywords: 'cozy tea evening warm room quiet relax soft' 
+    keywords: 'cozy tea evening warm room quiet relax soft'
   },
 ];
 
@@ -145,6 +156,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
   const [tanpuraStep, setTanpuraStep] = useState<number>(0);
   const [tanpuraVolume, setTanpuraVolume] = useState<number>(0.8);
   const [isRiffPlaying, setIsRiffPlaying] = useState<boolean>(false);
+  const [showForbiddenFrets, setShowForbiddenFrets] = useState<boolean>(true);
 
   // Subscribe to Tanpura cycles
   useEffect(() => {
@@ -244,6 +256,10 @@ export const RasaView: React.FC<RasaViewProps> = () => {
   const transposedDescendingNotes = getTransposedDescendingNotes(currentRaga, tanpuraKey);
   const transposedTwist = getTransposedTwist(currentRaga, tanpuraKey);
   const transposedSoulNote = getTransposedSoulNote(currentRaga, tanpuraKey);
+  const transposedVadi = getTransposedVadi(currentRaga, tanpuraKey);
+  const transposedSamvadi = getTransposedSamvadi(currentRaga, tanpuraKey);
+  const transposedVarjit = getTransposedVarjit(currentRaga, tanpuraKey);
+  const transposedNyas = getTransposedNyas(currentRaga, tanpuraKey);
   const transposedTab = getTransposedRiffTab(currentRaga, tanpuraKey);
   const transposedRiffFreqs = getTransposedRiffFrequencies(currentRaga, tanpuraKey);
 
@@ -266,33 +282,58 @@ export const RasaView: React.FC<RasaViewProps> = () => {
     scaleSemitones.add((rootSemitone + off) % 12);
   });
 
-  const soulSemitone = (rootSemitone + currentRaga.soulNoteOffset) % 12;
+  const vadiSemitone = (rootSemitone + currentRaga.vadi.offset) % 12;
+  const samvadiSemitone = (rootSemitone + currentRaga.samvadi.offset) % 12;
+  const nyasSemitones = new Set(currentRaga.nyas.offsets.map((off) => (rootSemitone + off) % 12));
+  const varjitSemitones = new Set(currentRaga.varjit.offsets.map((off) => (rootSemitone + off) % 12));
 
-  // Generate complete 12-fret neck note mapping (proportional spacing to fit container perfectly)
+  // Generate complete 12-fret neck note mapping
   const fretboardNotes: {
     stringNum: number;
     fret: number;
     noteName: string;
     freq: number;
     isRoot: boolean;
-    isSoul: boolean;
+    isVadi: boolean;
+    isSamvadi: boolean;
+    isNyas: boolean;
+    isVarjit?: boolean;
   }[] = [];
 
   STRINGS_OPEN.forEach((str) => {
     for (let fret = 0; fret <= 12; fret++) {
       const noteSemitone = (str.openSemitone + fret) % 12;
+      const freq = str.baseFreq * Math.pow(2, fret / 12);
+      const noteName = CHROMATIC_NOTES[noteSemitone];
+
       if (scaleSemitones.has(noteSemitone)) {
-        const noteName = CHROMATIC_NOTES[noteSemitone];
         const isRoot = noteSemitone === rootSemitone;
-        const isSoul = noteSemitone === soulSemitone;
-        const freq = str.baseFreq * Math.pow(2, fret / 12);
+        const isVadi = noteSemitone === vadiSemitone;
+        const isSamvadi = noteSemitone === samvadiSemitone;
+        const isNyas = nyasSemitones.has(noteSemitone);
         fretboardNotes.push({
           stringNum: str.stringNum,
           fret,
           noteName,
           freq,
           isRoot,
-          isSoul
+          isVadi,
+          isSamvadi,
+          isNyas,
+          isVarjit: false
+        });
+      } else if (showForbiddenFrets && varjitSemitones.has(noteSemitone)) {
+        // Show forbidden note on fretboard when avoid toggle is active
+        fretboardNotes.push({
+          stringNum: str.stringNum,
+          fret,
+          noteName,
+          freq,
+          isRoot: false,
+          isVadi: false,
+          isSamvadi: false,
+          isNyas: false,
+          isVarjit: true
         });
       }
     }
@@ -304,7 +345,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
 
   return (
     <div className="w-full max-w-2xl mx-auto flex flex-col space-y-4 pb-24 select-none">
-      
+
       {/* 1. Header with Time Prahar Alignment */}
       <div className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-xs">
         <div className="flex items-center gap-2.5">
@@ -527,8 +568,8 @@ export const RasaView: React.FC<RasaViewProps> = () => {
               >
                 <div className="flex items-start justify-between">
                   <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-lg ${
-                    idx === 0 
-                      ? 'bg-[#f15a24] text-white' 
+                    idx === 0
+                      ? 'bg-[#f15a24] text-white'
                       : 'bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-300'
                   }`}>
                     {badgeLabel}
@@ -755,21 +796,110 @@ export const RasaView: React.FC<RasaViewProps> = () => {
           </div>
         </div>
 
-        {/* Soul Note (Vadi) dynamically transposed */}
-        <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-xs font-mono">
-          <div>
-            <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 block">
-              THE SOUL NOTE (VADI SWARA IN {tanpuraKey}):
+        {/* RAAG GRAMMAR & ANATOMY DASHBOARD */}
+        <div className="pt-3 border-t border-slate-200 dark:border-white/[0.08] flex flex-col space-y-3 font-mono">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <span className="text-[11px] uppercase font-black tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5 text-[#f15a24]" />
+              RAAG ANATOMY & GRAMMAR (KEY {tanpuraKey})
             </span>
-            <span className="font-extrabold text-slate-900 dark:text-white text-sm">
-              {transposedSoulNote.note} ({transposedSoulNote.swara})
-            </span>
-            <span className="text-[11px] text-slate-600 dark:text-slate-400 block mt-0.5">
-              {transposedSoulNote.description}
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 font-bold border border-slate-200 dark:border-white/10">
+              {currentRaga.thaat} Thaat • {currentRaga.thaatMode}
             </span>
           </div>
-          <div className="w-9 h-9 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 flex items-center justify-center font-black text-sm shadow-inner shrink-0">
-            {transposedSoulNote.note}
+
+          {/* Jati (Scale Structure) Pill */}
+          <div className="p-2.5 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/[0.06] flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2">
+              <Compass className="w-4 h-4 text-amber-500 shrink-0" />
+              <div>
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">JATI (SCALE STRUCTURE):</span>
+                <span className="font-extrabold text-slate-900 dark:text-white">{currentRaga.jati}</span>
+              </div>
+            </div>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 italic">
+              {currentRaga.jatiSummary}
+            </span>
+          </div>
+
+          {/* Melodic Dialogue: Vadi (King) ⟷ Samvadi (Queen) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {/* Vadi Swara */}
+            <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start justify-between text-xs">
+              <div className="pr-2">
+                <span className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                  <Crown className="w-3 h-3" /> VADI SWARA (THE KING NOTE):
+                </span>
+                <span className="font-black text-slate-900 dark:text-white text-sm block mt-0.5">
+                  {transposedVadi.note} ({transposedVadi.swara}) • {transposedVadi.roman}
+                </span>
+                <span className="text-[11px] text-slate-600 dark:text-slate-400 block mt-1 leading-snug">
+                  {transposedVadi.role}
+                </span>
+              </div>
+              <div className="w-9 h-9 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 flex items-center justify-center font-black text-sm shrink-0 shadow-xs">
+                {transposedVadi.note}
+              </div>
+            </div>
+
+            {/* Samvadi Swara */}
+            <div className="p-3 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-start justify-between text-xs">
+              <div className="pr-2">
+                <span className="text-[10px] uppercase font-bold text-purple-600 dark:text-purple-400 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3" /> SAMVADI SWARA (THE QUEEN NOTE):
+                </span>
+                <span className="font-black text-slate-900 dark:text-white text-sm block mt-0.5">
+                  {transposedSamvadi.note} ({transposedSamvadi.swara}) • {transposedSamvadi.roman}
+                </span>
+                <span className="text-[11px] text-slate-600 dark:text-slate-400 block mt-1 leading-snug">
+                  {transposedSamvadi.role}
+                </span>
+              </div>
+              <div className="w-9 h-9 rounded-full bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/40 flex items-center justify-center font-black text-sm shrink-0 shadow-xs">
+                {transposedSamvadi.note}
+              </div>
+            </div>
+          </div>
+
+          {/* Varjit Swara (Forbidden / Avoid Notes) */}
+          <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/25 flex items-start gap-2.5 text-xs">
+            <Ban className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <div className="flex items-center justify-between flex-wrap gap-1">
+                <span className="text-[10px] uppercase font-bold text-rose-600 dark:text-rose-400">
+                  VARJIT SWARAS (FORBIDDEN / AVOID NOTES):
+                </span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded font-extrabold uppercase bg-rose-500/15 text-rose-600 dark:text-rose-400">
+                  {transposedVarjit.scope}
+                </span>
+              </div>
+              <span className="font-extrabold text-slate-900 dark:text-white text-xs block mt-0.5">
+                {transposedVarjit.notes.length > 0 ? (
+                  <>Avoid Frets: <span className="underline decoration-rose-500 decoration-2">{transposedVarjit.notes.join(' & ')}</span> ({transposedVarjit.swaras.join(' & ')})</>
+                ) : (
+                  <>None (All 7 Chromatic Modal Notes Are Embraced)</>
+                )}
+              </span>
+              <span className="text-[11px] text-slate-600 dark:text-slate-400 block mt-0.5 leading-snug">
+                {transposedVarjit.rule}
+              </span>
+            </div>
+          </div>
+
+          {/* Nyas Swaras (Landing / Resolution Pads) */}
+          <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-start gap-2.5 text-xs">
+            <Target className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 block">
+                NYAS SWARAS (PHRASE-ENDING CADENCE TARGETS):
+              </span>
+              <span className="font-extrabold text-slate-900 dark:text-white text-xs block mt-0.5">
+                Land / Rest Licks On: {transposedNyas.notes.join(' • ')} ({transposedNyas.swaras.join(' • ')})
+              </span>
+              <span className="text-[11px] text-slate-600 dark:text-slate-400 block mt-0.5 leading-snug">
+                {transposedNyas.rule}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -829,20 +959,37 @@ export const RasaView: React.FC<RasaViewProps> = () => {
               Root Key: {tanpuraKey} (Sa = {tanpuraKey}) • Tap any note to play
             </span>
           </div>
-          <div className="flex items-center gap-3 text-[10px] font-mono">
+          <div className="flex items-center gap-2 text-[10px] font-mono flex-wrap justify-end">
+            <button
+              onClick={() => setShowForbiddenFrets(!showForbiddenFrets)}
+              className={`px-2 py-0.5 rounded-lg border text-[10px] font-bold flex items-center gap-1 transition cursor-pointer ${
+                showForbiddenFrets
+                  ? 'bg-rose-500/15 border-rose-500/40 text-rose-600 dark:text-rose-400'
+                  : 'bg-slate-100 dark:bg-white/[0.04] border-slate-200 dark:border-white/10 text-slate-500'
+              }`}
+            >
+              {showForbiddenFrets ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+              Avoid Frets: {showForbiddenFrets ? 'ON' : 'OFF'}
+            </button>
             <span className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#f15a24] inline-block" /> Root ({tanpuraKey})
+              <span className="w-2 h-2 rounded-full bg-[#f15a24] inline-block" /> Root
             </span>
             <span className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" /> Soul Note ({transposedSoulNote.note})
+              <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" /> Vadi (King)
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-purple-500 inline-block" /> Samvadi
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> Nyas
             </span>
           </div>
         </div>
 
         {/* Fretboard SVG: Scales seamlessly inside the card with ZERO horizontal scrollbar */}
         <div className="w-full py-1">
-          <svg 
-            viewBox="0 0 635 142" 
+          <svg
+            viewBox="0 0 635 142"
             className="w-full h-auto select-none block overflow-visible"
           >
             {/* Wooden Fretboard base */}
@@ -893,13 +1040,61 @@ export const RasaView: React.FC<RasaViewProps> = () => {
             })}
 
             {/* Dynamic Scale Note Badges Across the Entire 12 Frets in Selected Key */}
+            {/* Dynamic Scale & Grammar Badges Across the Entire 12 Frets in Selected Key */}
             {fretboardNotes.map((pos, idx) => {
               const y = 17 + (pos.stringNum - 1) * 20;
               const x = pos.fret === 0 ? 20 : 32 + pos.fret * 48 - 24;
-              const isRoot = pos.isRoot;
-              const isSoul = pos.isSoul;
 
-              const badgeFill = isRoot ? '#f15a24' : isSoul ? '#10b981' : '#38bdf8';
+              if (pos.isVarjit) {
+                // Subtle red dashed indicator for Forbidden / Avoid Notes
+                return (
+                  <g 
+                    key={`varjit-${idx}`} 
+                    onClick={() => handlePlayFretNote(pos.freq)}
+                    className="cursor-pointer group opacity-65 hover:opacity-100"
+                  >
+                    <circle
+                      cx={x}
+                      cy={y}
+                      r="7.2"
+                      fill="#ef4444"
+                      fillOpacity="0.22"
+                      stroke="#ef4444"
+                      strokeWidth="1.2"
+                      strokeDasharray="2.5 1.5"
+                    />
+                    <line x1={x - 3} y1={y - 3} x2={x + 3} y2={y + 3} stroke="#ef4444" strokeWidth="1.3" />
+                    <line x1={x + 3} y1={y - 3} x2={x - 3} y2={y + 3} stroke="#ef4444" strokeWidth="1.3" />
+                    <text
+                      x={x}
+                      y={y + 2.5}
+                      textAnchor="middle"
+                      fill="#fca5a5"
+                      fontSize="6.5"
+                      fontFamily="monospace"
+                      fontWeight="bold"
+                      className="pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      {pos.noteName}
+                    </text>
+                  </g>
+                );
+              }
+
+              const isRoot = pos.isRoot;
+              const isVadi = pos.isVadi;
+              const isSamvadi = pos.isSamvadi;
+              const isNyas = pos.isNyas;
+
+              const badgeFill = isRoot 
+                ? '#f15a24' 
+                : isVadi 
+                ? '#f59e0b' 
+                : isSamvadi 
+                ? '#8b5cf6' 
+                : isNyas 
+                ? '#10b981' 
+                : '#38bdf8';
 
               return (
                 <g 
@@ -907,16 +1102,28 @@ export const RasaView: React.FC<RasaViewProps> = () => {
                   onClick={() => handlePlayFretNote(pos.freq)}
                   className="cursor-pointer group"
                 >
-                  {/* Stationary halo ring for Soul Note (Zero wobble) */}
-                  {isSoul && (
+                  {/* Outer Halo Rings */}
+                  {isVadi && (
                     <circle 
                       cx={x} 
                       cy={y} 
-                      r="10.5" 
+                      r="10.8" 
                       fill="none" 
-                      stroke="#10b981" 
+                      stroke="#f59e0b" 
                       strokeWidth="1.8" 
                       strokeDasharray="3 2"
+                      opacity="0.95"
+                    />
+                  )}
+                  {isSamvadi && (
+                    <circle 
+                      cx={x} 
+                      cy={y} 
+                      r="10" 
+                      fill="none" 
+                      stroke="#8b5cf6" 
+                      strokeWidth="1.6" 
+                      strokeDasharray="2 2"
                       opacity="0.9"
                     />
                   )}
@@ -931,10 +1138,22 @@ export const RasaView: React.FC<RasaViewProps> = () => {
                       opacity="0.8"
                     />
                   )}
+                  {isNyas && !isVadi && !isSamvadi && !isRoot && (
+                    <circle 
+                      cx={x} 
+                      cy={y} 
+                      r="9.5" 
+                      fill="none" 
+                      stroke="#10b981" 
+                      strokeWidth="1.2" 
+                      strokeDasharray="1.5 1.5"
+                      opacity="0.75"
+                    />
+                  )}
                   <circle
                     cx={x}
                     cy={y}
-                    r={isRoot || isSoul ? 8 : 6.8}
+                    r={isRoot || isVadi || isSamvadi ? 8 : 6.8}
                     fill={badgeFill}
                     stroke="#ffffff"
                     strokeWidth="1"
@@ -945,7 +1164,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
                     y={y + 3}
                     textAnchor="middle"
                     fill="#ffffff"
-                    fontSize={isRoot || isSoul ? "8" : "7"}
+                    fontSize={isRoot || isVadi || isSamvadi ? "8" : "7"}
                     fontFamily="monospace"
                     fontWeight="bold"
                     className="pointer-events-none"
