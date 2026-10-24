@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Flower2, 
   Mic, 
   MicOff, 
   Volume2, 
@@ -79,6 +78,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
   const [analysis, setAnalysis] = useState<RasaAnalysisResult>(() => ({
     primaryRaga: defaultRaga,
     secondaryRaga: timeMatchedRagas[1] || RAGAS_DATABASE[1],
+    suggestedRagas: timeMatchedRagas.slice(0, 3).length >= 2 ? timeMatchedRagas.slice(0, 3) : RAGAS_DATABASE.slice(0, 3),
     detectedEmotion: defaultRaga.rasa,
     detectedKeywords: ['time-of-day alignment'],
     empatheticReflection: defaultRaga.poeticReflection,
@@ -160,13 +160,13 @@ export const RasaView: React.FC<RasaViewProps> = () => {
     });
   };
 
-  // 1-Tap Direct Raag selection from "Ragas for This Hour"
+  // Direct Raag selection
   const handleSelectRaagDirectly = (selectedRaga: Raga) => {
     setAnalysis((prev) => ({
       ...prev,
       primaryRaga: selectedRaga,
       detectedEmotion: selectedRaga.rasa,
-      detectedKeywords: ['Direct Selection', selectedRaga.name],
+      detectedKeywords: ['Selected: ' + selectedRaga.name],
       empatheticReflection: selectedRaga.poeticReflection
     }));
 
@@ -177,8 +177,9 @@ export const RasaView: React.FC<RasaViewProps> = () => {
   };
 
   const handleSelectQuickChip = (moodKeywords: string) => {
-    setUserStory((prev) => (prev ? `${prev} ${moodKeywords}` : moodKeywords));
-    handleAnalyzeStory(userStory ? `${userStory} ${moodKeywords}` : moodKeywords);
+    const nextStory = userStory ? `${userStory} ${moodKeywords}` : moodKeywords;
+    setUserStory(nextStory);
+    handleAnalyzeStory(nextStory);
   };
 
   const handleToggleTanpura = () => {
@@ -214,7 +215,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
 
   const soulSemitone = (rootSemitone + currentRaga.soulNoteOffset) % 12;
 
-  // Generate complete 12-fret neck note mapping
+  // Generate complete 12-fret neck note mapping (proportional spacing to fit container perfectly)
   const fretboardNotes: {
     stringNum: number;
     fret: number;
@@ -255,7 +256,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
       <div className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-xs">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#f15a24] to-amber-500 flex items-center justify-center text-white shadow-md">
-            <Flower2 className="w-5 h-5" />
+            <Waves className="w-5 h-5" />
           </div>
           <div>
             <h1 className="text-sm font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
@@ -391,10 +392,23 @@ export const RasaView: React.FC<RasaViewProps> = () => {
           </div>
         )}
 
-        {/* Quick Mood Chips with "+ More Moods" button on the right */}
+        {/* Pinned Quick Moods Row with Always-Visible "Explore More Moods" Button */}
+        <div className="flex items-center justify-between gap-2 pt-1 text-[11px] font-mono">
+          <span className="text-slate-400 shrink-0 text-[10px] font-bold uppercase">
+            QUICK MOODS:
+          </span>
+          <button
+            onClick={() => setShowAllMoods(!showAllMoods)}
+            className="px-2.5 py-1 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 text-[#f15a24] font-bold border border-[#f15a24]/30 transition shrink-0 cursor-pointer flex items-center gap-1.5 shadow-2xs"
+          >
+            <span>{showAllMoods ? 'Hide Moods' : 'Explore All 12 Moods'}</span>
+            {showAllMoods ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </button>
+        </div>
+
+        {/* Horizontal Chips Carousel */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-[11px] font-mono">
-          <span className="text-slate-400 shrink-0 text-[10px] font-bold">QUICK:</span>
-          {ALL_CURATED_MOODS.slice(0, 4).map((m, idx) => (
+          {ALL_CURATED_MOODS.map((m, idx) => (
             <button
               key={idx}
               onClick={() => handleSelectQuickChip(m.text)}
@@ -403,15 +417,6 @@ export const RasaView: React.FC<RasaViewProps> = () => {
               {m.label}
             </button>
           ))}
-
-          {/* Small button on right to see more moods */}
-          <button
-            onClick={() => setShowAllMoods(!showAllMoods)}
-            className="px-2.5 py-1 rounded-xl bg-slate-200 dark:bg-white/[0.1] text-slate-800 dark:text-slate-200 font-bold hover:text-[#f15a24] transition shrink-0 cursor-pointer flex items-center gap-1 border border-slate-300 dark:border-white/20"
-          >
-            <span>{showAllMoods ? 'Less' : '+ More Moods'}</span>
-            {showAllMoods ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-          </button>
         </div>
 
         {/* Expanded Moods Drawer */}
@@ -439,7 +444,64 @@ export const RasaView: React.FC<RasaViewProps> = () => {
         </button>
       </div>
 
-      {/* 5. Matched Raag Hero Card */}
+      {/* 5. SUGGESTED RAAGS FOR YOUR MOOD (Multiple Raga Suggestions) */}
+      <div className="w-full p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-xs flex flex-col space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-[#f15a24]" />
+            <span className="text-xs font-mono font-extrabold uppercase text-slate-800 dark:text-slate-200 tracking-wider">
+              SUGGESTED RAAGS FOR YOUR MOOD ({analysis.suggestedRagas.length}):
+            </span>
+          </div>
+          <span className="text-[10px] font-mono text-slate-400">
+            Tap to switch active raag
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+          {analysis.suggestedRagas.map((raga, idx) => {
+            const isSelected = currentRaga.id === raga.id;
+            const badgeLabel = idx === 0 ? 'Primary Match' : idx === 1 ? 'Alternative Mood' : 'Harmonic Solace';
+            return (
+              <button
+                key={raga.id}
+                onClick={() => handleSelectRaagDirectly(raga)}
+                className={`p-3 rounded-2xl text-left border transition cursor-pointer relative overflow-hidden flex flex-col justify-between ${
+                  isSelected
+                    ? 'bg-[#f15a24]/10 border-[#f15a24] shadow-[0_0_15px_rgba(241,90,36,0.25)]'
+                    : 'bg-slate-50 dark:bg-white/[0.02] border-slate-200 dark:border-white/[0.06] hover:border-slate-300 dark:hover:border-white/20'
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-lg ${
+                    idx === 0 
+                      ? 'bg-[#f15a24] text-white' 
+                      : 'bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-300'
+                  }`}>
+                    {badgeLabel}
+                  </span>
+                  {isSelected && <Check className="w-4 h-4 text-[#f15a24]" />}
+                </div>
+
+                <div className="mt-2">
+                  <div className="font-extrabold text-sm text-slate-900 dark:text-white">
+                    {raga.name}
+                  </div>
+                  <div className="text-[11px] font-serif text-slate-400">
+                    {raga.hindiName}
+                  </div>
+                </div>
+
+                <div className="text-[10px] font-mono text-slate-500 dark:text-slate-400 mt-1 line-clamp-1">
+                  {raga.rasa.split('&')[0]}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 6. Current Active Raag Hero Card */}
       <div className="w-full p-4 sm:p-5 rounded-3xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-sm flex flex-col space-y-3 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-48 h-48 bg-[#f15a24]/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -475,7 +537,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
         </div>
       </div>
 
-      {/* 6. Acoustic Tanpura Bed Engine (Miraj Sound Model - Real Acoustic Recordings) */}
+      {/* 7. Acoustic Tanpura Bed Engine (Miraj Sound Model - Real Acoustic Recordings) */}
       <div className="w-full p-4 sm:p-5 rounded-3xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-sm flex flex-col space-y-3">
         <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-white/[0.08]">
           <div className="flex items-center gap-2">
@@ -557,7 +619,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
         </div>
       </div>
 
-      {/* 7. The Guitarist's Demystified Formula Card */}
+      {/* 8. The Guitarist's Demystified Formula Card with Western Roman Degrees */}
       <div className="w-full p-4 sm:p-5 rounded-3xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-sm flex flex-col space-y-3">
         <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-white/[0.08]">
           <span className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 uppercase">
@@ -568,18 +630,26 @@ export const RasaView: React.FC<RasaViewProps> = () => {
           </span>
         </div>
 
-        {/* Dynamic Scale Name & Notes in Current Root Key */}
-        <div className="p-3 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] text-xs font-mono">
-          <div className="flex items-center justify-between mb-1.5">
+        {/* Dynamic Scale Name & Notes with Roman Degrees */}
+        <div className="p-3 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] text-xs font-mono space-y-2">
+          <div className="flex items-center justify-between">
             <span className="text-[10px] uppercase font-bold text-slate-400">WESTERN SCALE:</span>
             <span className="font-extrabold text-[#f15a24]">
               {tanpuraKey} {currentRaga.westernScaleName}
             </span>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold text-slate-400">SCALE NOTES:</span>
+
+          <div className="flex items-center justify-between pt-1 border-t border-slate-200/50 dark:border-white/[0.04]">
+            <span className="text-[10px] uppercase font-bold text-slate-400">SCALE NOTES ({tanpuraKey}):</span>
             <span className="font-bold text-slate-800 dark:text-slate-200 tracking-wider">
               {transposedNotes.join(' • ')}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between pt-1 border-t border-slate-200/50 dark:border-white/[0.04]">
+            <span className="text-[10px] uppercase font-bold text-slate-400">WESTERN ROMAN DEGREES:</span>
+            <span className="font-bold text-[#f15a24] tracking-wider">
+              {currentRaga.scaleRoman.join(' • ')}
             </span>
           </div>
         </div>
@@ -593,15 +663,28 @@ export const RasaView: React.FC<RasaViewProps> = () => {
           </div>
         </div>
 
-        {/* Rules: Ascending vs Descending */}
+        {/* Rules: Ascending vs Descending with Western Roman Degrees at Bottom */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
-          <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06]">
-            <span className="text-[10px] font-bold text-[#f15a24] uppercase block">CLIMBING UP (AAROH):</span>
-            <span className="text-slate-700 dark:text-slate-300">{currentRaga.ascendingRule}</span>
+          <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] flex flex-col justify-between">
+            <div>
+              <span className="text-[10px] font-bold text-[#f15a24] uppercase block">CLIMBING UP (AAROH):</span>
+              <span className="text-slate-700 dark:text-slate-300 text-xs">{currentRaga.ascendingRule}</span>
+            </div>
+            <div className="mt-2.5 pt-1.5 border-t border-slate-200/70 dark:border-white/[0.06] flex items-center justify-between text-[11px] font-mono">
+              <span className="text-[9px] uppercase font-bold text-slate-400">ROMAN:</span>
+              <span className="font-bold text-[#f15a24] tracking-wider">{currentRaga.ascendingRoman}</span>
+            </div>
           </div>
-          <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06]">
-            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase block">FALLING DOWN (AVROH):</span>
-            <span className="text-slate-700 dark:text-slate-300">{currentRaga.descendingRule}</span>
+
+          <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] flex flex-col justify-between">
+            <div>
+              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase block">FALLING DOWN (AVROH):</span>
+              <span className="text-slate-700 dark:text-slate-300 text-xs">{currentRaga.descendingRule}</span>
+            </div>
+            <div className="mt-2.5 pt-1.5 border-t border-slate-200/70 dark:border-white/[0.06] flex items-center justify-between text-[11px] font-mono">
+              <span className="text-[9px] uppercase font-bold text-slate-400">ROMAN:</span>
+              <span className="font-bold text-emerald-600 dark:text-emerald-400 tracking-wider">{currentRaga.descendingRoman}</span>
+            </div>
           </div>
         </div>
 
@@ -624,7 +707,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
         </div>
       </div>
 
-      {/* 8. The 3-Note Magic Riff (Pakad) - Dynamically Transposed for Selected Key */}
+      {/* 9. The 3-Note Magic Riff (Pakad) - Dynamically Transposed for Selected Key */}
       <div className="w-full p-4 sm:p-5 rounded-3xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-sm flex flex-col space-y-3">
         <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-white/[0.08]">
           <div>
@@ -668,7 +751,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
         </div>
       </div>
 
-      {/* 9. FULL 12-FRET INTERACTIVE GUITAR FRETBOARD (Zero Wobble, Complete Scale Map in Key) */}
+      {/* 10. FULL 12-FRET INTERACTIVE GUITAR FRETBOARD (Zero Scrollbar - Fits 100% Seamlessly) */}
       <div className="w-full p-4 sm:p-5 rounded-3xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-sm flex flex-col space-y-3">
         <div className="flex items-center justify-between pb-1 border-b border-slate-200 dark:border-white/[0.08]">
           <div>
@@ -689,32 +772,35 @@ export const RasaView: React.FC<RasaViewProps> = () => {
           </div>
         </div>
 
-        {/* Fretboard SVG (Full 12 Frets across all 6 strings) */}
-        <div className="w-full overflow-x-auto py-2 scrollbar-thin">
-          <svg viewBox="0 0 710 145" className="w-full min-w-[660px] max-w-full select-none">
+        {/* Fretboard SVG: Scales seamlessly inside the card with ZERO horizontal scrollbar */}
+        <div className="w-full py-1">
+          <svg 
+            viewBox="0 0 635 142" 
+            className="w-full h-auto select-none block overflow-visible"
+          >
             {/* Wooden Fretboard base */}
-            <rect x="25" y="10" width="675" height="115" rx="6" fill="#1e293b" opacity="0.12" />
+            <rect x="18" y="10" width="606" height="114" rx="6" fill="#1e293b" opacity="0.12" />
 
             {/* Nut Bar */}
-            <line x1="38" y1="10" x2="38" y2="125" stroke="#94a3b8" strokeWidth="5" />
+            <line x1="32" y1="10" x2="32" y2="124" stroke="#94a3b8" strokeWidth="4.5" />
 
             {/* 12 Fret Wires */}
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((fret) => {
-              const x = 38 + fret * 52;
+              const x = 32 + fret * 48;
               return (
                 <g key={fret}>
-                  <line x1={x} y1="10" x2={x} y2="125" stroke="#cbd5e1" strokeWidth="1.5" strokeOpacity="0.4" />
-                  <text x={x - 26} y="138" textAnchor="middle" fill="#94a3b8" fontSize="9" fontFamily="monospace" fontWeight="bold">
+                  <line x1={x} y1="10" x2={x} y2="124" stroke="#cbd5e1" strokeWidth="1.2" strokeOpacity="0.4" />
+                  <text x={x - 24} y="136" textAnchor="middle" fill="#94a3b8" fontSize="8.5" fontFamily="monospace" fontWeight="bold">
                     {fret}
                   </text>
                   {/* Classical Inlay Marker Dots (3, 5, 7, 9, double at 12) */}
                   {[3, 5, 7, 9].includes(fret) && (
-                    <circle cx={x - 26} cy="67.5" r="3.5" fill="#94a3b8" opacity="0.25" />
+                    <circle cx={x - 24} cy="67" r="3.2" fill="#94a3b8" opacity="0.25" />
                   )}
                   {fret === 12 && (
                     <>
-                      <circle cx={x - 26} cy="45" r="3" fill="#94a3b8" opacity="0.25" />
-                      <circle cx={x - 26} cy="90" r="3" fill="#94a3b8" opacity="0.25" />
+                      <circle cx={x - 24} cy="45" r="2.8" fill="#94a3b8" opacity="0.25" />
+                      <circle cx={x - 24} cy="89" r="2.8" fill="#94a3b8" opacity="0.25" />
                     </>
                   )}
                 </g>
@@ -724,13 +810,13 @@ export const RasaView: React.FC<RasaViewProps> = () => {
             {/* 6 Guitar Strings (1=High e to 6=Low E) */}
             {[1, 2, 3, 4, 5, 6].map((str) => {
               const y = 17 + (str - 1) * 20;
-              const width = 2.6 - (str - 1) * 0.35;
+              const width = 2.4 - (str - 1) * 0.32;
               return (
                 <line
                   key={str}
-                  x1="38"
+                  x1="32"
                   y1={y}
-                  x2="695"
+                  x2="618"
                   y2={y}
                   stroke="#94a3b8"
                   strokeWidth={width}
@@ -742,7 +828,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
             {/* Dynamic Scale Note Badges Across the Entire 12 Frets in Selected Key */}
             {fretboardNotes.map((pos, idx) => {
               const y = 17 + (pos.stringNum - 1) * 20;
-              const x = pos.fret === 0 ? 25 : 38 + pos.fret * 52 - 26;
+              const x = pos.fret === 0 ? 20 : 32 + pos.fret * 48 - 24;
               const isRoot = pos.isRoot;
               const isSoul = pos.isSoul;
 
@@ -754,37 +840,37 @@ export const RasaView: React.FC<RasaViewProps> = () => {
                   onClick={() => handlePlayFretNote(pos.freq)}
                   className="cursor-pointer group"
                 >
-                  {/* Clean stationary halo ring for Soul Note (Zero erratic wobble) */}
+                  {/* Stationary halo ring for Soul Note (Zero wobble) */}
                   {isSoul && (
                     <circle 
                       cx={x} 
                       cy={y} 
-                      r="11" 
+                      r="10.5" 
                       fill="none" 
                       stroke="#10b981" 
-                      strokeWidth="2" 
+                      strokeWidth="1.8" 
                       strokeDasharray="3 2"
-                      opacity="0.85"
+                      opacity="0.9"
                     />
                   )}
                   {isRoot && (
                     <circle 
                       cx={x} 
                       cy={y} 
-                      r="10.5" 
+                      r="10" 
                       fill="none" 
                       stroke="#f15a24" 
                       strokeWidth="1.5" 
-                      opacity="0.7"
+                      opacity="0.8"
                     />
                   )}
                   <circle
                     cx={x}
                     cy={y}
-                    r={isRoot || isSoul ? 8.5 : 7}
+                    r={isRoot || isSoul ? 8 : 6.8}
                     fill={badgeFill}
                     stroke="#ffffff"
-                    strokeWidth="1.2"
+                    strokeWidth="1"
                     className="group-hover:scale-110 transition-transform"
                   />
                   <text
@@ -792,7 +878,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
                     y={y + 3}
                     textAnchor="middle"
                     fill="#ffffff"
-                    fontSize={isRoot || isSoul ? "8.5" : "7.5"}
+                    fontSize={isRoot || isSoul ? "8" : "7"}
                     fontFamily="monospace"
                     fontWeight="bold"
                     className="pointer-events-none"

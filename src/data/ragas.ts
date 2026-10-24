@@ -15,6 +15,9 @@ export interface Raga {
   theSimpleTwist: string;
   ascendingRule: string;
   descendingRule: string;
+  ascendingRoman: string; // Western Roman numerals for ascending scale
+  descendingRoman: string; // Western Roman numerals for descending scale
+  scaleRoman: string[]; // Western Roman numerals for scale degrees
   soulNote: {
     note: string;
     swara: string;
@@ -64,8 +67,11 @@ export const RAGAS_DATABASE: Raga[] = [
     baseRootKey: 'C',
     westernScaleName: 'Lydian Mode',
     theSimpleTwist: 'Take the Major scale you know, but sharpen the 4th note (play #4 instead of 4).',
-    ascendingRule: 'Leave space: Skip the Root (Sa) and 5th (Pa) going up (Ni - Re - Ga - #Ma - Dha - Ni - Sa\').',
-    descendingRule: 'Full cascade coming down (Sa\' - Ni - Dha - Pa - #Ma - Ga - Re - Sa).',
+    ascendingRule: 'Skip Root (Sa) and 5th (Pa): Ni - Re - Ga - #Ma - Dha - Ni - Sa\'.',
+    descendingRule: 'Full cascade: Sa\' - Ni - Dha - Pa - #Ma - Ga - Re - Sa.',
+    ascendingRoman: 'VII → II → III → ♯IV → VI → VII → I',
+    descendingRoman: 'I → VII → VI → V → ♯IV → III → II → I',
+    scaleRoman: ['I', 'II', 'III', '♯IV', 'V', 'VI', 'VII'],
     soulNote: {
       note: 'E',
       swara: 'Ga (Gandhar)',
@@ -123,6 +129,9 @@ export const RAGAS_DATABASE: Raga[] = [
     theSimpleTwist: 'Take the Minor scale you know, but flatten the 2nd note (play b2 instead of 2).',
     ascendingRule: 'Climb with care: Sa - bRe - bGa - Ma - Pa - bDha - bNi - Sa\'.',
     descendingRule: 'Full expressive descent. Linger tenderly on bRe before resolving down to Sa.',
+    ascendingRoman: 'I → ♭II → ♭III → IV → V → ♭VI → ♭VII → I',
+    descendingRoman: 'I → ♭VII → ♭VI → V → IV → ♭III → ♭II → I',
+    scaleRoman: ['I', '♭II', '♭III', 'IV', 'V', '♭VI', '♭VII'],
     soulNote: {
       note: 'C',
       swara: 'Ga (Komal Gandhar)',
@@ -180,6 +189,9 @@ export const RAGAS_DATABASE: Raga[] = [
     theSimpleTwist: 'Take the Minor scale, but apply a slow, wide vibrato on the flat 3rd (bGa) and flat 6th (bDha).',
     ascendingRule: 'Climb with majestic gravity: Sa - Re - bGa - Ma - Pa - bDha - bNi - Sa\'.',
     descendingRule: 'Gliding descent with slow undulations on the flat notes.',
+    ascendingRoman: 'I → II → ♭III → IV → V → ♭VI → ♭VII → I',
+    descendingRoman: 'I → ♭VII → ♭VI → V → IV → ♭III → II → I',
+    scaleRoman: ['I', 'II', '♭III', 'IV', 'V', '♭VI', '♭VII'],
     soulNote: {
       note: 'D',
       swara: 'Ma (Madhyam)',
@@ -234,6 +246,9 @@ export const RAGAS_DATABASE: Raga[] = [
     theSimpleTwist: 'Take the Minor scale you know, but raise the 6th note (play natural 6th instead of b6).',
     ascendingRule: 'Climb with swing: Sa - Re - bGa - Ma - Pa - Dha - bNi - Sa\'.',
     descendingRule: 'Descend effortlessly through the Dorian blues colors.',
+    ascendingRoman: 'I → II → ♭III → IV → V → VI → ♭VII → I',
+    descendingRoman: 'I → ♭VII → VI → V → IV → ♭III → II → I',
+    scaleRoman: ['I', 'II', '♭III', 'IV', 'V', 'VI', '♭VII'],
     soulNote: {
       note: 'E',
       swara: 'Pa (Pancham)',
@@ -287,6 +302,9 @@ export const RAGAS_DATABASE: Raga[] = [
     theSimpleTwist: 'Take the Major scale, but omit the 4th (Ma) and 7th (Ni). Play just 1 - 2 - 3 - 5 - 6.',
     ascendingRule: 'Climb cleanly: Sa - Re - Ga - Pa - Dha - Sa\'. No half steps.',
     descendingRule: 'Descend gracefully: Sa\' - Dha - Pa - Ga - Re - Sa.',
+    ascendingRoman: 'I → II → III → V → VI → I',
+    descendingRoman: 'I → VI → V → III → II → I',
+    scaleRoman: ['I', 'II', 'III', 'V', 'VI'],
     soulNote: {
       note: 'E',
       swara: 'Ga (Gandhar)',
@@ -341,7 +359,10 @@ export const RAGAS_DATABASE: Raga[] = [
     westernScaleName: 'Minor Pentatonic with flat 6th',
     theSimpleTwist: 'Take Minor Pentatonic, but omit the 2nd (Re) and 5th (Pa). Play only 1 - b3 - 4 - b6 - b7.',
     ascendingRule: 'Omit 2nd and 5th completely: Sa - bGa - Ma - bDha - bNi - Sa\'.',
-    descendingRule: 'Descend powerfully through the 5 mystical notes: Sa\' - bNi - bDha - Ma - bGa - Sa.',
+    descendingRule: 'Descend through 5 mystical notes: Sa\' - bNi - bDha - Ma - bGa - Sa.',
+    ascendingRoman: 'I → ♭III → IV → ♭VI → ♭VII → I',
+    descendingRoman: 'I → ♭VII → ♭VI → IV → ♭III → I',
+    scaleRoman: ['I', '♭III', 'IV', '♭VI', '♭VII'],
     soulNote: {
       note: 'D',
       swara: 'Ma (Madhyam)',
@@ -393,8 +414,11 @@ export const RAGAS_DATABASE: Raga[] = [
     baseRootKey: 'C',
     westernScaleName: 'Mixolydian with Dual 7ths',
     theSimpleTwist: 'Play Major going up (using natural 7th), but coming down, switch to flat 7th (bNi).',
-    ascendingRule: 'Climb with natural 7: Sa - Ga - Ma - Pa - Dha - Ni - Sa\'. (Omit Re).',
+    ascendingRule: 'Climb with natural 7: Sa - Ga - Ma - Pa - Dha - Ni - Sa\' (omit Re).',
     descendingRule: 'Descend with flat 7: Sa\' - bNi - Dha - Pa - Ma - Ga - Re - Sa.',
+    ascendingRoman: 'I → III → IV → V → VI → VII → I',
+    descendingRoman: 'I → ♭VII → VI → V → IV → III → II → I',
+    scaleRoman: ['I', 'II', 'III', 'IV', 'V', 'VI', '♭VII / VII'],
     soulNote: {
       note: 'E',
       swara: 'Ga (Gandhar)',
@@ -446,8 +470,11 @@ export const RAGAS_DATABASE: Raga[] = [
     baseRootKey: 'C',
     westernScaleName: 'Natural Major Scale (Ionian)',
     theSimpleTwist: 'No twists needed! It is the exact natural Major scale you already know by heart.',
-    ascendingRule: 'Sa - Re - Ga - Ma - Pa - Dha - Ni - Sa\'. Pure and natural.',
+    ascendingRule: 'Pure and natural: Sa - Re - Ga - Ma - Pa - Dha - Ni - Sa\'.',
     descendingRule: 'Sa\' - Ni - Dha - Pa - Ma - Ga - Re - Sa.',
+    ascendingRoman: 'I → II → III → IV → V → VI → VII → I',
+    descendingRoman: 'I → VII → VI → V → IV → III → II → I',
+    scaleRoman: ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'],
     soulNote: {
       note: 'D',
       swara: 'Re (Rishabh)',

@@ -3,6 +3,7 @@ import { RAGAS_DATABASE, Raga } from '../data/ragas';
 export interface RasaAnalysisResult {
   primaryRaga: Raga;
   secondaryRaga: Raga;
+  suggestedRagas: Raga[];
   detectedEmotion: string;
   detectedKeywords: string[];
   empatheticReflection: string;
@@ -244,6 +245,7 @@ export function analyzeMoodAndMatchRaag(storyText: string): RasaAnalysisResult {
 
   const primaryRaga = sortedRaags[0] || RAGAS_DATABASE[0];
   const secondaryRaga = sortedRaags[1] || RAGAS_DATABASE[1];
+  const suggestedRagas = sortedRaags.slice(0, 3);
 
   // Synthesize custom empathetic reflection
   let reflection = '';
@@ -273,6 +275,7 @@ export function analyzeMoodAndMatchRaag(storyText: string): RasaAnalysisResult {
   return {
     primaryRaga,
     secondaryRaga,
+    suggestedRagas,
     detectedEmotion: emotionLabel,
     detectedKeywords,
     empatheticReflection: reflection,
