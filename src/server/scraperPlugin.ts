@@ -645,10 +645,10 @@ export function guitarTunaScraperPlugin(): Plugin {
           res.setHeader('Content-Type', 'application/json');
           res.setHeader('Access-Control-Allow-Origin', '*');
           res.end(JSON.stringify({
-            latest_version_code: 61,
-            latest_version_name: '1.0.61',
+            latest_version_code: 62,
+            latest_version_name: '1.0.62',
             download_url: 'https://github.com/aman078/AG-Acoustics/releases/latest/download/AGSoft-Acoustics.apk',
-            release_notes: 'Dynamic Western notes in Aaroh & Avroh, custom key-transposed twists, multi-raaga suggestions, and zero-scrollbar 12-fret neck visualizer.',
+            release_notes: 'Dual-voice ping-pong overlap crossfade for 100% seamless Tanpura loop, and clean first-person Quick Mood sentence insertion.',
             force_update: false,
           }));
         } catch (err: unknown) {

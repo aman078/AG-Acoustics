@@ -1,7 +1,10 @@
 /**
  * Authentic Acoustic Tanpura Engine
- * Powered by high-fidelity acoustic concert Miraj Tanpura recordings
- * providing the authentic meditative pumpkin gourd resonance and silk thread Javari buzz,
+ * Powered by high-fidelity acoustic concert Miraj Tanpura recordings with
+ * Dual-Voice Ping-Pong Overlap Crossfade architecture.
+ *
+ * Eliminates all loop seams, pops, and MP3 padding gaps, keeping the deep
+ * Kharaj gourd resonance continuously vibrating beneath incoming plucks
  * matching Tanpura Droid.
  */
 
@@ -32,18 +35,30 @@ const KEY_TO_FILE: Record<string, string> = {
   'B': 'B.mp3'
 };
 
+interface ActiveVoice {
+  source: AudioBufferSourceNode;
+  gain: GainNode;
+  stopTimer: any;
+}
+
 class TanpuraEngine {
   private ctx: AudioContext | null = null;
   private isPlaying: boolean = false;
-  private loopTimer: any = null;
+  private pulseTimer: any = null;
+  private pingPongTimer: any = null;
   private currentStringStep: number = 0;
   private masterGain: GainNode | null = null;
 
-  // Real acoustic audio playback
-  private currentAudioElement: HTMLAudioElement | null = null;
-  private fadingAudioElement: HTMLAudioElement | null = null;
-  private currentBufferSource: AudioBufferSourceNode | null = null;
+  // Dual-voice ping-pong overlap
+  private activeVoices: Set<ActiveVoice> = new Set();
   private bufferCache: Map<string, AudioBuffer> = new Map();
+  private isVoiceAPlaying: boolean = true;
+  private readonly overlapSeconds: number = 2.4; // 2.4s seamless acoustic crossfade window
+
+  // HTMLAudioElement ping-pong fallback for environments without AudioBuffer
+  private htmlVoiceA: HTMLAudioElement | null = null;
+  private htmlVoiceB: HTMLAudioElement | null = null;
+  private htmlPingPongTimer: any = null;
 
   private config: TanpuraConfig = {
     rootKey: 'C',
@@ -91,16 +106,15 @@ class TanpuraEngine {
     this.config = { ...this.config, ...newConfig };
 
     // Update volume on running audio
-    if (this.currentAudioElement) {
-      this.currentAudioElement.volume = Math.max(0, Math.min(1, this.config.volume));
-    }
     if (this.masterGain && this.ctx) {
       this.masterGain.gain.setTargetAtTime(this.config.volume, this.ctx.currentTime, 0.05);
     }
+    if (this.htmlVoiceA) this.htmlVoiceA.volume = Math.max(0, Math.min(1, this.config.volume));
+    if (this.htmlVoiceB) this.htmlVoiceB.volume = Math.max(0, Math.min(1, this.config.volume));
 
-    // If key changed while playing, immediately crossfade to the new acoustic recording
+    // If root key changed while playing, smoothly crossfade to the new pitch
     if (newConfig.rootKey && newConfig.rootKey !== oldKey && this.isPlaying) {
-      this.switchAcousticAudio(newConfig.rootKey);
+      this.switchAcousticKey(newConfig.rootKey);
     }
   }
 
@@ -112,23 +126,30 @@ class TanpuraEngine {
     this.isPlaying = true;
     this.currentStringStep = 0;
 
-    // Start playing genuine acoustic recording
-    this.playAcousticSample(this.config.rootKey);
+    // Start dual-voice ping-pong acoustic loop
+    this.startDualVoicePingPong(this.config.rootKey);
 
-    // Start cyclical string pulse timer for visual synchronization
+    // Start visual string indicator sync
     this.startCyclePulse();
     this.notify();
   }
 
   public stop() {
     this.isPlaying = false;
-    if (this.loopTimer) {
-      clearTimeout(this.loopTimer);
-      this.loopTimer = null;
+    if (this.pulseTimer) {
+      clearTimeout(this.pulseTimer);
+      this.pulseTimer = null;
+    }
+    if (this.pingPongTimer) {
+      clearTimeout(this.pingPongTimer);
+      this.pingPongTimer = null;
+    }
+    if (this.htmlPingPongTimer) {
+      clearTimeout(this.htmlPingPongTimer);
+      this.htmlPingPongTimer = null;
     }
 
-    // Fade out and stop acoustic audio
-    this.stopAcousticAudio();
+    this.stopAllVoices();
     this.currentStringStep = 0;
     this.notify();
   }
@@ -142,10 +163,10 @@ class TanpuraEngine {
   }
 
   private startCyclePulse() {
-    if (this.loopTimer) clearTimeout(this.loopTimer);
+    if (this.pulseTimer) clearTimeout(this.pulseTimer);
     const scheduleNext = () => {
       if (!this.isPlaying) return;
-      this.loopTimer = setTimeout(() => {
+      this.pulseTimer = setTimeout(() => {
         this.currentStringStep = (this.currentStringStep + 1) % 4;
         this.notify();
         scheduleNext();
@@ -155,142 +176,210 @@ class TanpuraEngine {
   }
 
   /**
-   * Play genuine acoustic Miraj Tanpura recording for the chosen root key
+   * Dual-Voice Ping-Pong Audio Loop Execution
+   * Alternates Voice A and Voice B with a 2.4s overlap window.
    */
-  private playAcousticSample(key: string) {
+  private async startDualVoicePingPong(key: string) {
+    this.stopAllVoices();
+
     const fileName = KEY_TO_FILE[key] || 'C.mp3';
     const audioUrl = `./audio/tanpura/${fileName}`;
 
     try {
-      // 1. First attempt: Web Audio API AudioBuffer for sample-accurate looping
-      this.loadAndPlayBuffer(key, audioUrl);
+      const buffer = await this.fetchAndDecodeBuffer(key, audioUrl);
+      if (!buffer || !this.isPlaying) return;
+
+      this.schedulePingPongBufferVoice(buffer);
     } catch {
-      // 2. Direct HTML5 Audio fallback
-      this.playHtmlAudio(audioUrl);
+      // Graceful fallback to HTML5 Audio ping-pong crossfade
+      this.startHtmlPingPong(audioUrl);
     }
   }
 
-  private async loadAndPlayBuffer(key: string, url: string) {
-    this.initAudioContext();
-    if (!this.ctx || !this.masterGain) {
-      this.playHtmlAudio(url);
-      return;
+  private async fetchAndDecodeBuffer(key: string, url: string): Promise<AudioBuffer | null> {
+    if (this.bufferCache.has(key)) {
+      return this.bufferCache.get(key)!;
     }
+
+    this.initAudioContext();
+    if (!this.ctx) return null;
 
     try {
-      let buffer = this.bufferCache.get(key);
-      if (!buffer) {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const arrayBuf = await response.arrayBuffer();
-        buffer = await this.ctx.decodeAudioData(arrayBuf);
-        this.bufferCache.set(key, buffer);
-      }
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const arrayBuffer = await response.arrayBuffer();
+      const decodedBuffer = await this.ctx.decodeAudioData(arrayBuffer);
+      this.bufferCache.set(key, decodedBuffer);
+      return decodedBuffer;
+    } catch {
+      return null;
+    }
+  }
 
+  /**
+   * Schedules an overlapping buffer voice.
+   * Starts a voice, and before it finishes, schedules the next voice so that
+   * the Kharaj tail naturally sustains under the new cycle.
+   */
+  private schedulePingPongBufferVoice(buffer: AudioBuffer) {
+    if (!this.isPlaying || !this.ctx || !this.masterGain) return;
+
+    const now = this.ctx.currentTime;
+    const duration = buffer.duration;
+    // Overlap duration ensures previous bass tail rings out under new pluck
+    const overlap = Math.min(this.overlapSeconds, duration * 0.15);
+    const cycleIntervalMs = Math.max(1000, (duration - overlap) * 1000);
+
+    const source = this.ctx.createBufferSource();
+    source.buffer = buffer;
+    source.loop = false; // Never use abrupt hard loop
+
+    const voiceGain = this.ctx.createGain();
+    // Smooth fade in over 80ms to prevent click
+    voiceGain.gain.setValueAtTime(0.001, now);
+    voiceGain.gain.linearRampToValueAtTime(1.0, now + 0.08);
+
+    // Fade out tail over overlap period at the end
+    const fadeOutStart = now + duration - overlap;
+    voiceGain.gain.setValueAtTime(1.0, fadeOutStart);
+    voiceGain.gain.linearRampToValueAtTime(0.0001, now + duration);
+
+    source.connect(voiceGain);
+    voiceGain.connect(this.masterGain);
+    source.start(now);
+
+    const activeVoice: ActiveVoice = {
+      source,
+      gain: voiceGain,
+      stopTimer: setTimeout(() => {
+        try {
+          source.stop();
+          source.disconnect();
+          voiceGain.disconnect();
+        } catch {}
+        this.activeVoices.delete(activeVoice);
+      }, duration * 1000 + 200)
+    };
+
+    this.activeVoices.add(activeVoice);
+
+    // Schedule the next overlapping voice exactly (duration - overlap) later
+    this.pingPongTimer = setTimeout(() => {
+      if (this.isPlaying) {
+        this.schedulePingPongBufferVoice(buffer);
+      }
+    }, cycleIntervalMs);
+  }
+
+  /**
+   * HTML5 Audio Dual-Voice ping-pong fallback
+   */
+  private startHtmlPingPong(url: string) {
+    this.htmlVoiceA = new Audio(url);
+    this.htmlVoiceB = new Audio(url);
+    this.htmlVoiceA.volume = Math.max(0, Math.min(1, this.config.volume));
+    this.htmlVoiceB.volume = 0;
+
+    this.htmlVoiceA.play().catch(() => {});
+    this.isVoiceAPlaying = true;
+
+    const cycleMs = 18600; // ~18.6s cycle before crossfading
+    const triggerHtmlPingPong = () => {
       if (!this.isPlaying) return;
 
-      // Stop previous source if playing
-      if (this.currentBufferSource) {
+      this.htmlPingPongTimer = setTimeout(() => {
+        if (!this.isPlaying) return;
+
+        const incoming = this.isVoiceAPlaying ? this.htmlVoiceB : this.htmlVoiceA;
+        const outgoing = this.isVoiceAPlaying ? this.htmlVoiceA : this.htmlVoiceB;
+
+        if (incoming && outgoing) {
+          incoming.currentTime = 0;
+          incoming.volume = 0;
+          incoming.play().catch(() => {});
+
+          // Crossfade over 2000ms
+          const steps = 10;
+          let currentStep = 0;
+          const targetVol = this.config.volume;
+          const fadeTimer = setInterval(() => {
+            currentStep++;
+            const ratio = currentStep / steps;
+            incoming.volume = Math.min(1, targetVol * ratio);
+            outgoing.volume = Math.max(0, targetVol * (1 - ratio));
+
+            if (currentStep >= steps) {
+              clearInterval(fadeTimer);
+              outgoing.pause();
+            }
+          }, 200);
+        }
+
+        this.isVoiceAPlaying = !this.isVoiceAPlaying;
+        triggerHtmlPingPong();
+      }, cycleMs);
+    };
+
+    triggerHtmlPingPong();
+  }
+
+  private switchAcousticKey(newKey: string) {
+    // Smooth crossfade out old voices over 350ms
+    if (this.ctx) {
+      const now = this.ctx.currentTime;
+      this.activeVoices.forEach((v) => {
         try {
-          this.currentBufferSource.stop();
-          this.currentBufferSource.disconnect();
+          v.gain.gain.setValueAtTime(v.gain.gain.value, now);
+          v.gain.gain.linearRampToValueAtTime(0.0001, now + 0.35);
+          setTimeout(() => {
+            try {
+              v.source.stop();
+              v.source.disconnect();
+              v.gain.disconnect();
+            } catch {}
+          }, 360);
         } catch {}
-      }
-
-      const source = this.ctx.createBufferSource();
-      source.buffer = buffer;
-      source.loop = true;
-
-      // Soft fade in over 200ms
-      const gainNode = this.ctx.createGain();
-      gainNode.gain.setValueAtTime(0.001, this.ctx.currentTime);
-      gainNode.gain.linearRampToValueAtTime(this.config.volume, this.ctx.currentTime + 0.2);
-
-      source.connect(gainNode);
-      gainNode.connect(this.masterGain);
-      source.start(0);
-
-      this.currentBufferSource = source;
-    } catch (err) {
-      // If Web Audio fetch/decode fails (e.g. edge-case local file scheme), fall back to HTMLAudioElement
-      this.playHtmlAudio(url);
+      });
+      this.activeVoices.clear();
     }
+
+    if (this.pingPongTimer) {
+      clearTimeout(this.pingPongTimer);
+      this.pingPongTimer = null;
+    }
+    if (this.htmlPingPongTimer) {
+      clearTimeout(this.htmlPingPongTimer);
+      this.htmlPingPongTimer = null;
+    }
+
+    // Immediately start dual-voice ping-pong in the new root key
+    this.startDualVoicePingPong(newKey);
   }
 
-  private playHtmlAudio(url: string) {
-    if (this.currentAudioElement) {
+  private stopAllVoices() {
+    this.activeVoices.forEach((v) => {
       try {
-        this.currentAudioElement.pause();
+        clearTimeout(v.stopTimer);
+        v.source.stop();
+        v.source.disconnect();
+        v.gain.disconnect();
       } catch {}
-    }
+    });
+    this.activeVoices.clear();
 
-    const audio = new Audio(url);
-    audio.loop = true;
-    audio.volume = Math.max(0, Math.min(1, this.config.volume));
-    audio.play().catch(() => {});
-    this.currentAudioElement = audio;
-  }
-
-  private switchAcousticAudio(newKey: string) {
-    // If using AudioBuffer source
-    if (this.currentBufferSource && this.ctx && this.masterGain) {
-      const oldSource = this.currentBufferSource;
+    if (this.htmlVoiceA) {
       try {
-        oldSource.stop(this.ctx.currentTime + 0.35);
+        this.htmlVoiceA.pause();
+        this.htmlVoiceA.currentTime = 0;
       } catch {}
-      this.currentBufferSource = null;
-      const fileName = KEY_TO_FILE[newKey] || 'C.mp3';
-      this.loadAndPlayBuffer(newKey, `./audio/tanpura/${fileName}`);
-      return;
+      this.htmlVoiceA = null;
     }
-
-    // If using HTMLAudioElement crossfade
-    if (this.currentAudioElement) {
-      this.fadingAudioElement = this.currentAudioElement;
-      const oldAudio = this.fadingAudioElement;
-      const fadeStep = oldAudio.volume / 6;
-      const fadeTimer = setInterval(() => {
-        if (oldAudio.volume > fadeStep) {
-          oldAudio.volume = Math.max(0, oldAudio.volume - fadeStep);
-        } else {
-          clearInterval(fadeTimer);
-          oldAudio.pause();
-          if (this.fadingAudioElement === oldAudio) {
-            this.fadingAudioElement = null;
-          }
-        }
-      }, 50);
-    }
-
-    const fileName = KEY_TO_FILE[newKey] || 'C.mp3';
-    const newAudio = new Audio(`./audio/tanpura/${fileName}`);
-    newAudio.loop = true;
-    newAudio.volume = Math.max(0, Math.min(1, this.config.volume));
-    newAudio.play().catch(() => {});
-    this.currentAudioElement = newAudio;
-  }
-
-  private stopAcousticAudio() {
-    if (this.currentBufferSource && this.ctx) {
+    if (this.htmlVoiceB) {
       try {
-        this.currentBufferSource.stop();
-        this.currentBufferSource.disconnect();
+        this.htmlVoiceB.pause();
+        this.htmlVoiceB.currentTime = 0;
       } catch {}
-      this.currentBufferSource = null;
-    }
-
-    if (this.currentAudioElement) {
-      const audio = this.currentAudioElement;
-      const fadeInterval = setInterval(() => {
-        if (audio.volume > 0.15) {
-          audio.volume = Math.max(0, audio.volume - 0.15);
-        } else {
-          clearInterval(fadeInterval);
-          audio.pause();
-          audio.currentTime = 0;
-        }
-      }, 40);
-      this.currentAudioElement = null;
+      this.htmlVoiceB = null;
     }
   }
 

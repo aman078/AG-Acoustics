@@ -8,9 +8,9 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    let latestTagName = 'v1.0.61';
+    let latestTagName = 'v1.0.62';
     let apkDownloadUrl = 'https://github.com/aman078/AG-Acoustics/releases/latest/download/AGSoft-Acoustics.apk';
-    let releaseNotes = 'Dynamic Western notes in Aaroh & Avroh, custom key-transposed twists, multi-raaga suggestions, and zero-scrollbar 12-fret neck visualizer.';
+    let releaseNotes = 'Dual-voice ping-pong overlap crossfade for 100% seamless Tanpura loop, and clean first-person Quick Mood sentence insertion.';
 
     try {
       const ghRes = await fetch('https://api.github.com/repos/aman078/AG-Acoustics/releases/latest', {

@@ -51,18 +51,66 @@ const STRINGS_OPEN = [
 ];
 
 const ALL_CURATED_MOODS = [
-  { label: '🧘 Peaceful Sunset', text: 'peaceful evening sunset unwind grateful serene calm' },
-  { label: '🌧️ Heavy & Exhausted', text: 'exhausted tired stressed heavy heart solace burnout' },
-  { label: '🌌 Midnight Thoughts', text: 'midnight insomnia overthinking dark quiet thoughts deep' },
-  { label: '☕ Rainy Groove', text: 'rain monsoon cozy blues coffee chill groove creative' },
-  { label: '🌅 Morning Awakening', text: 'fresh start morning sun clarity optimistic bright awakening' },
-  { label: '💖 Sweet Romance', text: 'warm flirtatious romantic sweet crush nostalgia candlelight' },
-  { label: '🌀 Deep Meditation', text: 'meditation trance silence spiritual mystic intense focus' },
-  { label: '🦁 Triumphant & Bold', text: 'confident inspired victorious triumphant energy clear light' },
-  { label: '🕊️ Solace & Letting Go', text: 'letting go bittersweet acceptance heartache healing peace' },
-  { label: '🍂 Nostalgic Reminiscing', text: 'nostalgia old memories reminiscing simpler days college longing' },
-  { label: '⚡ Work Burnout Relief', text: 'burnout screens all day pressure fatigue release disconnect' },
-  { label: '🛋️ Cozy & Unwinding', text: 'cozy tea evening warm room quiet relax soft' },
+  { 
+    label: '🧘 Peaceful Sunset', 
+    sentence: 'Feeling peaceful and serene, unwinding after a long day and taking in the sunset.',
+    keywords: 'peaceful evening sunset unwind grateful serene calm' 
+  },
+  { 
+    label: '🌧️ Heavy & Exhausted', 
+    sentence: 'Feeling heavy and emotionally exhausted, looking for solace and rest.',
+    keywords: 'exhausted tired stressed heavy heart solace burnout' 
+  },
+  { 
+    label: '🌌 Midnight Thoughts', 
+    sentence: 'Quiet midnight thoughts, feeling deep, existential, and reflective.',
+    keywords: 'midnight insomnia overthinking dark quiet thoughts deep' 
+  },
+  { 
+    label: '☕ Rainy Groove', 
+    sentence: 'Cozy rainy day mood, listening to the rain with a warm cup of coffee.',
+    keywords: 'rain monsoon cozy blues coffee chill groove creative' 
+  },
+  { 
+    label: '🌅 Morning Awakening', 
+    sentence: 'Fresh morning energy, feeling optimistic, bright, and clear.',
+    keywords: 'fresh start morning sun clarity optimistic bright awakening' 
+  },
+  { 
+    label: '💖 Sweet Romance', 
+    sentence: 'Warm, romantic and nostalgic, reminiscing by candlelight.',
+    keywords: 'warm flirtatious romantic sweet crush nostalgia candlelight' 
+  },
+  { 
+    label: '🌀 Deep Meditation', 
+    sentence: 'Seeking deep inner stillness, meditation, and spiritual grounding.',
+    keywords: 'meditation trance silence spiritual mystic intense focus' 
+  },
+  { 
+    label: '🦁 Triumphant & Bold', 
+    sentence: 'Feeling inspired, victorious, confident, and full of energy.',
+    keywords: 'confident inspired victorious triumphant energy clear light' 
+  },
+  { 
+    label: '🕊️ Solace & Letting Go', 
+    sentence: 'Letting go of heartache, finding bittersweet peace and quiet acceptance.',
+    keywords: 'letting go bittersweet acceptance heartache healing peace' 
+  },
+  { 
+    label: '🍂 Nostalgic Reminiscing', 
+    sentence: 'Thinking about old memories, simpler days, and sweet longing.',
+    keywords: 'nostalgia old memories reminiscing simpler days college longing' 
+  },
+  { 
+    label: '⚡ Work Burnout Relief', 
+    sentence: 'Relieving screen fatigue and work pressure, needing to disconnect.',
+    keywords: 'burnout screens all day pressure fatigue release disconnect' 
+  },
+  { 
+    label: '🛋️ Cozy & Unwinding', 
+    sentence: 'Cozy evening unwinding, resting warmly and letting thoughts quiet down.',
+    keywords: 'cozy tea evening warm room quiet relax soft' 
+  },
 ];
 
 export const RasaView: React.FC<RasaViewProps> = () => {
@@ -179,10 +227,9 @@ export const RasaView: React.FC<RasaViewProps> = () => {
     });
   };
 
-  const handleSelectQuickChip = (moodKeywords: string) => {
-    const nextStory = userStory ? `${userStory} ${moodKeywords}` : moodKeywords;
-    setUserStory(nextStory);
-    handleAnalyzeStory(nextStory);
+  const handleSelectQuickChip = (mood: typeof ALL_CURATED_MOODS[0]) => {
+    setUserStory(mood.sentence);
+    handleAnalyzeStory(mood.keywords);
   };
 
   const handleToggleTanpura = () => {
@@ -417,7 +464,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
           {ALL_CURATED_MOODS.map((m, idx) => (
             <button
               key={idx}
-              onClick={() => handleSelectQuickChip(m.text)}
+              onClick={() => handleSelectQuickChip(m)}
               className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-white/[0.05] border border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-slate-300 hover:text-[#f15a24] hover:border-[#f15a24]/40 transition shrink-0 cursor-pointer"
             >
               {m.label}
@@ -431,7 +478,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
             {ALL_CURATED_MOODS.map((m, idx) => (
               <button
                 key={idx}
-                onClick={() => handleSelectQuickChip(m.text)}
+                onClick={() => handleSelectQuickChip(m)}
                 className="py-1.5 px-2 rounded-xl text-left bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] text-slate-700 dark:text-slate-300 hover:text-[#f15a24] hover:border-[#f15a24]/40 transition truncate cursor-pointer"
               >
                 {m.label}
