@@ -8,9 +8,9 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    let latestTagName = 'v1.0.58';
+    let latestTagName = 'v1.0.59';
     let apkDownloadUrl = 'https://github.com/aman078/AG-Acoustics/releases/latest/download/AGSoft-Acoustics.apk';
-    let releaseNotes = 'Time-of-day default raag quick selector, accumulating non-destructive voice note transcription, and expandable mood drawer.';
+    let releaseNotes = 'Authentic acoustic concert Miraj Tanpura engine, prominent Root Key selector, dynamic 3-Note Magic Riff (Pakad) tab and audio transposition, and 12-fret neck visualizer.';
 
     try {
       const ghRes = await fetch('https://api.github.com/repos/aman078/AG-Acoustics/releases/latest', {

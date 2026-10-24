@@ -10,6 +10,7 @@ export interface Raga {
   summary: string;
   poeticReflection: string;
   westernAnchor: 'C Major' | 'A Minor';
+  baseRootKey: 'C' | 'A';
   westernScaleName: string;
   theSimpleTwist: string;
   ascendingRule: string;
@@ -19,8 +20,10 @@ export interface Raga {
     swara: string;
     description: string;
   };
+  soulNoteOffset: number; // Semitone offset from Root (Sa)
   tanpuraTuning: 'Pa' | 'Ma' | 'Ni';
   scaleIntervals: string[]; // e.g. ["1", "2", "3", "#4", "5", "6", "7"]
+  scaleIntervalOffsets: number[]; // Semitone offsets from Root (Sa)
   scaleNotesAtC: string[]; // notes when Root is C or A
   fretboardPositionsAtC: { string: number; fret: number; note: string; isSoulNote?: boolean; isRoot?: boolean }[];
   signatureRiff: {
@@ -32,6 +35,18 @@ export interface Raga {
     guitarTip: string;
   };
 }
+
+export const CHROMATIC_NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'Bb', 'B'];
+
+export const SEMITONES_MAP: Record<string, number> = {
+  'C': 0, 'C#': 1, 'Db': 1,
+  'D': 2, 'D#': 3, 'Eb': 3,
+  'E': 4,
+  'F': 5, 'F#': 6, 'Gb': 6,
+  'G': 7, 'G#': 8, 'Ab': 8,
+  'A': 9, 'A#': 10, 'Bb': 10,
+  'B': 11
+};
 
 export const RAGAS_DATABASE: Raga[] = [
   {
@@ -46,17 +61,20 @@ export const RAGAS_DATABASE: Raga[] = [
     summary: 'The queen of evening serenity. Dissolves the day’s tension into quiet romantic gratitude.',
     poeticReflection: 'As the twilight settles, let the warmth of Yaman melt away the noise of the day into tranquil gratitude.',
     westernAnchor: 'C Major',
+    baseRootKey: 'C',
     westernScaleName: 'Lydian Mode',
-    theSimpleTwist: 'Take the C Major scale you already know, but sharpen the 4th note: play F# instead of F.',
-    ascendingRule: 'Leave space: Skip the Root (C) and 5th (G) going up (B - D - E - F# - A - B - C\').',
-    descendingRule: 'Full cascade coming down (C\' - B - A - G - F# - E - D - C).',
+    theSimpleTwist: 'Take the Major scale you know, but sharpen the 4th note (play #4 instead of 4).',
+    ascendingRule: 'Leave space: Skip the Root (Sa) and 5th (Pa) going up (Ni - Re - Ga - #Ma - Dha - Ni - Sa\').',
+    descendingRule: 'Full cascade coming down (Sa\' - Ni - Dha - Pa - #Ma - Ga - Re - Sa).',
     soulNote: {
       note: 'E',
       swara: 'Ga (Gandhar)',
-      description: 'Rest your melody on E. Let it linger and bloom with a gentle vibrato.'
+      description: 'Rest your melody on Ga (Major 3rd). Let it linger and bloom with a gentle vibrato.'
     },
+    soulNoteOffset: 4,
     tanpuraTuning: 'Pa',
     scaleIntervals: ['1', '2', '3', '#4', '5', '6', '7'],
+    scaleIntervalOffsets: [0, 2, 4, 6, 7, 9, 11],
     scaleNotesAtC: ['C', 'D', 'E', 'F#', 'G', 'A', 'B'],
     fretboardPositionsAtC: [
       { string: 5, fret: 3, note: 'C', isRoot: true },
@@ -85,7 +103,7 @@ export const RAGAS_DATABASE: Raga[] = [
       notes: ['B3', 'D4', 'E4', 'D4', 'B3', 'A3', 'E4'],
       frequenciesAtC: [246.94, 293.66, 329.63, 293.66, 246.94, 220.00, 329.63],
       durations: [0.4, 0.4, 0.8, 0.4, 0.4, 0.5, 1.0],
-      guitarTip: 'Slide smoothly into the E note on the 5th fret of the B-string and let it breathe with slow finger vibrato.'
+      guitarTip: 'Slide smoothly into the Ga note and let it breathe with slow finger vibrato.'
     }
   },
   {
@@ -100,17 +118,20 @@ export const RAGAS_DATABASE: Raga[] = [
     summary: 'The ultimate solace for a heavy heart. Converts sadness into timeless poetic acceptance.',
     poeticReflection: 'When words fail to carry grief, Bhairavi opens an ancient sanctuary where longing turns into peaceful acceptance.',
     westernAnchor: 'A Minor',
+    baseRootKey: 'A',
     westernScaleName: 'Phrygian Mode',
-    theSimpleTwist: 'Take the A Minor scale you know, but flatten the 2nd note: play Bb instead of B.',
-    ascendingRule: 'Climb with care: A - Bb - C - D - E - F - G - A\'.',
-    descendingRule: 'Full expressive descent. Linger tenderly on Bb before resolving to A.',
+    theSimpleTwist: 'Take the Minor scale you know, but flatten the 2nd note (play b2 instead of 2).',
+    ascendingRule: 'Climb with care: Sa - bRe - bGa - Ma - Pa - bDha - bNi - Sa\'.',
+    descendingRule: 'Full expressive descent. Linger tenderly on bRe before resolving down to Sa.',
     soulNote: {
       note: 'C',
       swara: 'Ga (Komal Gandhar)',
-      description: 'Linger on C (Minor 3rd). Slide gently up from Bb into C to create that deep vocal weeping effect.'
+      description: 'Linger on Komal Ga (Minor 3rd). Slide gently up from bRe into bGa to create that weeping sitar Meend.'
     },
+    soulNoteOffset: 3,
     tanpuraTuning: 'Ma',
     scaleIntervals: ['1', 'b2', 'b3', '4', '5', 'b6', 'b7'],
+    scaleIntervalOffsets: [0, 1, 3, 5, 7, 8, 10],
     scaleNotesAtC: ['A', 'Bb', 'C', 'D', 'E', 'F', 'G'],
     fretboardPositionsAtC: [
       { string: 5, fret: 0, note: 'A', isRoot: true },
@@ -139,7 +160,7 @@ export const RAGAS_DATABASE: Raga[] = [
       notes: ['A3', 'G3', 'A3', 'G3', 'F3', 'E3', 'D3', 'A3'],
       frequenciesAtC: [220.00, 196.00, 220.00, 196.00, 174.61, 164.81, 146.83, 220.00],
       durations: [0.5, 0.3, 0.3, 0.3, 0.5, 0.6, 0.8, 1.0],
-      guitarTip: 'Play the Bb to C transition with a subtle slide or micro-hammer to evoke the authentic weeping Meend of the sitar.'
+      guitarTip: 'Play the bRe to bGa transition with a subtle slide or micro-hammer to evoke the authentic weeping Meend of the sitar.'
     }
   },
   {
@@ -154,17 +175,20 @@ export const RAGAS_DATABASE: Raga[] = [
     summary: 'Created for Emperor Akbar’s midnight court to still an overburdened emperor’s mind into deep sleep.',
     poeticReflection: 'When the world is asleep and your thoughts feel loud, Darbari grounds the storm with majestic royal gravity.',
     westernAnchor: 'A Minor',
+    baseRootKey: 'A',
     westernScaleName: 'Natural Minor with Oscillating 3rd & 6th',
-    theSimpleTwist: 'Take the A Minor scale, but apply a slow, wide vibrato on the C (flat 3rd) and F (flat 6th).',
-    ascendingRule: 'Climb with majestic gravity: S - R - g - m - P - d - n - S\'.',
+    theSimpleTwist: 'Take the Minor scale, but apply a slow, wide vibrato on the flat 3rd (bGa) and flat 6th (bDha).',
+    ascendingRule: 'Climb with majestic gravity: Sa - Re - bGa - Ma - Pa - bDha - bNi - Sa\'.',
     descendingRule: 'Gliding descent with slow undulations on the flat notes.',
     soulNote: {
       note: 'D',
       swara: 'Ma (Madhyam)',
-      description: 'Anchor on D. Its deep resonant gravity stills the mind instantly.'
+      description: 'Anchor on Madhyam (Perfect 4th). Its deep resonant gravity stills the mind instantly.'
     },
+    soulNoteOffset: 5,
     tanpuraTuning: 'Pa',
     scaleIntervals: ['1', '2', 'b3', '4', '5', 'b6', 'b7'],
+    scaleIntervalOffsets: [0, 2, 3, 5, 7, 8, 10],
     scaleNotesAtC: ['A', 'B', 'C', 'D', 'E', 'F', 'G'],
     fretboardPositionsAtC: [
       { string: 5, fret: 0, note: 'A', isRoot: true },
@@ -190,7 +214,7 @@ export const RAGAS_DATABASE: Raga[] = [
       notes: ['A3', 'G3', 'F3', 'E3', 'D3', 'A2'],
       frequenciesAtC: [220.00, 196.00, 174.61, 164.81, 146.83, 110.00],
       durations: [0.6, 0.4, 0.8, 0.5, 0.8, 1.2],
-      guitarTip: 'Do not rush. Hit the F note and vibrate the string slowly up and down like a heavy swinging bell.'
+      guitarTip: 'Do not rush. Hit the bDha note and vibrate the string slowly up and down like a heavy swinging bell.'
     }
   },
   {
@@ -205,17 +229,20 @@ export const RAGAS_DATABASE: Raga[] = [
     summary: 'The soulful folk-blues of India. Rich, earthy, and spontaneous—the exact scale Carlos Santana made famous.',
     poeticReflection: 'Like the smell of wet earth after the first shower, Kafi awakens an effortless, playful groove.',
     westernAnchor: 'A Minor',
+    baseRootKey: 'A',
     westernScaleName: 'Dorian Mode',
-    theSimpleTwist: 'Take the A Minor scale you know, but raise the 6th note: play F# instead of F natural.',
-    ascendingRule: 'Climb with swing: A - B - C - D - E - F# - G - A\'.',
+    theSimpleTwist: 'Take the Minor scale you know, but raise the 6th note (play natural 6th instead of b6).',
+    ascendingRule: 'Climb with swing: Sa - Re - bGa - Ma - Pa - Dha - bNi - Sa\'.',
     descendingRule: 'Descend effortlessly through the Dorian blues colors.',
     soulNote: {
       note: 'E',
       swara: 'Pa (Pancham)',
-      description: 'Linger on the 5th (E). It gives the scale its solid, joyous heartbeat.'
+      description: 'Linger on the 5th (Pa). It gives the scale its solid, joyous heartbeat.'
     },
+    soulNoteOffset: 7,
     tanpuraTuning: 'Pa',
     scaleIntervals: ['1', '2', 'b3', '4', '5', '6', 'b7'],
+    scaleIntervalOffsets: [0, 2, 3, 5, 7, 9, 10],
     scaleNotesAtC: ['A', 'B', 'C', 'D', 'E', 'F#', 'G'],
     fretboardPositionsAtC: [
       { string: 5, fret: 0, note: 'A', isRoot: true },
@@ -255,17 +282,20 @@ export const RAGAS_DATABASE: Raga[] = [
     summary: 'Pure, uncluttered grace. Built on just 5 notes with no dissonances—every single note sounds heavenly.',
     poeticReflection: 'When you strip away complexity, simplicity shines. Bhopali clears the fog and fills you with warm confidence.',
     westernAnchor: 'C Major',
+    baseRootKey: 'C',
     westernScaleName: 'Major Pentatonic',
-    theSimpleTwist: 'Take the C Major scale, but leave out the 4th (F) and 7th (B). Play just C - D - E - G - A.',
-    ascendingRule: 'Climb cleanly: C - D - E - G - A - C\'. No half steps.',
-    descendingRule: 'Descend gracefully: C\' - A - G - E - D - C.',
+    theSimpleTwist: 'Take the Major scale, but omit the 4th (Ma) and 7th (Ni). Play just 1 - 2 - 3 - 5 - 6.',
+    ascendingRule: 'Climb cleanly: Sa - Re - Ga - Pa - Dha - Sa\'. No half steps.',
+    descendingRule: 'Descend gracefully: Sa\' - Dha - Pa - Ga - Re - Sa.',
     soulNote: {
       note: 'E',
       swara: 'Ga (Gandhar)',
-      description: 'Linger on E. It gives Bhopali its bright, noble character.'
+      description: 'Linger on Ga (Major 3rd). It gives Bhopali its bright, noble character.'
     },
+    soulNoteOffset: 4,
     tanpuraTuning: 'Pa',
     scaleIntervals: ['1', '2', '3', '5', '6'],
+    scaleIntervalOffsets: [0, 2, 4, 7, 9],
     scaleNotesAtC: ['C', 'D', 'E', 'G', 'A'],
     fretboardPositionsAtC: [
       { string: 5, fret: 3, note: 'C', isRoot: true },
@@ -307,17 +337,20 @@ export const RAGAS_DATABASE: Raga[] = [
     summary: 'One of the most ancient ragas in human history. Pure midnight mysticism with raw emotional power.',
     poeticReflection: 'Under the vast, silent night sky, Malkauns draws you inward into a quiet, unwavering trance.',
     westernAnchor: 'A Minor',
+    baseRootKey: 'A',
     westernScaleName: 'Minor Pentatonic with flat 6th',
-    theSimpleTwist: 'Take A Minor, but omit the 2nd (B) and 5th (E). Play only A - C - D - F - G.',
-    ascendingRule: 'Omit 2nd and 5th completely: A - C - D - F - G - A\'.',
-    descendingRule: 'Descend powerfully through the 5 mystical notes: A\' - G - F - D - C - A.',
+    theSimpleTwist: 'Take Minor Pentatonic, but omit the 2nd (Re) and 5th (Pa). Play only 1 - b3 - 4 - b6 - b7.',
+    ascendingRule: 'Omit 2nd and 5th completely: Sa - bGa - Ma - bDha - bNi - Sa\'.',
+    descendingRule: 'Descend powerfully through the 5 mystical notes: Sa\' - bNi - bDha - Ma - bGa - Sa.',
     soulNote: {
       note: 'D',
       swara: 'Ma (Madhyam)',
-      description: 'Linger on D. It acts as the magnetic center of gravity in the darkness.'
+      description: 'Linger on Madhyam (4th). It acts as the magnetic center of gravity in the darkness.'
     },
+    soulNoteOffset: 5,
     tanpuraTuning: 'Ma',
     scaleIntervals: ['1', 'b3', '4', 'b6', 'b7'],
+    scaleIntervalOffsets: [0, 3, 5, 8, 10],
     scaleNotesAtC: ['A', 'C', 'D', 'F', 'G'],
     fretboardPositionsAtC: [
       { string: 5, fret: 0, note: 'A', isRoot: true },
@@ -342,7 +375,7 @@ export const RAGAS_DATABASE: Raga[] = [
       notes: ['A3', 'G3', 'F3', 'D3', 'C3', 'A2'],
       frequenciesAtC: [220.00, 196.00, 174.61, 146.83, 130.81, 110.00],
       durations: [0.6, 0.4, 0.8, 0.5, 0.5, 1.2],
-      guitarTip: 'Notice there is no 5th note (E). This absence gives Malkauns its mysterious, bottomless feel.'
+      guitarTip: 'Notice there is no 5th note (Pa). This absence gives Malkauns its mysterious, bottomless feel.'
     }
   },
   {
@@ -357,17 +390,20 @@ export const RAGAS_DATABASE: Raga[] = [
     summary: 'The ultimate Thumri raag. Warm, romantic, and charming, shifting between two colors of the 7th note.',
     poeticReflection: 'Like laughing with an old flame by candlelight, Khamaj is filled with warmth, charm, and sweet longing.',
     westernAnchor: 'C Major',
+    baseRootKey: 'C',
     westernScaleName: 'Mixolydian with Dual 7ths',
-    theSimpleTwist: 'Play C Major going up (using natural B), but coming down, switch B to Bb (flat 7th).',
-    ascendingRule: 'Climb with natural B: C - E - F - G - A - B - C\'. (Omit D).',
-    descendingRule: 'Descend with flat Bb: C\' - Bb - A - G - F - E - D - C.',
+    theSimpleTwist: 'Play Major going up (using natural 7th), but coming down, switch to flat 7th (bNi).',
+    ascendingRule: 'Climb with natural 7: Sa - Ga - Ma - Pa - Dha - Ni - Sa\'. (Omit Re).',
+    descendingRule: 'Descend with flat 7: Sa\' - bNi - Dha - Pa - Ma - Ga - Re - Sa.',
     soulNote: {
       note: 'E',
       swara: 'Ga (Gandhar)',
-      description: 'Linger on E. It gives Khamaj its sweet, golden warmth.'
+      description: 'Linger on Ga (Major 3rd). It gives Khamaj its sweet, golden warmth.'
     },
+    soulNoteOffset: 4,
     tanpuraTuning: 'Ni',
     scaleIntervals: ['1', '2', '3', '4', '5', '6', 'b7/7'],
+    scaleIntervalOffsets: [0, 2, 4, 5, 7, 9, 10, 11],
     scaleNotesAtC: ['C', 'D', 'E', 'F', 'G', 'A', 'Bb/B'],
     fretboardPositionsAtC: [
       { string: 5, fret: 3, note: 'C', isRoot: true },
@@ -392,7 +428,7 @@ export const RAGAS_DATABASE: Raga[] = [
       notes: ['C4', 'Bb3', 'A3', 'G3', 'F3', 'E3'],
       frequenciesAtC: [261.63, 233.08, 220.00, 196.00, 174.61, 164.81],
       durations: [0.5, 0.4, 0.5, 0.4, 0.5, 1.0],
-      guitarTip: 'Notice the contrast: natural B when climbing upward, sweet flat Bb when trickling down.'
+      guitarTip: 'Notice the contrast: natural 7th when climbing upward, sweet flat 7th when trickling down.'
     }
   },
   {
@@ -404,20 +440,23 @@ export const RAGAS_DATABASE: Raga[] = [
     idealHours: [7, 10],
     rasa: 'Shanta (Peaceful Clarity) & Utsaha (Morning Energy)',
     moodKeywords: ['fresh', 'morning', 'energy', 'clear', 'optimistic', 'awakening', 'bright', 'grateful', 'starting', 'new'],
-    summary: 'The mother scale of Indian music—the exact pristine C Major scale, celebrating dawn and clarity.',
+    summary: 'The mother scale of Indian music—the exact pristine Major scale, celebrating dawn and clarity.',
     poeticReflection: 'As the sun cuts through the morning mist, Bilawal clears the mental canvas with pure, untouched light.',
     westernAnchor: 'C Major',
+    baseRootKey: 'C',
     westernScaleName: 'Natural Major Scale (Ionian)',
-    theSimpleTwist: 'No twists needed! It is the exact natural C Major scale you already know by heart.',
-    ascendingRule: 'C - D - E - F - G - A - B - C\'. Pure and natural.',
-    descendingRule: 'C\' - B - A - G - F - E - D - C.',
+    theSimpleTwist: 'No twists needed! It is the exact natural Major scale you already know by heart.',
+    ascendingRule: 'Sa - Re - Ga - Ma - Pa - Dha - Ni - Sa\'. Pure and natural.',
+    descendingRule: 'Sa\' - Ni - Dha - Pa - Ma - Ga - Re - Sa.',
     soulNote: {
       note: 'D',
       swara: 'Re (Rishabh)',
-      description: 'Linger on D. It gently greets the day with youthful anticipation.'
+      description: 'Linger on Re (Major 2nd). It gently greets the day with youthful anticipation.'
     },
+    soulNoteOffset: 2,
     tanpuraTuning: 'Pa',
     scaleIntervals: ['1', '2', '3', '4', '5', '6', '7'],
+    scaleIntervalOffsets: [0, 2, 4, 5, 7, 9, 11],
     scaleNotesAtC: ['C', 'D', 'E', 'F', 'G', 'A', 'B'],
     fretboardPositionsAtC: [
       { string: 5, fret: 3, note: 'C', isRoot: true },
@@ -442,7 +481,60 @@ export const RAGAS_DATABASE: Raga[] = [
       notes: ['A3', 'B3', 'C4', 'A3', 'G3', 'E3'],
       frequenciesAtC: [220.00, 246.94, 261.63, 220.00, 196.00, 164.81],
       durations: [0.4, 0.4, 0.6, 0.4, 0.4, 0.9],
-      guitarTip: 'Play with a light, crisp touch. Let the open strings shimmer over the C Tanpura drone.'
+      guitarTip: 'Play with a light, crisp touch. Let the open strings shimmer over the Tanpura drone.'
     }
   }
 ];
+
+/**
+ * Get scale notes for any chosen root key
+ */
+export function getTransposedNotes(raga: Raga, rootKey: string): string[] {
+  const rootSemi = SEMITONES_MAP[rootKey] ?? 0;
+  return raga.scaleIntervalOffsets.map((offset) => CHROMATIC_NOTES[(rootSemi + offset) % 12]);
+}
+
+/**
+ * Get Soul Note (Vadi) for any chosen root key
+ */
+export function getTransposedSoulNote(raga: Raga, rootKey: string): { note: string; swara: string; description: string } {
+  const rootSemi = SEMITONES_MAP[rootKey] ?? 0;
+  const soulNoteName = CHROMATIC_NOTES[(rootSemi + raga.soulNoteOffset) % 12];
+  return {
+    note: soulNoteName,
+    swara: raga.soulNote.swara,
+    description: raga.soulNote.description
+  };
+}
+
+/**
+ * Dynamically transpose guitar tablature display for any chosen root key
+ */
+export function getTransposedRiffTab(raga: Raga, targetRootKey: string): string[] {
+  const baseSemi = SEMITONES_MAP[raga.baseRootKey] ?? 0;
+  const targetSemi = SEMITONES_MAP[targetRootKey] ?? 0;
+  let shift = targetSemi - baseSemi;
+
+  while (shift < -2) shift += 12;
+  while (shift > 9) shift -= 12;
+
+  return raga.signatureRiff.tabDisplay.map((line) => {
+    return line.replace(/(\d+)/g, (match) => {
+      const originalFret = parseInt(match, 10);
+      let transposedFret = originalFret + shift;
+      if (transposedFret < 0) transposedFret += 12;
+      return transposedFret.toString();
+    });
+  });
+}
+
+/**
+ * Dynamically transpose audio playback frequencies for any chosen root key
+ */
+export function getTransposedRiffFrequencies(raga: Raga, targetRootKey: string): number[] {
+  const baseSemi = SEMITONES_MAP[raga.baseRootKey] ?? 0;
+  const targetSemi = SEMITONES_MAP[targetRootKey] ?? 0;
+  const semitoneDiff = targetSemi - baseSemi;
+  const factor = Math.pow(2, semitoneDiff / 12);
+  return raga.signatureRiff.frequenciesAtC.map((f) => f * factor);
+}

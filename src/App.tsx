@@ -19,7 +19,8 @@ import {
   Smartphone,
   Sun,
   Moon,
-  Flower2
+  Flower2,
+  Waves
 } from 'lucide-react';
 import { detectPitchMPM, frequencyToNote, calculateCents, getRMSVolume } from './audio/pitchDetection';
 import { playGuitarStringTone, playInTuneChime, stopToneDrone } from './audio/toneGenerator';
@@ -964,7 +965,7 @@ export const App: React.FC = () => {
                 : 'text-slate-400 hover:text-white hover:bg-white/[0.03]'
             }`}
           >
-            <Flower2 className="w-4 h-4 sm:w-5 sm:h-5 mb-0.5 text-[#f15a24]" />
+            <Waves className="w-4 h-4 sm:w-5 sm:h-5 mb-0.5 text-[#f15a24]" />
             <span className="text-[10px] font-bold tracking-tight text-[#f15a24] dark:text-[#ff7a45]">Rasa</span>
           </button>
         </div>

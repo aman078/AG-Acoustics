@@ -645,10 +645,10 @@ export function guitarTunaScraperPlugin(): Plugin {
           res.setHeader('Content-Type', 'application/json');
           res.setHeader('Access-Control-Allow-Origin', '*');
           res.end(JSON.stringify({
-            latest_version_code: 58,
-            latest_version_name: '1.0.58',
+            latest_version_code: 59,
+            latest_version_name: '1.0.59',
             download_url: 'https://github.com/aman078/AG-Acoustics/releases/latest/download/AGSoft-Acoustics.apk',
-            release_notes: 'Time-of-day default raag quick selector, accumulating non-destructive voice note transcription, and expandable mood drawer.',
+            release_notes: 'Authentic acoustic concert Miraj Tanpura engine, prominent Root Key selector, dynamic 3-Note Magic Riff (Pakad) tab and audio transposition, and 12-fret neck visualizer.',
             force_update: false,
           }));
         } catch (err: unknown) {

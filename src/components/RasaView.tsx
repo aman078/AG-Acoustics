@@ -13,9 +13,19 @@ import {
   ChevronUp,
   Sparkles,
   Compass,
-  Check
+  Check,
+  Music
 } from 'lucide-react';
-import { RAGAS_DATABASE, Raga } from '../data/ragas';
+import { 
+  RAGAS_DATABASE, 
+  Raga,
+  CHROMATIC_NOTES, 
+  SEMITONES_MAP,
+  getTransposedNotes,
+  getTransposedSoulNote,
+  getTransposedRiffTab,
+  getTransposedRiffFrequencies
+} from '../data/ragas';
 import { tanpura } from '../audio/tanpuraEngine';
 import { 
   speechService, 
@@ -29,14 +39,6 @@ interface RasaViewProps {
   onBackToTuner?: () => void;
 }
 
-const SEMITONES_MAP: Record<string, number> = {
-  'C': 0, 'C#': 1, 'Db': 1, 'D': 2, 'D#': 3, 'Eb': 3,
-  'E': 4, 'F': 5, 'F#': 6, 'Gb': 6, 'G': 7, 'G#': 8,
-  'Ab': 8, 'A': 9, 'A#': 10, 'Bb': 10, 'B': 11
-};
-
-const CHROMATIC_NOTES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
-
 const STRINGS_OPEN = [
   { stringNum: 1, openSemitone: 4, baseFreq: 329.63, name: 'e' }, // High E
   { stringNum: 2, openSemitone: 11, baseFreq: 246.94, name: 'B' }, // B
@@ -45,22 +47,6 @@ const STRINGS_OPEN = [
   { stringNum: 5, openSemitone: 9, baseFreq: 110.00, name: 'A' },  // A
   { stringNum: 6, openSemitone: 4, baseFreq: 82.41, name: 'E' },   // Low E
 ];
-
-const INTERVAL_OFFSETS: Record<string, number[]> = {
-  '1': [0],
-  'b2': [1],
-  '2': [2],
-  'b3': [3],
-  '3': [4],
-  '4': [5],
-  '#4': [6],
-  '5': [7],
-  'b6': [8],
-  '6': [9],
-  'b7': [10],
-  '7': [11],
-  'b7/7': [10, 11]
-};
 
 const ALL_CURATED_MOODS = [
   { label: '🧘 Peaceful Sunset', text: 'peaceful evening sunset unwind grateful serene calm' },
@@ -100,14 +86,16 @@ export const RasaView: React.FC<RasaViewProps> = () => {
     userPromptPreview: 'Aligned with current time of day'
   }));
 
+  // Global Root Key state (defaults to C, user can select any key: C, D, E, G, A, etc.)
+  const [tanpuraKey, setTanpuraKey] = useState<string>('C');
+
   // Tanpura state
   const [isTanpuraPlaying, setIsTanpuraPlaying] = useState<boolean>(false);
   const [tanpuraStep, setTanpuraStep] = useState<number>(0);
-  const [tanpuraKey, setTanpuraKey] = useState<string>('C');
   const [tanpuraVolume, setTanpuraVolume] = useState<number>(0.8);
   const [isRiffPlaying, setIsRiffPlaying] = useState<boolean>(false);
 
-  // Subscribe to Tanpura plucking cycles
+  // Subscribe to Tanpura cycles
   useEffect(() => {
     const unsubscribe = tanpura.subscribe((step, playing) => {
       setTanpuraStep(step);
@@ -128,23 +116,25 @@ export const RasaView: React.FC<RasaViewProps> = () => {
     });
   }, [tanpuraKey, analysis.primaryRaga, tanpuraVolume]);
 
-  // Voice note recording with continuous accumulation (does NOT auto-analyze on stop)
-  const toggleVoiceRecording = () => {
+  // Voice recording logic with non-destructive transcription
+  const handleToggleVoiceRecording = () => {
+    if (!speechService.isSupported()) {
+      alert('Speech recognition is not supported in this browser. Please type your thoughts.');
+      return;
+    }
+
     if (isRecordingVoice) {
       speechService.stop();
       setIsRecordingVoice(false);
-      // NOTE: We do NOT auto-analyze here. The user speaks freely, stops, reviews, and clicks analyze when ready.
     } else {
       setIsRecordingVoice(true);
+      const existing = userStory.trim();
       speechService.start(
-        userStory,
-        (accumulatedTranscript) => {
-          setUserStory(accumulatedTranscript);
+        existing,
+        (accumulatedText: string) => {
+          setUserStory(accumulatedText);
         },
-        (err) => {
-          console.warn('Speech recognition error:', err);
-          setIsRecordingVoice(false);
-        },
+        undefined,
         () => {
           setIsRecordingVoice(false);
         }
@@ -152,75 +142,77 @@ export const RasaView: React.FC<RasaViewProps> = () => {
     }
   };
 
-  // Run analysis only when explicitly requested
-  const handleAnalyzeStory = (customText?: string) => {
-    const textToAnalyze = customText || userStory;
-    if (!textToAnalyze.trim()) return;
+  // Analyze the accumulated story/text when user explicitly clicks the button
+  const handleAnalyzeStory = (overrideText?: string) => {
+    if (isRecordingVoice) {
+      speechService.stop();
+      setIsRecordingVoice(false);
+    }
+
+    const textToAnalyze = overrideText !== undefined ? overrideText : userStory;
     const result = analyzeMoodAndMatchRaag(textToAnalyze);
     setAnalysis(result);
-  };
 
-  // Quick Mood Selection
-  const handleSelectQuickChip = (chipText: string) => {
-    setUserStory(chipText);
-    handleAnalyzeStory(chipText);
-    setShowAllMoods(false);
-  };
-
-  // Direct Time-of-Day Raag Selection (Skips 'How are you feeling' step)
-  const handleSelectRaagDirectly = (raga: Raga) => {
-    setAnalysis({
-      primaryRaga: raga,
-      secondaryRaga: RAGAS_DATABASE.find((r) => r.id !== raga.id) || RAGAS_DATABASE[0],
-      detectedEmotion: raga.rasa,
-      detectedKeywords: ['direct selection'],
-      empatheticReflection: raga.poeticReflection,
-      timeContext: `${timeContext.label} (${timeContext.period})`,
-      userPromptPreview: `Selected ${raga.name}`
+    // Tanpura automatically matches tuning
+    tanpura.setConfig({
+      rootKey: tanpuraKey,
+      firstString: result.primaryRaga.tanpuraTuning
     });
+  };
+
+  // 1-Tap Direct Raag selection from "Ragas for This Hour"
+  const handleSelectRaagDirectly = (selectedRaga: Raga) => {
+    setAnalysis((prev) => ({
+      ...prev,
+      primaryRaga: selectedRaga,
+      detectedEmotion: selectedRaga.rasa,
+      detectedKeywords: ['Direct Selection', selectedRaga.name],
+      empatheticReflection: selectedRaga.poeticReflection
+    }));
+
+    tanpura.setConfig({
+      rootKey: tanpuraKey,
+      firstString: selectedRaga.tanpuraTuning
+    });
+  };
+
+  const handleSelectQuickChip = (moodKeywords: string) => {
+    setUserStory((prev) => (prev ? `${prev} ${moodKeywords}` : moodKeywords));
+    handleAnalyzeStory(userStory ? `${userStory} ${moodKeywords}` : moodKeywords);
   };
 
   const handleToggleTanpura = () => {
     tanpura.toggle();
   };
 
+  const currentRaga = analysis.primaryRaga;
+
+  // Transposed helpers for current key
+  const transposedNotes = getTransposedNotes(currentRaga, tanpuraKey);
+  const transposedSoulNote = getTransposedSoulNote(currentRaga, tanpuraKey);
+  const transposedTab = getTransposedRiffTab(currentRaga, tanpuraKey);
+  const transposedRiffFreqs = getTransposedRiffFrequencies(currentRaga, tanpuraKey);
+
   const handlePlayRiff = () => {
-    if (isRiffPlaying) return;
     setIsRiffPlaying(true);
     tanpura.playMagicRiff(
-      analysis.primaryRaga.signatureRiff.frequenciesAtC,
-      analysis.primaryRaga.signatureRiff.durations
+      transposedRiffFreqs,
+      currentRaga.signatureRiff.durations
     );
-    const totalDuration = analysis.primaryRaga.signatureRiff.durations.reduce((a, b) => a + b, 0);
+    const totalDuration = currentRaga.signatureRiff.durations.reduce((a, b) => a + b, 0);
     setTimeout(() => {
       setIsRiffPlaying(false);
-    }, (totalDuration + 0.5) * 1000);
+    }, totalDuration * 1000 + 400);
   };
-
-  const currentRaga = analysis.primaryRaga;
 
   // Calculate dynamic scale notes across all 12 frets based on selected root key
   const rootSemitone = SEMITONES_MAP[tanpuraKey] ?? 0;
   const scaleSemitones = new Set<number>();
-  currentRaga.scaleIntervals.forEach((interval) => {
-    const offsets = INTERVAL_OFFSETS[interval] || [0];
-    offsets.forEach((off) => {
-      scaleSemitones.add((rootSemitone + off) % 12);
-    });
+  currentRaga.scaleIntervalOffsets.forEach((off) => {
+    scaleSemitones.add((rootSemitone + off) % 12);
   });
 
-  // Calculate soul note semitone offset
-  let soulOffset = 4;
-  if (currentRaga.soulNote.swara.includes('Gandhar')) {
-    soulOffset = currentRaga.scaleIntervals.includes('b3') ? 3 : 4;
-  } else if (currentRaga.soulNote.swara.includes('Madhyam')) {
-    soulOffset = 5;
-  } else if (currentRaga.soulNote.swara.includes('Pancham')) {
-    soulOffset = 7;
-  } else if (currentRaga.soulNote.swara.includes('Rishabh')) {
-    soulOffset = 2;
-  }
-  const soulSemitone = (rootSemitone + soulOffset) % 12;
+  const soulSemitone = (rootSemitone + currentRaga.soulNoteOffset) % 12;
 
   // Generate complete 12-fret neck note mapping
   const fretboardNotes: {
@@ -273,7 +265,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
               </span>
             </h1>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-              Demystified Raags for the Modern Guitarist
+              Demystified Raags for Any Guitar Key
             </p>
           </div>
         </div>
@@ -289,7 +281,46 @@ export const RasaView: React.FC<RasaViewProps> = () => {
         </div>
       </div>
 
-      {/* 2. RAGAS FOR THIS HOUR (Direct 1-Tap Selection to Skip Story Step) */}
+      {/* 2. PROMINENT ROOT KEY SELECTOR (Sa) */}
+      <div className="w-full p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-xs flex flex-col space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Music className="w-4 h-4 text-[#f15a24]" />
+            <span className="text-xs font-mono font-extrabold uppercase text-slate-800 dark:text-slate-200 tracking-wider">
+              SELECT ROOT KEY (SA):
+            </span>
+          </div>
+          <span className="text-[10px] font-mono font-bold text-[#f15a24]">
+            Active Key: {tanpuraKey} (Sa = {tanpuraKey})
+          </span>
+        </div>
+
+        {/* 12 Chromatic Root Buttons */}
+        <div className="grid grid-cols-6 sm:grid-cols-12 gap-1.5 pt-1">
+          {CHROMATIC_NOTES.map((key) => {
+            const isSelected = tanpuraKey === key;
+            return (
+              <button
+                key={key}
+                onClick={() => {
+                  setTanpuraKey(key);
+                  tanpura.setConfig({ rootKey: key });
+                }}
+                className={`py-1.5 sm:py-2 rounded-xl text-xs font-mono font-black transition-all cursor-pointer flex flex-col items-center justify-center border ${
+                  isSelected
+                    ? 'bg-[#f15a24] text-white border-[#f15a24] shadow-[0_0_12px_rgba(241,90,36,0.35)] scale-105'
+                    : 'bg-slate-100 dark:bg-white/[0.04] border-slate-200 dark:border-white/[0.06] text-slate-700 dark:text-slate-300 hover:border-[#f15a24]/40 hover:text-[#f15a24]'
+                }`}
+              >
+                <span>{key}</span>
+                <span className="text-[8px] opacity-75 font-normal">Sa</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 3. RAGAS FOR THIS HOUR (Direct 1-Tap Selection to Skip Story Step) */}
       <div className="w-full p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-xs flex flex-col space-y-2">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-mono font-bold uppercase text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
@@ -321,7 +352,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
         </div>
       </div>
 
-      {/* 3. "How are you feeling today?" Interactive Story Card */}
+      {/* 4. "How are you feeling today?" Interactive Story Card */}
       <div className="w-full p-4 sm:p-5 rounded-3xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-sm flex flex-col space-y-3">
         <div className="flex items-center justify-between">
           <label className="text-xs font-bold font-mono tracking-wider uppercase text-slate-700 dark:text-slate-300 flex items-center gap-2">
@@ -340,13 +371,12 @@ export const RasaView: React.FC<RasaViewProps> = () => {
             className="w-full p-3.5 pr-14 rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-white/[0.08] text-xs sm:text-sm text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-[#f15a24] transition resize-none leading-relaxed"
           />
 
-          {/* Voice Note Button */}
           <button
-            onClick={toggleVoiceRecording}
-            className={`absolute right-2.5 bottom-3.5 p-2.5 rounded-xl transition cursor-pointer flex items-center justify-center shadow-md ${
+            onClick={handleToggleVoiceRecording}
+            className={`absolute right-3 bottom-3 p-2 rounded-xl transition cursor-pointer shadow-sm ${
               isRecordingVoice
-                ? 'bg-rose-500 text-white animate-pulse shadow-[0_0_15px_rgba(244,63,94,0.6)]'
-                : 'bg-[#f15a24] text-white hover:bg-orange-600 shadow-[0_0_12px_rgba(241,90,36,0.35)]'
+                ? 'bg-rose-500 text-white animate-pulse'
+                : 'bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-slate-300 hover:text-[#f15a24]'
             }`}
             title={isRecordingVoice ? 'Recording... Tap to stop speaking' : 'Tap to speak your thoughts'}
           >
@@ -409,7 +439,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
         </button>
       </div>
 
-      {/* 4. Matched Raag Hero Card */}
+      {/* 5. Matched Raag Hero Card */}
       <div className="w-full p-4 sm:p-5 rounded-3xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-sm flex flex-col space-y-3 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-48 h-48 bg-[#f15a24]/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -445,37 +475,24 @@ export const RasaView: React.FC<RasaViewProps> = () => {
         </div>
       </div>
 
-      {/* 5. Acoustic Tanpura Bed Engine (Miraj Sound Model) */}
+      {/* 6. Acoustic Tanpura Bed Engine (Miraj Sound Model - Real Acoustic Recordings) */}
       <div className="w-full p-4 sm:p-5 rounded-3xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-sm flex flex-col space-y-3">
         <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-white/[0.08]">
           <div className="flex items-center gap-2">
             <Waves className="w-4 h-4 text-[#f15a24]" />
-            <span className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 uppercase">
-              ACOUSTIC TANPURA BED (CONCERT MIRAJ JAVARI)
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {/* Key Selector Dropdown */}
-            <div className="flex items-center gap-1 text-[11px] font-mono font-bold text-slate-500">
-              <span>KEY:</span>
-              <select
-                value={tanpuraKey}
-                onChange={(e) => setTanpuraKey(e.target.value)}
-                className="bg-slate-100 dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 rounded-lg px-2 py-0.5 text-slate-800 dark:text-slate-200 font-bold focus:outline-none cursor-pointer"
-              >
-                {['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'A', 'Bb', 'B'].map((k) => (
-                  <option key={k} value={k}>
-                    {k}
-                  </option>
-                ))}
-              </select>
+            <div>
+              <span className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 uppercase block">
+                ACOUSTIC TANPURA BED (CONCERT MIRAJ)
+              </span>
+              <span className="text-[10px] font-mono text-slate-400">
+                Authentic pumpkin gourd & silk Javari buzz (matching Tanpura Droid)
+              </span>
             </div>
-
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-white/[0.06] text-slate-500 font-bold">
-              {currentRaga.tanpuraTuning} Tuning
-            </span>
           </div>
+
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#f15a24]/15 text-[#f15a24] font-bold">
+            {tanpuraKey} • {currentRaga.tanpuraTuning} Tuning
+          </span>
         </div>
 
         {/* 4 Animated Acoustic Tanpura Strings */}
@@ -519,7 +536,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
               </>
             ) : (
               <>
-                <Play className="w-4 h-4 fill-white" /> START TANPURA DRONE
+                <Play className="w-4 h-4 fill-white" /> START TANPURA DRONE ({tanpuraKey})
               </>
             )}
           </button>
@@ -540,15 +557,31 @@ export const RasaView: React.FC<RasaViewProps> = () => {
         </div>
       </div>
 
-      {/* 6. The Guitarist's Demystified Formula Card */}
+      {/* 7. The Guitarist's Demystified Formula Card */}
       <div className="w-full p-4 sm:p-5 rounded-3xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-sm flex flex-col space-y-3">
         <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-white/[0.08]">
           <span className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 uppercase">
             THE GUITARIST&apos;S FORMULA
           </span>
           <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-extrabold border border-emerald-500/30">
-            ANCHOR: {currentRaga.westernAnchor}
+            ROOT: {tanpuraKey} (Sa = {tanpuraKey})
           </span>
+        </div>
+
+        {/* Dynamic Scale Name & Notes in Current Root Key */}
+        <div className="p-3 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] text-xs font-mono">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[10px] uppercase font-bold text-slate-400">WESTERN SCALE:</span>
+            <span className="font-extrabold text-[#f15a24]">
+              {tanpuraKey} {currentRaga.westernScaleName}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase font-bold text-slate-400">SCALE NOTES:</span>
+            <span className="font-bold text-slate-800 dark:text-slate-200 tracking-wider">
+              {transposedNotes.join(' • ')}
+            </span>
+          </div>
         </div>
 
         {/* The Simple Twist Callout */}
@@ -572,32 +605,37 @@ export const RasaView: React.FC<RasaViewProps> = () => {
           </div>
         </div>
 
-        {/* Soul Note (Vadi) */}
+        {/* Soul Note (Vadi) dynamically transposed */}
         <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-xs font-mono">
           <div>
             <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 block">
-              THE SOUL NOTE (VADI SWARA):
+              THE SOUL NOTE (VADI SWARA IN {tanpuraKey}):
             </span>
             <span className="font-extrabold text-slate-900 dark:text-white text-sm">
-              {currentRaga.soulNote.note} ({currentRaga.soulNote.swara})
+              {transposedSoulNote.note} ({transposedSoulNote.swara})
             </span>
             <span className="text-[11px] text-slate-600 dark:text-slate-400 block mt-0.5">
-              {currentRaga.soulNote.description}
+              {transposedSoulNote.description}
             </span>
           </div>
-          <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 flex items-center justify-center font-black text-sm shadow-inner">
-            {currentRaga.soulNote.note}
+          <div className="w-9 h-9 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 flex items-center justify-center font-black text-sm shadow-inner shrink-0">
+            {transposedSoulNote.note}
           </div>
         </div>
       </div>
 
-      {/* 7. The 3-Note Magic Riff (Pakad) */}
+      {/* 8. The 3-Note Magic Riff (Pakad) - Dynamically Transposed for Selected Key */}
       <div className="w-full p-4 sm:p-5 rounded-3xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-sm flex flex-col space-y-3">
         <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-white/[0.08]">
           <div>
-            <span className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 uppercase block">
-              3-NOTE MAGIC RIFF (PAKAD)
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 uppercase">
+                3-NOTE MAGIC RIFF (PAKAD)
+              </span>
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#f15a24]/15 text-[#f15a24] font-extrabold">
+                IN {tanpuraKey}
+              </span>
+            </div>
             <span className="text-[10px] font-mono text-slate-400">
               {currentRaga.signatureRiff.title}
             </span>
@@ -612,13 +650,13 @@ export const RasaView: React.FC<RasaViewProps> = () => {
             }`}
           >
             <Play className="w-3 h-3 fill-current" />
-            <span>{isRiffPlaying ? 'PLAYING RIFF...' : 'HEAR MAGIC RIFF'}</span>
+            <span>{isRiffPlaying ? `PLAYING IN ${tanpuraKey}...` : `HEAR RIFF IN ${tanpuraKey}`}</span>
           </button>
         </div>
 
-        {/* Tablature Display Box */}
+        {/* Tablature Display Box (Transposed to Selected Key) */}
         <div className="w-full p-3 rounded-2xl bg-slate-900 dark:bg-slate-950 font-mono text-emerald-400 text-xs sm:text-sm overflow-x-auto shadow-inner leading-relaxed">
-          {currentRaga.signatureRiff.tabDisplay.map((line, idx) => (
+          {transposedTab.map((line, idx) => (
             <div key={idx} className="whitespace-pre">
               {line}
             </div>
@@ -630,7 +668,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
         </div>
       </div>
 
-      {/* 8. FULL 12-FRET INTERACTIVE GUITAR FRETBOARD (Zero Wobble, Complete Scale Map) */}
+      {/* 9. FULL 12-FRET INTERACTIVE GUITAR FRETBOARD (Zero Wobble, Complete Scale Map in Key) */}
       <div className="w-full p-4 sm:p-5 rounded-3xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-sm flex flex-col space-y-3">
         <div className="flex items-center justify-between pb-1 border-b border-slate-200 dark:border-white/[0.08]">
           <div>
@@ -638,15 +676,15 @@ export const RasaView: React.FC<RasaViewProps> = () => {
               FULL 12-FRET GUITAR FRETBOARD
             </span>
             <span className="text-[10px] font-mono text-slate-400">
-              Root Key: {tanpuraKey} • Tap any note to play
+              Root Key: {tanpuraKey} (Sa = {tanpuraKey}) • Tap any note to play
             </span>
           </div>
           <div className="flex items-center gap-3 text-[10px] font-mono">
             <span className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#f15a24] inline-block" /> Root (Sa)
+              <span className="w-2.5 h-2.5 rounded-full bg-[#f15a24] inline-block" /> Root ({tanpuraKey})
             </span>
             <span className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" /> Soul Note (Vadi)
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" /> Soul Note ({transposedSoulNote.note})
             </span>
           </div>
         </div>
@@ -701,7 +739,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
               );
             })}
 
-            {/* Dynamic Scale Note Badges Across the Entire 12 Frets */}
+            {/* Dynamic Scale Note Badges Across the Entire 12 Frets in Selected Key */}
             {fretboardNotes.map((pos, idx) => {
               const y = 17 + (pos.stringNum - 1) * 20;
               const x = pos.fret === 0 ? 25 : 38 + pos.fret * 52 - 26;
@@ -716,7 +754,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
                   onClick={() => handlePlayFretNote(pos.freq)}
                   className="cursor-pointer group"
                 >
-                  {/* Clean stationary halo ring for Soul Note (Zero erratic spinning) */}
+                  {/* Clean stationary halo ring for Soul Note (Zero erratic wobble) */}
                   {isSoul && (
                     <circle 
                       cx={x} 

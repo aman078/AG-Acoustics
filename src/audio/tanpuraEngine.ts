@@ -1,29 +1,35 @@
 /**
- * Authentic Acoustic Tanpura Synthesizer Engine
- * Recreates the organic warmth, Javari thread buzzing, and hollow pumpkin gourd resonance
- * inspired by concert Miraj Tanpuras and Tanpura Droid.
+ * Authentic Acoustic Tanpura Engine
+ * Powered by high-fidelity acoustic concert Miraj Tanpura recordings
+ * providing the authentic meditative pumpkin gourd resonance and silk thread Javari buzz,
+ * matching Tanpura Droid.
  */
 
 export interface TanpuraConfig {
   rootKey: string; // e.g. 'C', 'C#', 'D', 'E', 'G', 'A'
   firstString: 'Pa' | 'Ma' | 'Ni'; // Tuning for the 1st string
   volume: number; // 0.0 to 1.0
-  pluckIntervalMs: number; // Duration between string plucks
+  pluckIntervalMs: number; // Duration between string pulses
 }
 
-const NOTE_FREQS: Record<string, number> = {
-  'C': 130.81,   // C3 base (Kharaj C2 = 65.4)
-  'C#': 138.59,
-  'D': 146.83,
-  'D#': 155.56,
-  'E': 164.81,
-  'F': 174.61,
-  'F#': 185.00,
-  'G': 196.00,
-  'G#': 207.65,
-  'A': 220.00,
-  'Bb': 233.08,
-  'B': 246.94
+const KEY_TO_FILE: Record<string, string> = {
+  'C': 'C.mp3',
+  'C#': 'CSharp.mp3',
+  'Db': 'CSharp.mp3',
+  'D': 'D.mp3',
+  'D#': 'DSharp.mp3',
+  'Eb': 'DSharp.mp3',
+  'E': 'E.mp3',
+  'F': 'F.mp3',
+  'F#': 'FSharp.mp3',
+  'Gb': 'FSharp.mp3',
+  'G': 'G.mp3',
+  'G#': 'GSharp.mp3',
+  'Ab': 'GSharp.mp3',
+  'A': 'A.mp3',
+  'A#': 'Bb.mp3',
+  'Bb': 'Bb.mp3',
+  'B': 'B.mp3'
 };
 
 class TanpuraEngine {
@@ -32,7 +38,12 @@ class TanpuraEngine {
   private loopTimer: any = null;
   private currentStringStep: number = 0;
   private masterGain: GainNode | null = null;
-  private periodicWave: PeriodicWave | null = null;
+
+  // Real acoustic audio playback
+  private currentAudioElement: HTMLAudioElement | null = null;
+  private fadingAudioElement: HTMLAudioElement | null = null;
+  private currentBufferSource: AudioBufferSourceNode | null = null;
+  private bufferCache: Map<string, AudioBuffer> = new Map();
 
   private config: TanpuraConfig = {
     rootKey: 'C',
@@ -60,74 +71,52 @@ class TanpuraEngine {
     return { ...this.config };
   }
 
-  private initAudio() {
+  private initAudioContext() {
     if (!this.ctx) {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       this.ctx = new AudioCtx();
     }
-    if (this.ctx.state === 'suspended') {
-      this.ctx.resume();
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume().catch(() => {});
     }
-    if (!this.masterGain) {
+    if (!this.masterGain && this.ctx) {
       this.masterGain = this.ctx.createGain();
       this.masterGain.gain.setValueAtTime(this.config.volume, this.ctx.currentTime);
       this.masterGain.connect(this.ctx.destination);
     }
-    if (!this.periodicWave && this.ctx) {
-      this.buildJavariWavetable();
-    }
-  }
-
-  /**
-   * Builds an authentic Miraj Tanpura Fourier series wavetable
-   * Models the hollow dried pumpkin gourd (Tumba) and silk thread buzzing (Javari)
-   */
-  private buildJavariWavetable() {
-    if (!this.ctx) return;
-    const n = 48; // 48 harmonics for rich acoustic overtone spectrum
-    const real = new Float32Array(n);
-    const imag = new Float32Array(n);
-
-    real[0] = 0;
-    imag[0] = 0;
-
-    // Harmonic overtone distribution modeled after acoustic Tanpura measurements
-    for (let i = 1; i < n; i++) {
-      // Body fundamental & low resonance (harmonics 1 to 4)
-      if (i <= 4) {
-        imag[i] = 1.0 / Math.pow(i, 0.7);
-      } 
-      // The singing mid-overtones (harmonics 5 to 14)
-      else if (i <= 14) {
-        imag[i] = 0.55 / Math.pow(i, 0.9);
-      } 
-      // The Javari thread buzz formant cluster around 1.5kHz - 3.5kHz (harmonics 15 to 30)
-      else if (i <= 30) {
-        imag[i] = 0.42 * Math.sin(((i - 15) / 15) * Math.PI);
-      } 
-      // Subtle high shimmer roll-off
-      else {
-        imag[i] = 0.15 / Math.pow(i - 28, 1.2);
-      }
-      real[i] = 0;
-    }
-
-    this.periodicWave = this.ctx.createPeriodicWave(real, imag, { disableNormalization: false });
   }
 
   public setConfig(newConfig: Partial<TanpuraConfig>) {
+    const oldKey = this.config.rootKey;
     this.config = { ...this.config, ...newConfig };
+
+    // Update volume on running audio
+    if (this.currentAudioElement) {
+      this.currentAudioElement.volume = Math.max(0, Math.min(1, this.config.volume));
+    }
     if (this.masterGain && this.ctx) {
       this.masterGain.gain.setTargetAtTime(this.config.volume, this.ctx.currentTime, 0.05);
     }
+
+    // If key changed while playing, immediately crossfade to the new acoustic recording
+    if (newConfig.rootKey && newConfig.rootKey !== oldKey && this.isPlaying) {
+      this.switchAcousticAudio(newConfig.rootKey);
+    }
   }
 
-  public start() {
-    if (this.isPlaying) return;
-    this.initAudio();
+  public start(rootKey?: string) {
+    if (rootKey) {
+      this.config.rootKey = rootKey;
+    }
+    this.initAudioContext();
     this.isPlaying = true;
     this.currentStringStep = 0;
-    this.scheduleNextPluck();
+
+    // Start playing genuine acoustic recording
+    this.playAcousticSample(this.config.rootKey);
+
+    // Start cyclical string pulse timer for visual synchronization
+    this.startCyclePulse();
     this.notify();
   }
 
@@ -137,6 +126,9 @@ class TanpuraEngine {
       clearTimeout(this.loopTimer);
       this.loopTimer = null;
     }
+
+    // Fade out and stop acoustic audio
+    this.stopAcousticAudio();
     this.currentStringStep = 0;
     this.notify();
   }
@@ -149,188 +141,164 @@ class TanpuraEngine {
     }
   }
 
-  private scheduleNextPluck() {
-    if (!this.isPlaying || !this.ctx) return;
-
-    this.pluckCurrentString();
-
-    // Advance to next string in the authentic 4-step cyclical loop
-    this.loopTimer = setTimeout(() => {
-      this.currentStringStep = (this.currentStringStep + 1) % 4;
-      this.notify();
-      this.scheduleNextPluck();
-    }, this.config.pluckIntervalMs);
-  }
-
-  private pluckCurrentString() {
-    if (!this.ctx || !this.masterGain) return;
-
-    const baseSa = NOTE_FREQS[this.config.rootKey] || NOTE_FREQS['C'];
-    let targetFreq = baseSa;
-    let panPos = 0;
-    let sustainTime = 6.5; // Natural acoustic string sustain
-
-    switch (this.currentStringStep) {
-      case 0:
-        // First String: Pa (1.5x), Ma (4/3x), or Ni (15/8x)
-        if (this.config.firstString === 'Pa') {
-          targetFreq = baseSa * 1.5;
-        } else if (this.config.firstString === 'Ma') {
-          targetFreq = baseSa * (4 / 3);
-        } else {
-          targetFreq = baseSa * (15 / 8);
-        }
-        panPos = -0.35;
-        break;
-      case 1:
-        // 1st Jod Sa (Middle Tonic unison)
-        targetFreq = baseSa;
-        panPos = -0.12;
-        break;
-      case 2:
-        // 2nd Jod Sa (Middle Tonic unison with authentic acoustic chorused beating +0.9Hz)
-        targetFreq = baseSa + 0.9;
-        panPos = 0.15;
-        break;
-      case 3:
-        // Kharaj Sa (Deep pumpkin gourd bass resonance, 1 octave below baseSa)
-        targetFreq = baseSa / 2;
-        panPos = 0.0;
-        sustainTime = 7.5;
-        break;
-    }
-
-    this.synthesizeAcousticString(targetFreq, panPos, sustainTime);
+  private startCyclePulse() {
+    if (this.loopTimer) clearTimeout(this.loopTimer);
+    const scheduleNext = () => {
+      if (!this.isPlaying) return;
+      this.loopTimer = setTimeout(() => {
+        this.currentStringStep = (this.currentStringStep + 1) % 4;
+        this.notify();
+        scheduleNext();
+      }, this.config.pluckIntervalMs);
+    };
+    scheduleNext();
   }
 
   /**
-   * Synthesize string with real physical acoustic body modeling
+   * Play genuine acoustic Miraj Tanpura recording for the chosen root key
    */
-  private synthesizeAcousticString(freq: number, pan: number, duration: number) {
-    if (!this.ctx || !this.masterGain || !this.periodicWave) return;
+  private playAcousticSample(key: string) {
+    const fileName = KEY_TO_FILE[key] || 'C.mp3';
+    const audioUrl = `./audio/tanpura/${fileName}`;
 
-    const now = this.ctx.currentTime;
+    try {
+      // 1. First attempt: Web Audio API AudioBuffer for sample-accurate looping
+      this.loadAndPlayBuffer(key, audioUrl);
+    } catch {
+      // 2. Direct HTML5 Audio fallback
+      this.playHtmlAudio(audioUrl);
+    }
+  }
 
-    // String Volume Envelope (Rounded finger pad pluck attack, no plastic synth clicks)
-    const stringGain = this.ctx.createGain();
-    stringGain.gain.setValueAtTime(0.0001, now);
-    stringGain.gain.linearRampToValueAtTime(0.75, now + 0.045); // Soft finger flesh release
-    stringGain.gain.exponentialRampToValueAtTime(0.45, now + 0.6); // Javari swell
-    stringGain.gain.exponentialRampToValueAtTime(0.0001, now + duration); // Long, singing wooden decay
-
-    // Stereo Panning for ambient spatial immersion
-    let panner: StereoPannerNode | GainNode;
-    if (this.ctx.createStereoPanner) {
-      const p = this.ctx.createStereoPanner();
-      p.pan.setValueAtTime(pan, now);
-      stringGain.connect(p);
-      p.connect(this.masterGain);
-      panner = p;
-    } else {
-      stringGain.connect(this.masterGain);
-      panner = stringGain;
+  private async loadAndPlayBuffer(key: string, url: string) {
+    this.initAudioContext();
+    if (!this.ctx || !this.masterGain) {
+      this.playHtmlAudio(url);
+      return;
     }
 
-    // 1. Primary Javari String Oscillator (Using Miraj Tanpura Fourier Wavetable)
-    const osc = this.ctx.createOscillator();
-    osc.setPeriodicWave(this.periodicWave);
-    osc.frequency.setValueAtTime(freq, now);
+    try {
+      let buffer = this.bufferCache.get(key);
+      if (!buffer) {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const arrayBuf = await response.arrayBuffer();
+        buffer = await this.ctx.decodeAudioData(arrayBuf);
+        this.bufferCache.set(key, buffer);
+      }
 
-    // 2. Sub-bass Body Resonance (Adds that hollow acoustic thud of the dried pumpkin gourd)
-    const subOsc = this.ctx.createOscillator();
-    subOsc.type = 'sine';
-    subOsc.frequency.setValueAtTime(freq, now);
+      if (!this.isPlaying) return;
 
-    const subGain = this.ctx.createGain();
-    subGain.gain.setValueAtTime(0.4, now);
-    subGain.gain.exponentialRampToValueAtTime(0.0001, now + 2.0);
-    subOsc.connect(subGain);
-    subGain.connect(stringGain);
+      // Stop previous source if playing
+      if (this.currentBufferSource) {
+        try {
+          this.currentBufferSource.stop();
+          this.currentBufferSource.disconnect();
+        } catch {}
+      }
 
-    // 3. Acoustic Formant Filters (Simulating the hollow wooden Dandi neck and Tumba gourd)
-    // Tumba Gourd Resonance Filter (Peaking around 180Hz)
-    const gourdFilter = this.ctx.createBiquadFilter();
-    gourdFilter.type = 'peaking';
-    gourdFilter.frequency.setValueAtTime(180, now);
-    gourdFilter.gain.setValueAtTime(5.5, now);
-    gourdFilter.Q.setValueAtTime(2.0, now);
+      const source = this.ctx.createBufferSource();
+      source.buffer = buffer;
+      source.loop = true;
 
-    // Tabli Soundboard Filter (Warm mid-presence around 680Hz)
-    const tabliFilter = this.ctx.createBiquadFilter();
-    tabliFilter.type = 'peaking';
-    tabliFilter.frequency.setValueAtTime(680, now);
-    tabliFilter.gain.setValueAtTime(4.0, now);
-    tabliFilter.Q.setValueAtTime(1.8, now);
+      // Soft fade in over 200ms
+      const gainNode = this.ctx.createGain();
+      gainNode.gain.setValueAtTime(0.001, this.ctx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(this.config.volume, this.ctx.currentTime + 0.2);
 
-    // Javari Thread Buzz Dynamic Filter (Silk thread shimmering against the bone bridge)
-    const javariFilter = this.ctx.createBiquadFilter();
-    javariFilter.type = 'bandpass';
-    javariFilter.frequency.setValueAtTime(Math.min(2600, freq * 9), now);
-    javariFilter.Q.setValueAtTime(2.5, now);
+      source.connect(gainNode);
+      gainNode.connect(this.masterGain);
+      source.start(0);
 
-    const javariGain = this.ctx.createGain();
-    javariGain.gain.setValueAtTime(0.001, now);
-    javariGain.gain.exponentialRampToValueAtTime(0.4, now + 0.35); // Javari blooms after initial string pluck
-    javariGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+      this.currentBufferSource = source;
+    } catch (err) {
+      // If Web Audio fetch/decode fails (e.g. edge-case local file scheme), fall back to HTMLAudioElement
+      this.playHtmlAudio(url);
+    }
+  }
 
-    // Gentle Acoustic Lowpass (Rolls off extreme digital highs above 4500Hz)
-    const warmthFilter = this.ctx.createBiquadFilter();
-    warmthFilter.type = 'lowpass';
-    warmthFilter.frequency.setValueAtTime(4200, now);
-    warmthFilter.frequency.exponentialRampToValueAtTime(800, now + duration);
-
-    // Subtle micro-swirl vibrato (0.6 Hz organic thermal drift)
-    const lfo = this.ctx.createOscillator();
-    const lfoGain = this.ctx.createGain();
-    lfo.frequency.setValueAtTime(0.65, now);
-    lfoGain.gain.setValueAtTime(freq * 0.002, now); // 0.2% micro-pitch drift
-    lfo.connect(lfoGain);
-    lfoGain.connect(osc.frequency);
-
-    // Connect audio signal graph
-    osc.connect(gourdFilter);
-    gourdFilter.connect(tabliFilter);
-    tabliFilter.connect(warmthFilter);
-    warmthFilter.connect(stringGain);
-
-    // Parallel Javari buzz routing
-    osc.connect(javariFilter);
-    javariFilter.connect(javariGain);
-    javariGain.connect(stringGain);
-
-    // Start audio sources
-    osc.start(now);
-    subOsc.start(now);
-    lfo.start(now);
-
-    const stopTime = now + duration + 0.15;
-    osc.stop(stopTime);
-    subOsc.stop(now + 2.1);
-    lfo.stop(stopTime);
-
-    // Safe memory cleanup
-    setTimeout(() => {
+  private playHtmlAudio(url: string) {
+    if (this.currentAudioElement) {
       try {
-        osc.disconnect();
-        subOsc.disconnect();
-        subGain.disconnect();
-        lfo.disconnect();
-        gourdFilter.disconnect();
-        tabliFilter.disconnect();
-        javariFilter.disconnect();
-        javariGain.disconnect();
-        warmthFilter.disconnect();
-        stringGain.disconnect();
-        if (panner !== stringGain) panner.disconnect();
+        this.currentAudioElement.pause();
       } catch {}
-    }, (duration + 0.5) * 1000);
+    }
+
+    const audio = new Audio(url);
+    audio.loop = true;
+    audio.volume = Math.max(0, Math.min(1, this.config.volume));
+    audio.play().catch(() => {});
+    this.currentAudioElement = audio;
+  }
+
+  private switchAcousticAudio(newKey: string) {
+    // If using AudioBuffer source
+    if (this.currentBufferSource && this.ctx && this.masterGain) {
+      const oldSource = this.currentBufferSource;
+      try {
+        oldSource.stop(this.ctx.currentTime + 0.35);
+      } catch {}
+      this.currentBufferSource = null;
+      const fileName = KEY_TO_FILE[newKey] || 'C.mp3';
+      this.loadAndPlayBuffer(newKey, `./audio/tanpura/${fileName}`);
+      return;
+    }
+
+    // If using HTMLAudioElement crossfade
+    if (this.currentAudioElement) {
+      this.fadingAudioElement = this.currentAudioElement;
+      const oldAudio = this.fadingAudioElement;
+      const fadeStep = oldAudio.volume / 6;
+      const fadeTimer = setInterval(() => {
+        if (oldAudio.volume > fadeStep) {
+          oldAudio.volume = Math.max(0, oldAudio.volume - fadeStep);
+        } else {
+          clearInterval(fadeTimer);
+          oldAudio.pause();
+          if (this.fadingAudioElement === oldAudio) {
+            this.fadingAudioElement = null;
+          }
+        }
+      }, 50);
+    }
+
+    const fileName = KEY_TO_FILE[newKey] || 'C.mp3';
+    const newAudio = new Audio(`./audio/tanpura/${fileName}`);
+    newAudio.loop = true;
+    newAudio.volume = Math.max(0, Math.min(1, this.config.volume));
+    newAudio.play().catch(() => {});
+    this.currentAudioElement = newAudio;
+  }
+
+  private stopAcousticAudio() {
+    if (this.currentBufferSource && this.ctx) {
+      try {
+        this.currentBufferSource.stop();
+        this.currentBufferSource.disconnect();
+      } catch {}
+      this.currentBufferSource = null;
+    }
+
+    if (this.currentAudioElement) {
+      const audio = this.currentAudioElement;
+      const fadeInterval = setInterval(() => {
+        if (audio.volume > 0.15) {
+          audio.volume = Math.max(0, audio.volume - 0.15);
+        } else {
+          clearInterval(fadeInterval);
+          audio.pause();
+          audio.currentTime = 0;
+        }
+      }, 40);
+      this.currentAudioElement = null;
+    }
   }
 
   /**
    * Play the 3-Note Magic Riff (Pakad) using warm acoustic guitar string pluck
    */
   public playMagicRiff(frequencies: number[], durations: number[]) {
-    this.initAudio();
+    this.initAudioContext();
     if (!this.ctx || !this.masterGain) return;
 
     let timeOffset = 0;
@@ -344,15 +312,15 @@ class TanpuraEngine {
         noteGain.gain.linearRampToValueAtTime(0.7, now + 0.02);
         noteGain.gain.exponentialRampToValueAtTime(0.001, now + dur * 1.6);
 
-        // Acoustic nylon/steel string synthesis
+        // Acoustic guitar string harmonics
         const osc = this.ctx.createOscillator();
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(freq, now);
 
         const filter = this.ctx.createBiquadFilter();
         filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(2600, now);
-        filter.frequency.exponentialRampToValueAtTime(400, now + dur * 1.6);
+        filter.frequency.setValueAtTime(2800, now);
+        filter.frequency.exponentialRampToValueAtTime(500, now + dur * 1.6);
 
         osc.connect(filter);
         filter.connect(noteGain);
