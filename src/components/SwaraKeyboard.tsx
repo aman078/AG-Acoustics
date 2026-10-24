@@ -11,10 +11,15 @@ import {
   Award,
   CheckCircle2,
   Flame,
-  ChevronRight
+  ChevronRight,
+  Sliders
 } from 'lucide-react';
 import { Raga, CHROMATIC_NOTES, SEMITONES_MAP } from '../data/ragas';
-import { swaraAudio } from '../audio/swaraKeyboardEngine';
+import { 
+  swaraAudio, 
+  InstrumentSoundType, 
+  INSTRUMENT_PRESETS 
+} from '../audio/swaraKeyboardEngine';
 
 interface SwaraKeyItem {
   id: string;
@@ -60,6 +65,7 @@ const SWARA_NAMES_BY_INTERVAL: Record<number, string> = {
 
 export const SwaraKeyboard: React.FC<SwaraKeyboardProps> = ({ raga, rootKey, onPlayNote }) => {
   const [activeKeyIds, setActiveKeyIds] = useState<Set<string>>(new Set());
+  const [selectedInstrument, setSelectedInstrument] = useState<InstrumentSoundType>('flute');
   const [droneKeyId, setDroneKeyId] = useState<string | null>(null);
   const [isDroneModeActive, setIsDroneModeActive] = useState<boolean>(false);
   
@@ -118,7 +124,6 @@ export const SwaraKeyboard: React.FC<SwaraKeyboardProps> = ({ raga, rootKey, onP
   const guidedTargetKeys: SwaraKeyItem[] = [];
   if (raga.signatureRiff.notes && raga.signatureRiff.notes.length > 0) {
     raga.signatureRiff.notes.forEach((riffNoteStr) => {
-      // Find matching or closest key in our scale keysList
       const cleanNote = riffNoteStr.replace(/\d/g, '');
       const match = keysList.find((k) => k.noteName.replace("'", '') === cleanNote) || keysList[0];
       guidedTargetKeys.push(match);
@@ -126,6 +131,21 @@ export const SwaraKeyboard: React.FC<SwaraKeyboardProps> = ({ raga, rootKey, onP
   }
 
   const currentGuidedTarget = guidedTargetKeys[guidedStepIndex] || null;
+
+  // Change Instrument Sound Preset
+  const handleSelectInstrument = (preset: InstrumentSoundType) => {
+    setSelectedInstrument(preset);
+    swaraAudio.setInstrument(preset);
+    
+    // Play a preview sound of Root Sa
+    if (keysList.length > 0) {
+      const rootKeyItem = keysList[0];
+      swaraAudio.noteOn('preview', rootKeyItem.freq);
+      setTimeout(() => {
+        swaraAudio.noteOff('preview');
+      }, 350);
+    }
+  };
 
   // Handle Note Trigger
   const triggerNoteOn = useCallback((item: SwaraKeyItem, glideFrom?: number) => {
@@ -142,7 +162,6 @@ export const SwaraKeyboard: React.FC<SwaraKeyboardProps> = ({ raga, rootKey, onP
     // Check Guided Mode Progress
     if (isGuidedMode && currentGuidedTarget && !isGuidedCompleted) {
       if (item.id === currentGuidedTarget.id || item.noteName === currentGuidedTarget.noteName) {
-        // Correct note played in guided sequence!
         const nextStep = guidedStepIndex + 1;
         setGuidedCombo((c) => c + 1);
         if (nextStep >= guidedTargetKeys.length) {
@@ -168,11 +187,10 @@ export const SwaraKeyboard: React.FC<SwaraKeyboardProps> = ({ raga, rootKey, onP
   // QWERTY Physical Keyboard Listeners
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if typing inside input or textarea
-      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName)) {
         return;
       }
-      if (e.repeat) return; // Prevent OS key repeats
+      if (e.repeat) return;
 
       const pressedChar = e.key.toUpperCase();
       const matchedItem = keysList.find((k) => k.keyChar === pressedChar);
@@ -183,7 +201,7 @@ export const SwaraKeyboard: React.FC<SwaraKeyboardProps> = ({ raga, rootKey, onP
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName)) {
         return;
       }
       const pressedChar = e.key.toUpperCase();
@@ -210,30 +228,49 @@ export const SwaraKeyboard: React.FC<SwaraKeyboardProps> = ({ raga, rootKey, onP
     setIsGuidedCompleted(false);
   }, [raga.id, rootKey]);
 
+  const activePreset = INSTRUMENT_PRESETS.find((p) => p.id === selectedInstrument) || INSTRUMENT_PRESETS[0];
+
   return (
     <div 
       ref={containerRef}
       className="w-full p-4 sm:p-5 rounded-3xl bg-slate-900/90 dark:bg-white/[0.04] border border-slate-700/60 dark:border-white/[0.08] shadow-lg flex flex-col space-y-3.5 select-none text-white backdrop-blur-xl"
     >
-      {/* 1. Header Toolbar: Mode Toggles & Game HUD */}
-      <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-white/[0.08]">
+      {/* 1. Header Toolbar: Instrument Dropdown & Mode Toggles */}
+      <div className="flex items-center justify-between flex-wrap gap-2.5 pb-2 border-b border-white/[0.08]">
         <div>
           <div className="flex items-center gap-2">
             <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
               <Music className="w-3.5 h-3.5" />
-              ACOUSTIC SWARA KEYBOARD (IN {rootKey})
+              SWARA KEYBOARD (IN {rootKey})
             </span>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/[0.08] text-slate-300 font-semibold border border-white/10">
-              QWERTY + TOUCH MEEND
+              QWERTY + TOUCH
             </span>
           </div>
           <span className="text-[11px] font-mono text-slate-400 block mt-0.5">
-            Press QWERTY keys or tap/slide pads below • Plays over Tanpura
+            {activePreset.emoji} <strong>{activePreset.name}:</strong> {activePreset.description}
           </span>
         </div>
 
-        {/* Feature Action Buttons */}
-        <div className="flex items-center gap-2">
+        {/* Feature Action Buttons & Instrument Dropdown */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Instrument Dropdown Selector */}
+          <div className="flex items-center gap-1.5 bg-slate-800 dark:bg-white/[0.06] border border-amber-500/35 rounded-xl px-2 py-1 shadow-xs">
+            <span className="text-xs">{activePreset.emoji}</span>
+            <select
+              value={selectedInstrument}
+              onChange={(e) => handleSelectInstrument(e.target.value as InstrumentSoundType)}
+              className="bg-transparent text-amber-300 text-xs font-mono font-bold cursor-pointer outline-hidden pr-1"
+              title="Select authentic acoustic instrument sound"
+            >
+              {INSTRUMENT_PRESETS.map((p) => (
+                <option key={p.id} value={p.id} className="bg-slate-900 text-white font-mono">
+                  {p.emoji} {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Ambient Drone Mode Toggle */}
           <button
             onClick={() => {
@@ -252,7 +289,7 @@ export const SwaraKeyboard: React.FC<SwaraKeyboardProps> = ({ raga, rootKey, onP
             title="When active, tapping a key keeps it gently droning in the background"
           >
             <Radio className="w-3.5 h-3.5" />
-            <span>DRONE PAD: {isDroneModeActive ? 'ON' : 'OFF'}</span>
+            <span>DRONE: {isDroneModeActive ? 'ON' : 'OFF'}</span>
           </button>
 
           {/* Guided Play-Along Toggle */}
@@ -401,7 +438,7 @@ export const SwaraKeyboard: React.FC<SwaraKeyboardProps> = ({ raga, rootKey, onP
                       swaraAudio.noteOff(touchingKeyIdRef.current);
                     }
                     touchingKeyIdRef.current = targetKeyId;
-                    triggerNoteOn(targetItem, item.freq); // Smooth glide!
+                    triggerNoteOn(targetItem, item.freq);
                   }
                 }
               }}
