@@ -323,9 +323,16 @@ export const App: React.FC = () => {
   const audioBufferRef = useRef<Float32Array<ArrayBuffer> | null>(null);
   const lastChimeTimeRef = useRef<number>(0);
   const inTuneDurationRef = useRef<number>(0);
+  const activeTabRef = useRef<ActiveTab>(activeTab);
+  const isStartingMicRef = useRef<boolean>(false);
 
   // Start / Stop Microphone Stream
   const startListening = async () => {
+    // Safety check: Only acquire mic if user is genuinely on Tuner tab
+    if (activeTabRef.current !== 'tuner' || isSongOpen) return;
+    if (isStartingMicRef.current) return;
+    isStartingMicRef.current = true;
+
     try {
       setMicError(null);
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -335,6 +342,16 @@ export const App: React.FC = () => {
           autoGainControl: false,
         },
       });
+
+      // Post-await safety check: Did user switch away while mic was initializing?
+      if (activeTabRef.current !== 'tuner' || isSongOpen) {
+        stream.getTracks().forEach((track) => {
+          track.stop();
+          track.enabled = false;
+        });
+        isStartingMicRef.current = false;
+        return;
+      }
 
       mediaStreamRef.current = stream;
       const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
@@ -355,20 +372,26 @@ export const App: React.FC = () => {
       const msg = err instanceof Error ? err.message : 'Microphone permission denied';
       setMicError(msg);
       setIsListening(false);
+    } finally {
+      isStartingMicRef.current = false;
     }
   };
 
   const stopListening = () => {
+    isStartingMicRef.current = false;
     if (animFrameRef.current) {
       cancelAnimationFrame(animFrameRef.current);
       animFrameRef.current = null;
     }
     if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current.getTracks().forEach((track) => {
+        track.stop();
+        track.enabled = false;
+      });
       mediaStreamRef.current = null;
     }
     if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-      audioContextRef.current.close();
+      audioContextRef.current.close().catch(() => {});
       audioContextRef.current = null;
     }
     stopToneDrone();
@@ -474,13 +497,18 @@ export const App: React.FC = () => {
 
   // Auto-start microphone immediately on launch & when on Tuner tab (Android, iOS, Web)
   useEffect(() => {
+    activeTabRef.current = activeTab;
     if (activeTab === 'tuner' && !isSongOpen && !isListening) {
       startListening().catch(() => {});
     }
 
     // Fallback: auto-resume AudioContext or start mic on first tap/interaction
-    const handleAutoStartGesture = () => {
-      if (activeTab === 'tuner' && !isSongOpen && !isListening) {
+    const handleAutoStartGesture = (e: Event) => {
+      // Don't auto-start mic if user tapped on the bottom navigation dock!
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('nav')) return;
+
+      if (activeTabRef.current === 'tuner' && !isSongOpen && !isListening) {
         startListening().catch(() => {});
       } else if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
         audioContextRef.current.resume().catch(() => {});
@@ -500,13 +528,13 @@ export const App: React.FC = () => {
 
   // Completely shut down tuner microphone & audio processing when leaving the Tuner tab or when a song is open
   useEffect(() => {
+    activeTabRef.current = activeTab;
     if (activeTab !== 'tuner' || isSongOpen) {
-      if (isListening) {
-        stopListening();
-      }
+      // Unconditionally terminate mic tracks in ref even if isListening state hasn't updated yet!
+      stopListening();
       stopToneDrone();
     }
-  }, [activeTab, isSongOpen, isListening]);
+  }, [activeTab, isSongOpen]);
 
   useEffect(() => {
     if (isListening && activeTab === 'tuner' && !isSongOpen) {
@@ -929,7 +957,7 @@ export const App: React.FC = () => {
           {/* 2. Songs & Chords */}
           <button
             onClick={() => {
-              if (isListening) stopListening();
+              stopListening();
               stopToneDrone();
               setActiveTab('songs');
             }}
@@ -946,7 +974,7 @@ export const App: React.FC = () => {
           {/* 3. Metronome */}
           <button
             onClick={() => {
-              if (isListening) stopListening();
+              stopListening();
               stopToneDrone();
               setActiveTab('metronome');
             }}
@@ -963,7 +991,7 @@ export const App: React.FC = () => {
           {/* 4. Chords */}
           <button
             onClick={() => {
-              if (isListening) stopListening();
+              stopListening();
               stopToneDrone();
               setActiveTab('chords');
             }}
@@ -980,7 +1008,7 @@ export const App: React.FC = () => {
           {/* 5. Rasa (Soul & Raag) */}
           <button
             onClick={() => {
-              if (isListening) stopListening();
+              stopListening();
               stopToneDrone();
               setActiveTab('rasa');
             }}
