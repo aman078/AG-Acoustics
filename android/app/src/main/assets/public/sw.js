@@ -1,5 +1,5 @@
-// AGSoft Acoustics Resilient Offline Service Worker (v4)
-const CACHE_NAME = 'agsoft-acoustics-v4';
+// AGSoft Acoustics Resilient Offline Service Worker (v5)
+const CACHE_NAME = 'agsoft-acoustics-v5';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
