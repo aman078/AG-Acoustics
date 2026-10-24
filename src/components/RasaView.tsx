@@ -21,6 +21,9 @@ import {
   CHROMATIC_NOTES, 
   SEMITONES_MAP,
   getTransposedNotes,
+  getTransposedAscendingNotes,
+  getTransposedDescendingNotes,
+  getTransposedTwist,
   getTransposedSoulNote,
   getTransposedRiffTab,
   getTransposedRiffFrequencies
@@ -190,6 +193,9 @@ export const RasaView: React.FC<RasaViewProps> = () => {
 
   // Transposed helpers for current key
   const transposedNotes = getTransposedNotes(currentRaga, tanpuraKey);
+  const transposedAscendingNotes = getTransposedAscendingNotes(currentRaga, tanpuraKey);
+  const transposedDescendingNotes = getTransposedDescendingNotes(currentRaga, tanpuraKey);
+  const transposedTwist = getTransposedTwist(currentRaga, tanpuraKey);
   const transposedSoulNote = getTransposedSoulNote(currentRaga, tanpuraKey);
   const transposedTab = getTransposedRiffTab(currentRaga, tanpuraKey);
   const transposedRiffFreqs = getTransposedRiffFrequencies(currentRaga, tanpuraKey);
@@ -659,30 +665,44 @@ export const RasaView: React.FC<RasaViewProps> = () => {
           <Info className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
           <div>
             <strong className="font-extrabold block mb-0.5">The Simple Guitar Twist:</strong>
-            {currentRaga.theSimpleTwist}
+            {transposedTwist}
           </div>
         </div>
 
-        {/* Rules: Ascending vs Descending with Western Roman Degrees at Bottom */}
+        {/* Rules: Ascending vs Descending with Actual Western Notes in Selected Key */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
-          <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] flex flex-col justify-between">
+          <div className="p-3 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] flex flex-col justify-between space-y-2">
             <div>
-              <span className="text-[10px] font-bold text-[#f15a24] uppercase block">CLIMBING UP (AAROH):</span>
-              <span className="text-slate-700 dark:text-slate-300 text-xs">{currentRaga.ascendingRule}</span>
+              <span className="text-[10px] font-bold text-[#f15a24] uppercase block tracking-wider">
+                CLIMBING UP (AAROH IN {tanpuraKey}):
+              </span>
+              <div className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white tracking-wider my-1">
+                {transposedAscendingNotes.join(' → ')}
+              </div>
+              <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                {currentRaga.ascendingRule}
+              </p>
             </div>
-            <div className="mt-2.5 pt-1.5 border-t border-slate-200/70 dark:border-white/[0.06] flex items-center justify-between text-[11px] font-mono">
-              <span className="text-[9px] uppercase font-bold text-slate-400">ROMAN:</span>
+            <div className="pt-2 border-t border-slate-200/70 dark:border-white/[0.06] flex items-center justify-between text-[11px] font-mono">
+              <span className="text-[9px] uppercase font-bold text-slate-400">WESTERN ROMAN:</span>
               <span className="font-bold text-[#f15a24] tracking-wider">{currentRaga.ascendingRoman}</span>
             </div>
           </div>
 
-          <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] flex flex-col justify-between">
+          <div className="p-3 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] flex flex-col justify-between space-y-2">
             <div>
-              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase block">FALLING DOWN (AVROH):</span>
-              <span className="text-slate-700 dark:text-slate-300 text-xs">{currentRaga.descendingRule}</span>
+              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase block tracking-wider">
+                FALLING DOWN (AVROH IN {tanpuraKey}):
+              </span>
+              <div className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white tracking-wider my-1">
+                {transposedDescendingNotes.join(' → ')}
+              </div>
+              <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                {currentRaga.descendingRule}
+              </p>
             </div>
-            <div className="mt-2.5 pt-1.5 border-t border-slate-200/70 dark:border-white/[0.06] flex items-center justify-between text-[11px] font-mono">
-              <span className="text-[9px] uppercase font-bold text-slate-400">ROMAN:</span>
+            <div className="pt-2 border-t border-slate-200/70 dark:border-white/[0.06] flex items-center justify-between text-[11px] font-mono">
+              <span className="text-[9px] uppercase font-bold text-slate-400">WESTERN ROMAN:</span>
               <span className="font-bold text-emerald-600 dark:text-emerald-400 tracking-wider">{currentRaga.descendingRoman}</span>
             </div>
           </div>

@@ -645,10 +645,10 @@ export function guitarTunaScraperPlugin(): Plugin {
           res.setHeader('Content-Type', 'application/json');
           res.setHeader('Access-Control-Allow-Origin', '*');
           res.end(JSON.stringify({
-            latest_version_code: 60,
-            latest_version_name: '1.0.60',
+            latest_version_code: 61,
+            latest_version_name: '1.0.61',
             download_url: 'https://github.com/aman078/AG-Acoustics/releases/latest/download/AGSoft-Acoustics.apk',
-            release_notes: 'Multi-raaga mood suggestions, Western Roman scale degrees for Aaroh/Avroh, pinned explore moods drawer, and zero-scrollbar responsive 12-fret neck visualizer.',
+            release_notes: 'Dynamic Western notes in Aaroh & Avroh, custom key-transposed twists, multi-raaga suggestions, and zero-scrollbar 12-fret neck visualizer.',
             force_update: false,
           }));
         } catch (err: unknown) {

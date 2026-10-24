@@ -15,6 +15,8 @@ export interface Raga {
   theSimpleTwist: string;
   ascendingRule: string;
   descendingRule: string;
+  ascendingIntervals: number[]; // Interval offsets for climbing up
+  descendingIntervals: number[]; // Interval offsets for falling down
   ascendingRoman: string; // Western Roman numerals for ascending scale
   descendingRoman: string; // Western Roman numerals for descending scale
   scaleRoman: string[]; // Western Roman numerals for scale degrees
@@ -67,8 +69,10 @@ export const RAGAS_DATABASE: Raga[] = [
     baseRootKey: 'C',
     westernScaleName: 'Lydian Mode',
     theSimpleTwist: 'Take the Major scale you know, but sharpen the 4th note (play #4 instead of 4).',
-    ascendingRule: 'Skip Root (Sa) and 5th (Pa): Ni - Re - Ga - #Ma - Dha - Ni - Sa\'.',
-    descendingRule: 'Full cascade: Sa\' - Ni - Dha - Pa - #Ma - Ga - Re - Sa.',
+    ascendingRule: 'Skip Root (Sa) & 5th (Pa): Start on 7th and glide upward',
+    descendingRule: 'Full cascade cascading down all 8 notes',
+    ascendingIntervals: [11, 2, 4, 6, 9, 11, 0],
+    descendingIntervals: [0, 11, 9, 7, 6, 4, 2, 0],
     ascendingRoman: 'VII → II → III → ♯IV → VI → VII → I',
     descendingRoman: 'I → VII → VI → V → ♯IV → III → II → I',
     scaleRoman: ['I', 'II', 'III', '♯IV', 'V', 'VI', 'VII'],
@@ -127,8 +131,10 @@ export const RAGAS_DATABASE: Raga[] = [
     baseRootKey: 'A',
     westernScaleName: 'Phrygian Mode',
     theSimpleTwist: 'Take the Minor scale you know, but flatten the 2nd note (play b2 instead of 2).',
-    ascendingRule: 'Climb with care: Sa - bRe - bGa - Ma - Pa - bDha - bNi - Sa\'.',
-    descendingRule: 'Full expressive descent. Linger tenderly on bRe before resolving down to Sa.',
+    ascendingRule: 'Climb with care through all Phrygian intervals',
+    descendingRule: 'Full expressive descent: linger tenderly on ♭2 before resolving to Root',
+    ascendingIntervals: [0, 1, 3, 5, 7, 8, 10, 0],
+    descendingIntervals: [0, 10, 8, 7, 5, 3, 1, 0],
     ascendingRoman: 'I → ♭II → ♭III → IV → V → ♭VI → ♭VII → I',
     descendingRoman: 'I → ♭VII → ♭VI → V → IV → ♭III → ♭II → I',
     scaleRoman: ['I', '♭II', '♭III', 'IV', 'V', '♭VI', '♭VII'],
@@ -187,8 +193,10 @@ export const RAGAS_DATABASE: Raga[] = [
     baseRootKey: 'A',
     westernScaleName: 'Natural Minor with Oscillating 3rd & 6th',
     theSimpleTwist: 'Take the Minor scale, but apply a slow, wide vibrato on the flat 3rd (bGa) and flat 6th (bDha).',
-    ascendingRule: 'Climb with majestic gravity: Sa - Re - bGa - Ma - Pa - bDha - bNi - Sa\'.',
-    descendingRule: 'Gliding descent with slow undulations on the flat notes.',
+    ascendingRule: 'Climb with majestic royal gravity',
+    descendingRule: 'Gliding descent with slow undulations on ♭3 and ♭6',
+    ascendingIntervals: [0, 2, 3, 5, 7, 8, 10, 0],
+    descendingIntervals: [0, 10, 8, 7, 5, 3, 2, 0],
     ascendingRoman: 'I → II → ♭III → IV → V → ♭VI → ♭VII → I',
     descendingRoman: 'I → ♭VII → ♭VI → V → IV → ♭III → II → I',
     scaleRoman: ['I', 'II', '♭III', 'IV', 'V', '♭VI', '♭VII'],
@@ -244,8 +252,10 @@ export const RAGAS_DATABASE: Raga[] = [
     baseRootKey: 'A',
     westernScaleName: 'Dorian Mode',
     theSimpleTwist: 'Take the Minor scale you know, but raise the 6th note (play natural 6th instead of b6).',
-    ascendingRule: 'Climb with swing: Sa - Re - bGa - Ma - Pa - Dha - bNi - Sa\'.',
-    descendingRule: 'Descend effortlessly through the Dorian blues colors.',
+    ascendingRule: 'Climb with rhythmic Dorian swing',
+    descendingRule: 'Descend effortlessly through bluesy Dorian colors',
+    ascendingIntervals: [0, 2, 3, 5, 7, 9, 10, 0],
+    descendingIntervals: [0, 10, 9, 7, 5, 3, 2, 0],
     ascendingRoman: 'I → II → ♭III → IV → V → VI → ♭VII → I',
     descendingRoman: 'I → ♭VII → VI → V → IV → ♭III → II → I',
     scaleRoman: ['I', 'II', '♭III', 'IV', 'V', 'VI', '♭VII'],
@@ -300,8 +310,10 @@ export const RAGAS_DATABASE: Raga[] = [
     baseRootKey: 'C',
     westernScaleName: 'Major Pentatonic',
     theSimpleTwist: 'Take the Major scale, but omit the 4th (Ma) and 7th (Ni). Play just 1 - 2 - 3 - 5 - 6.',
-    ascendingRule: 'Climb cleanly: Sa - Re - Ga - Pa - Dha - Sa\'. No half steps.',
-    descendingRule: 'Descend gracefully: Sa\' - Dha - Pa - Ga - Re - Sa.',
+    ascendingRule: 'Pure Pentatonic climb (omit 4th & 7th, no half-steps)',
+    descendingRule: 'Graceful Pentatonic cascade',
+    ascendingIntervals: [0, 2, 4, 7, 9, 0],
+    descendingIntervals: [0, 9, 7, 4, 2, 0],
     ascendingRoman: 'I → II → III → V → VI → I',
     descendingRoman: 'I → VI → V → III → II → I',
     scaleRoman: ['I', 'II', 'III', 'V', 'VI'],
@@ -358,8 +370,10 @@ export const RAGAS_DATABASE: Raga[] = [
     baseRootKey: 'A',
     westernScaleName: 'Minor Pentatonic with flat 6th',
     theSimpleTwist: 'Take Minor Pentatonic, but omit the 2nd (Re) and 5th (Pa). Play only 1 - b3 - 4 - b6 - b7.',
-    ascendingRule: 'Omit 2nd and 5th completely: Sa - bGa - Ma - bDha - bNi - Sa\'.',
-    descendingRule: 'Descend through 5 mystical notes: Sa\' - bNi - bDha - Ma - bGa - Sa.',
+    ascendingRule: 'Ancient 5-note climb (omit 2nd & 5th)',
+    descendingRule: 'Meditative descent through 5 deep notes',
+    ascendingIntervals: [0, 3, 5, 8, 10, 0],
+    descendingIntervals: [0, 10, 8, 5, 3, 0],
     ascendingRoman: 'I → ♭III → IV → ♭VI → ♭VII → I',
     descendingRoman: 'I → ♭VII → ♭VI → IV → ♭III → I',
     scaleRoman: ['I', '♭III', 'IV', '♭VI', '♭VII'],
@@ -414,8 +428,10 @@ export const RAGAS_DATABASE: Raga[] = [
     baseRootKey: 'C',
     westernScaleName: 'Mixolydian with Dual 7ths',
     theSimpleTwist: 'Play Major going up (using natural 7th), but coming down, switch to flat 7th (bNi).',
-    ascendingRule: 'Climb with natural 7: Sa - Ga - Ma - Pa - Dha - Ni - Sa\' (omit Re).',
-    descendingRule: 'Descend with flat 7: Sa\' - bNi - Dha - Pa - Ma - Ga - Re - Sa.',
+    ascendingRule: 'Climb using natural 7th (omit 2nd)',
+    descendingRule: 'Descend using sweet flat 7th (♭VII)',
+    ascendingIntervals: [0, 4, 5, 7, 9, 11, 0],
+    descendingIntervals: [0, 10, 9, 7, 5, 4, 2, 0],
     ascendingRoman: 'I → III → IV → V → VI → VII → I',
     descendingRoman: 'I → ♭VII → VI → V → IV → III → II → I',
     scaleRoman: ['I', 'II', 'III', 'IV', 'V', 'VI', '♭VII / VII'],
@@ -470,8 +486,10 @@ export const RAGAS_DATABASE: Raga[] = [
     baseRootKey: 'C',
     westernScaleName: 'Natural Major Scale (Ionian)',
     theSimpleTwist: 'No twists needed! It is the exact natural Major scale you already know by heart.',
-    ascendingRule: 'Pure and natural: Sa - Re - Ga - Ma - Pa - Dha - Ni - Sa\'.',
-    descendingRule: 'Sa\' - Ni - Dha - Pa - Ma - Ga - Re - Sa.',
+    ascendingRule: 'Pure natural Major scale climb',
+    descendingRule: 'Pure natural Major scale descent',
+    ascendingIntervals: [0, 2, 4, 5, 7, 9, 11, 0],
+    descendingIntervals: [0, 11, 9, 7, 5, 4, 2, 0],
     ascendingRoman: 'I → II → III → IV → V → VI → VII → I',
     descendingRoman: 'I → VII → VI → V → IV → III → II → I',
     scaleRoman: ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'],
@@ -519,6 +537,51 @@ export const RAGAS_DATABASE: Raga[] = [
 export function getTransposedNotes(raga: Raga, rootKey: string): string[] {
   const rootSemi = SEMITONES_MAP[rootKey] ?? 0;
   return raga.scaleIntervalOffsets.map((offset) => CHROMATIC_NOTES[(rootSemi + offset) % 12]);
+}
+
+/**
+ * Get ascending notes (Aaroh) in Western notation for any chosen root key
+ */
+export function getTransposedAscendingNotes(raga: Raga, rootKey: string): string[] {
+  const rootSemi = SEMITONES_MAP[rootKey] ?? 0;
+  return raga.ascendingIntervals.map((i) => CHROMATIC_NOTES[(rootSemi + i) % 12]);
+}
+
+/**
+ * Get descending notes (Avroh) in Western notation for any chosen root key
+ */
+export function getTransposedDescendingNotes(raga: Raga, rootKey: string): string[] {
+  const rootSemi = SEMITONES_MAP[rootKey] ?? 0;
+  return raga.descendingIntervals.map((i) => CHROMATIC_NOTES[(rootSemi + i) % 12]);
+}
+
+/**
+ * Get dynamic twist explanation in the chosen root key
+ */
+export function getTransposedTwist(raga: Raga, rootKey: string): string {
+  const rootSemi = SEMITONES_MAP[rootKey] ?? 0;
+  const getNote = (semi: number) => CHROMATIC_NOTES[(rootSemi + semi) % 12];
+
+  switch (raga.id) {
+    case 'yaman':
+      return `Take the ${rootKey} Major scale, but sharpen the 4th note: play ${getNote(6)} (#4) instead of ${getNote(5)}.`;
+    case 'bhairavi':
+      return `Take the ${rootKey} Minor scale, but flatten the 2nd note: play ${getNote(1)} (♭2) instead of ${getNote(2)}.`;
+    case 'darbari':
+      return `Take the ${rootKey} Minor scale, and apply a slow, wide vibrato on the flat 3rd (${getNote(3)}) and flat 6th (${getNote(8)}).`;
+    case 'kafi':
+      return `Take the ${rootKey} Minor scale, but raise the 6th note: play natural ${getNote(9)} instead of ${getNote(8)}.`;
+    case 'bhopali':
+      return `Take the ${rootKey} Major scale, but omit the 4th (${getNote(5)}) and 7th (${getNote(11)}). Play just 5 notes: ${getNote(0)} - ${getNote(2)} - ${getNote(4)} - ${getNote(7)} - ${getNote(9)}.`;
+    case 'malkauns':
+      return `Take ${rootKey} Minor Pentatonic, but omit the 2nd and 5th. Play only: ${getNote(0)} - ${getNote(3)} - ${getNote(5)} - ${getNote(8)} - ${getNote(10)}.`;
+    case 'khamaj':
+      return `Play ${rootKey} Major going up (using natural ${getNote(11)}), but coming down switch to flat 7th (${getNote(10)}).`;
+    case 'bilawal':
+      return `No twists needed! It is the exact pristine natural ${rootKey} Major scale you already know by heart.`;
+    default:
+      return raga.theSimpleTwist;
+  }
 }
 
 /**
