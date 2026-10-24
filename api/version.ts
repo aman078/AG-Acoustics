@@ -8,9 +8,9 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    let latestTagName = 'v1.0.55';
+    let latestTagName = 'v1.0.56';
     let apkDownloadUrl = 'https://github.com/aman078/AG-Acoustics/releases/latest/download/AGSoft-Acoustics.apk';
-    let releaseNotes = 'Default to Auto String Detection on app launch and streamlined tuner HUD.';
+    let releaseNotes = 'Introduce Rasa: Emotional AI Mood Matching, Acoustic Tanpura Javari Drone, Demystified Raags through C Major / A Minor, 3-Note Magic Riffs, and Interactive Fretboard.';
 
     try {
       const ghRes = await fetch('https://api.github.com/repos/aman078/AG-Acoustics/releases/latest', {
@@ -36,7 +36,7 @@ export default async function handler(req: any, res: any) {
     }
 
     const match = latestTagName.match(/\d+$/);
-    const versionCode = match ? parseInt(match[0], 10) : 55;
+    const versionCode = match ? parseInt(match[0], 10) : 56;
     const versionName = latestTagName.replace(/^v/, '');
 
     res.setHeader('Content-Type', 'application/json');

@@ -645,10 +645,10 @@ export function guitarTunaScraperPlugin(): Plugin {
           res.setHeader('Content-Type', 'application/json');
           res.setHeader('Access-Control-Allow-Origin', '*');
           res.end(JSON.stringify({
-            latest_version_code: 55,
-            latest_version_name: '1.0.55',
+            latest_version_code: 56,
+            latest_version_name: '1.0.56',
             download_url: 'https://github.com/aman078/AG-Acoustics/releases/latest/download/AGSoft-Acoustics.apk',
-            release_notes: 'Default to Auto String Detection on app launch and streamlined tuner HUD.',
+            release_notes: 'Introduce Rasa: Emotional AI Mood Matching, Acoustic Tanpura Javari Drone, Demystified Raags through C Major / A Minor, 3-Note Magic Riffs, and Interactive Fretboard.',
             force_update: false,
           }));
         } catch (err: unknown) {

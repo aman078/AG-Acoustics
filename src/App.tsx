@@ -29,13 +29,14 @@ import { MetronomeModal } from './components/MetronomeModal';
 import { ChordLibraryModal } from './components/ChordLibraryModal';
 import { TuningModal } from './components/TuningModal';
 import { SongSearchModal } from './components/SongSearchModal';
+import { RasaView } from './components/RasaView';
 import { InstallModal } from './components/InstallModal';
 import { AutoUpdateModal } from './components/AutoUpdateModal';
 import { checkForAppUpdate, AppUpdateInfo, CURRENT_APP_VERSION } from './services/updateService';
 import { App as CapApp } from '@capacitor/app';
 import { SplashScreen } from '@capacitor/splash-screen';
 
-type ActiveTab = 'tuner' | 'songs' | 'metronome' | 'chords';
+type ActiveTab = 'tuner' | 'songs' | 'metronome' | 'chords' | 'rasa';
 
 export const App: React.FC = () => {
   // Seamless Native Splash Screen Handshake
@@ -873,21 +874,28 @@ export const App: React.FC = () => {
             />
           </div>
         )}
+
+        {/* TAB 5: RASA (SOUL & MOOD RAAGS) */}
+        {activeTab === 'rasa' && (
+          <div className="w-full flex-1 flex flex-col">
+            <RasaView onBackToTuner={() => setActiveTab('tuner')} />
+          </div>
+        )}
       </main>
 
       {/* Persistent Bottom Glass Dock Navigation with iOS Home-Indicator Safe-Area Inset */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.08] bg-[#0A0D15]/95 backdrop-blur-2xl px-4 pt-2 pb-[max(10px,env(safe-area-inset-bottom,0px))]">
-        <div className="max-w-md mx-auto grid grid-cols-4 gap-2">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.08] bg-[#0A0D15]/95 backdrop-blur-2xl px-2 sm:px-4 pt-2 pb-[max(10px,env(safe-area-inset-bottom,0px))]">
+        <div className="max-w-md mx-auto grid grid-cols-5 gap-1 sm:gap-2">
           {/* 1. Tuner */}
           <button
             onClick={() => setActiveTab('tuner')}
-            className={`flex flex-col items-center justify-center py-1.5 px-2 rounded-2xl transition cursor-pointer ${
+            className={`flex flex-col items-center justify-center py-1.5 px-1 sm:px-2 rounded-2xl transition cursor-pointer ${
               activeTab === 'tuner'
                 ? 'bg-[#f15a24]/15 text-[#f15a24] dark:text-[#ff7a45] border border-[#f15a24]/40 shadow-[0_0_15px_rgba(241,90,36,0.25)]'
                 : 'text-slate-400 hover:text-white hover:bg-white/[0.03]'
             }`}
           >
-            <Guitar className="w-5 h-5 mb-0.5" />
+            <Guitar className="w-4 h-4 sm:w-5 sm:h-5 mb-0.5" />
             <span className="text-[10px] font-bold tracking-tight">Tuner</span>
           </button>
 
@@ -898,13 +906,13 @@ export const App: React.FC = () => {
               stopToneDrone();
               setActiveTab('songs');
             }}
-            className={`flex flex-col items-center justify-center py-1.5 px-2 rounded-2xl transition cursor-pointer ${
+            className={`flex flex-col items-center justify-center py-1.5 px-1 sm:px-2 rounded-2xl transition cursor-pointer ${
               activeTab === 'songs'
                 ? 'bg-[#f15a24]/15 text-[#f15a24] dark:text-[#ff7a45] border border-[#f15a24]/40 shadow-[0_0_15px_rgba(241,90,36,0.25)]'
                 : 'text-slate-400 hover:text-white hover:bg-white/[0.03]'
             }`}
           >
-            <Music className="w-5 h-5 mb-0.5" />
+            <Music className="w-4 h-4 sm:w-5 sm:h-5 mb-0.5" />
             <span className="text-[10px] font-bold tracking-tight">Songs</span>
           </button>
 
@@ -915,13 +923,13 @@ export const App: React.FC = () => {
               stopToneDrone();
               setActiveTab('metronome');
             }}
-            className={`flex flex-col items-center justify-center py-1.5 px-2 rounded-2xl transition cursor-pointer ${
+            className={`flex flex-col items-center justify-center py-1.5 px-1 sm:px-2 rounded-2xl transition cursor-pointer ${
               activeTab === 'metronome'
                 ? 'bg-[#f15a24]/15 text-[#f15a24] dark:text-[#ff7a45] border border-[#f15a24]/40 shadow-[0_0_15px_rgba(241,90,36,0.25)]'
                 : 'text-slate-400 hover:text-white hover:bg-white/[0.03]'
             }`}
           >
-            <Clock className="w-5 h-5 mb-0.5" />
+            <Clock className="w-4 h-4 sm:w-5 sm:h-5 mb-0.5" />
             <span className="text-[10px] font-bold tracking-tight">Metronome</span>
           </button>
 
@@ -932,14 +940,31 @@ export const App: React.FC = () => {
               stopToneDrone();
               setActiveTab('chords');
             }}
-            className={`flex flex-col items-center justify-center py-1.5 px-2 rounded-2xl transition cursor-pointer ${
+            className={`flex flex-col items-center justify-center py-1.5 px-1 sm:px-2 rounded-2xl transition cursor-pointer ${
               activeTab === 'chords'
                 ? 'bg-[#f15a24]/15 text-[#f15a24] dark:text-[#ff7a45] border border-[#f15a24]/40 shadow-[0_0_15px_rgba(241,90,36,0.25)]'
                 : 'text-slate-400 hover:text-white hover:bg-white/[0.03]'
             }`}
           >
-            <BookOpen className="w-5 h-5 mb-0.5" />
+            <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 mb-0.5" />
             <span className="text-[10px] font-bold tracking-tight">Chords</span>
+          </button>
+
+          {/* 5. Rasa (Soul & Raag) */}
+          <button
+            onClick={() => {
+              if (isListening) stopListening();
+              stopToneDrone();
+              setActiveTab('rasa');
+            }}
+            className={`flex flex-col items-center justify-center py-1.5 px-1 sm:px-2 rounded-2xl transition cursor-pointer ${
+              activeTab === 'rasa'
+                ? 'bg-[#f15a24]/15 text-[#f15a24] dark:text-[#ff7a45] border border-[#f15a24]/40 shadow-[0_0_15px_rgba(241,90,36,0.25)]'
+                : 'text-slate-400 hover:text-white hover:bg-white/[0.03]'
+            }`}
+          >
+            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mb-0.5 text-[#f15a24]" />
+            <span className="text-[10px] font-bold tracking-tight text-[#f15a24] dark:text-[#ff7a45]">Rasa</span>
           </button>
         </div>
       </nav>
