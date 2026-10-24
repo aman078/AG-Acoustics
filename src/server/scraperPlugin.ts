@@ -645,10 +645,10 @@ export function guitarTunaScraperPlugin(): Plugin {
           res.setHeader('Content-Type', 'application/json');
           res.setHeader('Access-Control-Allow-Origin', '*');
           res.end(JSON.stringify({
-            latest_version_code: 54,
-            latest_version_name: '1.0.54',
+            latest_version_code: 55,
+            latest_version_name: '1.0.55',
             download_url: 'https://github.com/aman078/AG-Acoustics/releases/latest/download/AGSoft-Acoustics.apk',
-            release_notes: 'Seamless Clean White & Stage Dark Luthier Blueprint Vector Headstock Tuner, auto-starting microphone on Android/iOS/Web, and removed manual start button.',
+            release_notes: 'Default to Auto String Detection on app launch and streamlined tuner HUD.',
             force_update: false,
           }));
         } catch (err: unknown) {

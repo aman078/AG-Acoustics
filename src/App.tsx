@@ -125,20 +125,8 @@ export const App: React.FC = () => {
 
   const [activeStringIndex, setActiveStringIndex] = useState<number>(0);
 
-  // Auto String Detection persistence
-  const [isAutoMode, setIsAutoMode] = useState<boolean>(() => {
-    try {
-      const saved = localStorage.getItem('agsoft_is_auto_mode');
-      if (saved !== null) return JSON.parse(saved);
-    } catch {}
-    return true;
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('agsoft_is_auto_mode', JSON.stringify(isAutoMode));
-    } catch {}
-  }, [isAutoMode]);
+  // Auto String Detection - Defaults to true so the tuner auto detects plucked strings on app launch
+  const [isAutoMode, setIsAutoMode] = useState<boolean>(true);
 
   // Concert Pitch A4 persistence
   const [referenceA4, setReferenceA4] = useState<number>(() => {

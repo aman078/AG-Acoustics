@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { TunedString } from '../data/tunings';
-import { Radio } from 'lucide-react';
-import { startToneDrone, stopToneDrone } from '../audio/toneGenerator';
+import { Flame, Lock } from 'lucide-react';
 
 interface HeadstockTunerProps {
   strings: TunedString[];
@@ -26,30 +25,11 @@ export const HeadstockTuner: React.FC<HeadstockTunerProps> = ({
   onPlayTone,
   theme = 'dark',
 }) => {
-  const [isDroneMode, setIsDroneMode] = useState<boolean>(false);
-  const [droningFreq, setDroningFreq] = useState<number | null>(null);
-
   const isClean = theme === 'clean';
-
-  useEffect(() => {
-    return () => {
-      stopToneDrone();
-    };
-  }, []);
 
   const handlePegClick = (actualIdx: number, targetFreq: number) => {
     onSelectString(actualIdx);
-    if (isDroneMode) {
-      if (droningFreq === targetFreq) {
-        stopToneDrone();
-        setDroningFreq(null);
-      } else {
-        startToneDrone(targetFreq);
-        setDroningFreq(targetFreq);
-      }
-    } else {
-      onPlayTone(targetFreq);
-    }
+    onPlayTone(targetFreq);
   };
 
   const activeString = strings[activeStringIndex] || strings[0];
@@ -87,32 +67,31 @@ export const HeadstockTuner: React.FC<HeadstockTunerProps> = ({
           : 'bg-white/[0.03] border-white/[0.08] shadow-lg'
       }`}>
         
-        {/* Top Status Bar: Drone Toggle & Auto Status */}
+        {/* Top Status Bar: Auto Status & Directional Target */}
         <div className={`flex items-center justify-between text-xs font-mono pb-2 mb-2 border-b ${
           isClean ? 'border-slate-200' : 'border-white/[0.08]'
         }`}>
-          <button
-            onClick={() => {
-              if (isDroneMode) {
-                stopToneDrone();
-                setIsDroneMode(false);
-                setDroningFreq(null);
-              } else {
-                setIsDroneMode(true);
-              }
-            }}
-            className={`px-2.5 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border ${
-              isDroneMode
-                ? 'bg-amber-500/20 text-amber-600 dark:text-amber-300 border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.3)] animate-pulse'
+          <div
+            className={`px-2.5 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border ${
+              isAutoMode
+                ? 'bg-[#f15a24]/15 border-[#f15a24]/40 text-[#f15a24] dark:text-[#ff7a45]'
                 : isClean
-                ? 'bg-slate-100 text-slate-600 border-slate-200 hover:text-slate-900'
-                : 'bg-white/[0.04] text-slate-400 border-white/[0.08] hover:text-white'
+                ? 'bg-slate-100 text-slate-600 border-slate-200'
+                : 'bg-white/[0.04] text-slate-400 border-white/[0.08]'
             }`}
-            title="Ear training reference drone mode"
           >
-            <Radio className="w-3.5 h-3.5" />
-            <span>{isDroneMode ? 'DRONE ACTIVE' : 'DRONE MODE'}</span>
-          </button>
+            {isAutoMode ? (
+              <>
+                <Flame className="w-3.5 h-3.5 text-[#f15a24]" />
+                <span>AUTO DETECT</span>
+              </>
+            ) : (
+              <>
+                <Lock className="w-3.5 h-3.5 text-slate-400" />
+                <span>LOCKED</span>
+              </>
+            )}
+          </div>
 
           <div
             className={`px-2.5 py-1 rounded-xl text-xs font-bold font-mono transition-all flex items-center gap-1.5 border ${
@@ -143,7 +122,7 @@ export const HeadstockTuner: React.FC<HeadstockTunerProps> = ({
                 </>
               )
             ) : (
-              <span>{isAutoMode ? '⚡ AUTO-DETECTING' : 'PLUCK STRING'}</span>
+              <span>PLUCK ANY STRING</span>
             )}
           </div>
         </div>
@@ -350,10 +329,7 @@ export const HeadstockTuner: React.FC<HeadstockTunerProps> = ({
             const actualIdx = idx;
             const isSelected = activeStringIndex === actualIdx;
             const y = yCoords[idx] || 250;
-            const isDroning = droningFreq === str.targetFreq;
-            const pegColor = isDroning
-              ? '#f59e0b'
-              : isSelected
+            const pegColor = isSelected
               ? isInTune
                 ? '#10b981'
                 : '#f15a24'
@@ -519,10 +495,7 @@ export const HeadstockTuner: React.FC<HeadstockTunerProps> = ({
             const actualIdx = strings.length - 1 - idx;
             const isSelected = activeStringIndex === actualIdx;
             const y = yCoords[idx] || 250;
-            const isDroning = droningFreq === str.targetFreq;
-            const pegColor = isDroning
-              ? '#f59e0b'
-              : isSelected
+            const pegColor = isSelected
               ? isInTune
                 ? '#10b981'
                 : '#f15a24'
