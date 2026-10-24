@@ -17,14 +17,15 @@ interface IWindow extends Window {
 }
 
 /**
- * Native Speech-to-Text Listener
+ * Native Speech-to-Text Listener with Accumulating Transcripts
  */
 export class SpeechService {
   private recognition: any = null;
   private isListening: boolean = false;
-  private onResultCallback: ((text: string, isFinal: boolean) => void) | null = null;
+  private onResultCallback: ((accumulatedText: string, isFinal: boolean) => void) | null = null;
   private onErrorCallback: ((error: string) => void) | null = null;
   private onEndCallback: (() => void) | null = null;
+  private basePrefix: string = '';
 
   constructor() {
     const win = window as unknown as IWindow;
@@ -36,14 +37,22 @@ export class SpeechService {
       this.recognition.lang = 'en-US';
 
       this.recognition.onresult = (event: any) => {
-        let transcript = '';
+        let currentSessionTranscript = '';
         let isFinal = false;
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          transcript += event.results[i][0].transcript;
+
+        // Iterate through all results from the current speech session
+        for (let i = 0; i < event.results.length; ++i) {
+          currentSessionTranscript += event.results[i][0].transcript;
           if (event.results[i].isFinal) isFinal = true;
         }
+
+        const trimmedCurrent = currentSessionTranscript.trim();
+        const fullAccumulated = this.basePrefix
+          ? `${this.basePrefix} ${trimmedCurrent}`
+          : trimmedCurrent;
+
         if (this.onResultCallback) {
-          this.onResultCallback(transcript, isFinal);
+          this.onResultCallback(fullAccumulated, isFinal);
         }
       };
 
@@ -68,7 +77,8 @@ export class SpeechService {
   }
 
   public start(
-    onResult: (text: string, isFinal: boolean) => void,
+    existingText: string,
+    onResult: (accumulatedText: string, isFinal: boolean) => void,
     onError?: (err: string) => void,
     onEnd?: () => void
   ) {
@@ -78,6 +88,7 @@ export class SpeechService {
     }
     if (this.isListening) return;
 
+    this.basePrefix = existingText.trim();
     this.onResultCallback = onResult;
     this.onErrorCallback = onError || null;
     this.onEndCallback = onEnd || null;
@@ -127,6 +138,29 @@ export function getCurrentTimeContext(): { hour: number; label: string; period: 
     return { hour, label: 'Late Night', period: 'Night Prahar' };
   } else {
     return { hour, label: 'Deep Midnight & Pre-Dawn', period: 'Midnight Prahar' };
+  }
+}
+
+/**
+ * Get curated Raags matching the current exact local hour (Prahar)
+ */
+export function getRagasForCurrentTime(hour: number = new Date().getHours()): Raga[] {
+  const matches = RAGAS_DATABASE.filter((r) => {
+    const [startH, endH] = r.idealHours;
+    if (startH <= endH) {
+      return hour >= startH && hour <= endH;
+    } else {
+      return hour >= startH || hour <= endH;
+    }
+  });
+
+  if (matches.length > 0) return matches;
+
+  // Fallback if between edge hours: return relevant daylight or nocturnal raags
+  if (hour >= 6 && hour < 18) {
+    return RAGAS_DATABASE.filter((r) => ['bilawal', 'bhopali', 'bhairavi'].includes(r.id));
+  } else {
+    return RAGAS_DATABASE.filter((r) => ['yaman', 'darbari', 'khamaj', 'kafi'].includes(r.id));
   }
 }
 
@@ -195,7 +229,6 @@ export function analyzeMoodAndMatchRaag(storyText: string): RasaAnalysisResult {
   // Score keywords found in user story
   Object.entries(keywordMappings).forEach(([raagId, words]) => {
     words.forEach((w) => {
-      // Regex check for word boundary
       const regex = new RegExp(`\\b${w}\\b`, 'i');
       if (regex.test(textClean)) {
         scores[raagId] = (scores[raagId] || 0) + 2.5;

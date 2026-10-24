@@ -8,9 +8,9 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    let latestTagName = 'v1.0.57';
+    let latestTagName = 'v1.0.58';
     let apkDownloadUrl = 'https://github.com/aman078/AG-Acoustics/releases/latest/download/AGSoft-Acoustics.apk';
-    let releaseNotes = 'Acoustic Miraj Tanpura Droid Javari physical sound model, full 12-fret neck scale visualizer, and Sacred Lotus icon.';
+    let releaseNotes = 'Time-of-day default raag quick selector, accumulating non-destructive voice note transcription, and expandable mood drawer.';
 
     try {
       const ghRes = await fetch('https://api.github.com/repos/aman078/AG-Acoustics/releases/latest', {
@@ -36,7 +36,7 @@ export default async function handler(req: any, res: any) {
     }
 
     const match = latestTagName.match(/\d+$/);
-    const versionCode = match ? parseInt(match[0], 10) : 57;
+    const versionCode = match ? parseInt(match[0], 10) : 58;
     const versionName = latestTagName.replace(/^v/, '');
 
     res.setHeader('Content-Type', 'application/json');

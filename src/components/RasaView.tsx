@@ -6,11 +6,14 @@ import {
   Volume2, 
   Play, 
   Pause, 
-  Sparkles, 
-  Compass, 
   Clock, 
   Info,
-  Waves
+  Waves,
+  ChevronDown,
+  ChevronUp,
+  Sparkles,
+  Compass,
+  Check
 } from 'lucide-react';
 import { RAGAS_DATABASE, Raga } from '../data/ragas';
 import { tanpura } from '../audio/tanpuraEngine';
@@ -18,6 +21,7 @@ import {
   speechService, 
   analyzeMoodAndMatchRaag, 
   getCurrentTimeContext, 
+  getRagasForCurrentTime,
   RasaAnalysisResult 
 } from '../services/rasaAI';
 
@@ -58,13 +62,43 @@ const INTERVAL_OFFSETS: Record<string, number[]> = {
   'b7/7': [10, 11]
 };
 
+const ALL_CURATED_MOODS = [
+  { label: '🧘 Peaceful Sunset', text: 'peaceful evening sunset unwind grateful serene calm' },
+  { label: '🌧️ Heavy & Exhausted', text: 'exhausted tired stressed heavy heart solace burnout' },
+  { label: '🌌 Midnight Thoughts', text: 'midnight insomnia overthinking dark quiet thoughts deep' },
+  { label: '☕ Rainy Groove', text: 'rain monsoon cozy blues coffee chill groove creative' },
+  { label: '🌅 Morning Awakening', text: 'fresh start morning sun clarity optimistic bright awakening' },
+  { label: '💖 Sweet Romance', text: 'warm flirtatious romantic sweet crush nostalgia candlelight' },
+  { label: '🌀 Deep Meditation', text: 'meditation trance silence spiritual mystic intense focus' },
+  { label: '🦁 Triumphant & Bold', text: 'confident inspired victorious triumphant energy clear light' },
+  { label: '🕊️ Solace & Letting Go', text: 'letting go bittersweet acceptance heartache healing peace' },
+  { label: '🍂 Nostalgic Reminiscing', text: 'nostalgia old memories reminiscing simpler days college longing' },
+  { label: '⚡ Work Burnout Relief', text: 'burnout screens all day pressure fatigue release disconnect' },
+  { label: '🛋️ Cozy & Unwinding', text: 'cozy tea evening warm room quiet relax soft' },
+];
+
 export const RasaView: React.FC<RasaViewProps> = () => {
-  // State for user narrative
+  // Time context & Curated Raags for the current hour
+  const timeContext = getCurrentTimeContext();
+  const timeMatchedRagas = getRagasForCurrentTime(timeContext.hour);
+
+  // Default matched raag based on current time of day
+  const defaultRaga = timeMatchedRagas[0] || RAGAS_DATABASE[0];
+
+  // User narrative & mood analysis state
   const [userStory, setUserStory] = useState<string>('');
   const [isRecordingVoice, setIsRecordingVoice] = useState<boolean>(false);
-  const [analysis, setAnalysis] = useState<RasaAnalysisResult>(() => 
-    analyzeMoodAndMatchRaag('peaceful evening sunset unwind')
-  );
+  const [showAllMoods, setShowAllMoods] = useState<boolean>(false);
+
+  const [analysis, setAnalysis] = useState<RasaAnalysisResult>(() => ({
+    primaryRaga: defaultRaga,
+    secondaryRaga: timeMatchedRagas[1] || RAGAS_DATABASE[1],
+    detectedEmotion: defaultRaga.rasa,
+    detectedKeywords: ['time-of-day alignment'],
+    empatheticReflection: defaultRaga.poeticReflection,
+    timeContext: `${timeContext.label} (${timeContext.period})`,
+    userPromptPreview: 'Aligned with current time of day'
+  }));
 
   // Tanpura state
   const [isTanpuraPlaying, setIsTanpuraPlaying] = useState<boolean>(false);
@@ -72,9 +106,6 @@ export const RasaView: React.FC<RasaViewProps> = () => {
   const [tanpuraKey, setTanpuraKey] = useState<string>('C');
   const [tanpuraVolume, setTanpuraVolume] = useState<number>(0.8);
   const [isRiffPlaying, setIsRiffPlaying] = useState<boolean>(false);
-
-  // Time context
-  const timeContext = getCurrentTimeContext();
 
   // Subscribe to Tanpura plucking cycles
   useEffect(() => {
@@ -88,7 +119,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
     };
   }, []);
 
-  // Update Tanpura configuration whenever key or matched raag changes
+  // Sync Tanpura tuning whenever Key or Matched Raag changes
   useEffect(() => {
     tanpura.setConfig({
       rootKey: tanpuraKey,
@@ -97,20 +128,18 @@ export const RasaView: React.FC<RasaViewProps> = () => {
     });
   }, [tanpuraKey, analysis.primaryRaga, tanpuraVolume]);
 
-  // Voice note handling
+  // Voice note recording with continuous accumulation (does NOT auto-analyze on stop)
   const toggleVoiceRecording = () => {
     if (isRecordingVoice) {
       speechService.stop();
       setIsRecordingVoice(false);
-      if (userStory.trim()) {
-        const result = analyzeMoodAndMatchRaag(userStory);
-        setAnalysis(result);
-      }
+      // NOTE: We do NOT auto-analyze here. The user speaks freely, stops, reviews, and clicks analyze when ready.
     } else {
       setIsRecordingVoice(true);
       speechService.start(
-        (transcript) => {
-          setUserStory(transcript);
+        userStory,
+        (accumulatedTranscript) => {
+          setUserStory(accumulatedTranscript);
         },
         (err) => {
           console.warn('Speech recognition error:', err);
@@ -123,6 +152,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
     }
   };
 
+  // Run analysis only when explicitly requested
   const handleAnalyzeStory = (customText?: string) => {
     const textToAnalyze = customText || userStory;
     if (!textToAnalyze.trim()) return;
@@ -130,9 +160,24 @@ export const RasaView: React.FC<RasaViewProps> = () => {
     setAnalysis(result);
   };
 
+  // Quick Mood Selection
   const handleSelectQuickChip = (chipText: string) => {
     setUserStory(chipText);
     handleAnalyzeStory(chipText);
+    setShowAllMoods(false);
+  };
+
+  // Direct Time-of-Day Raag Selection (Skips 'How are you feeling' step)
+  const handleSelectRaagDirectly = (raga: Raga) => {
+    setAnalysis({
+      primaryRaga: raga,
+      secondaryRaga: RAGAS_DATABASE.find((r) => r.id !== raga.id) || RAGAS_DATABASE[0],
+      detectedEmotion: raga.rasa,
+      detectedKeywords: ['direct selection'],
+      empatheticReflection: raga.poeticReflection,
+      timeContext: `${timeContext.label} (${timeContext.period})`,
+      userPromptPreview: `Selected ${raga.name}`
+    });
   };
 
   const handleToggleTanpura = () => {
@@ -165,7 +210,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
   });
 
   // Calculate soul note semitone offset
-  let soulOffset = 4; // default Major 3rd
+  let soulOffset = 4;
   if (currentRaga.soulNote.swara.includes('Gandhar')) {
     soulOffset = currentRaga.scaleIntervals.includes('b3') ? 3 : 4;
   } else if (currentRaga.soulNote.swara.includes('Madhyam')) {
@@ -214,7 +259,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
   return (
     <div className="w-full max-w-2xl mx-auto flex flex-col space-y-4 pb-24 select-none">
       
-      {/* 1. Header with Sacred Lotus Icon & Time Prahar Alignment */}
+      {/* 1. Header with Time Prahar Alignment */}
       <div className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-xs">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#f15a24] to-amber-500 flex items-center justify-center text-white shadow-md">
@@ -244,11 +289,43 @@ export const RasaView: React.FC<RasaViewProps> = () => {
         </div>
       </div>
 
-      {/* 2. "How are you feeling today?" Interactive Story Card */}
+      {/* 2. RAGAS FOR THIS HOUR (Direct 1-Tap Selection to Skip Story Step) */}
+      <div className="w-full p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-xs flex flex-col space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-mono font-bold uppercase text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-[#f15a24]" />
+            <span>RAAGS FOR THIS HOUR ({timeContext.label.split('&')[0]}):</span>
+          </span>
+          <span className="text-[10px] font-mono text-slate-400">Tap to play directly</span>
+        </div>
+
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+          {timeMatchedRagas.map((raga) => {
+            const isSelected = currentRaga.id === raga.id;
+            return (
+              <button
+                key={raga.id}
+                onClick={() => handleSelectRaagDirectly(raga)}
+                className={`px-3 py-2 rounded-xl text-xs font-mono font-bold transition flex items-center gap-2 cursor-pointer shrink-0 border ${
+                  isSelected
+                    ? 'bg-[#f15a24] text-white border-[#f15a24] shadow-md font-extrabold'
+                    : 'bg-slate-100 dark:bg-white/[0.05] border-slate-200 dark:border-white/[0.08] text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:border-slate-300'
+                }`}
+              >
+                <span>{raga.name}</span>
+                <span className="text-[10px] opacity-80 font-serif">({raga.hindiName})</span>
+                {isSelected && <Check className="w-3 h-3 text-white" />}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 3. "How are you feeling today?" Interactive Story Card */}
       <div className="w-full p-4 sm:p-5 rounded-3xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-sm flex flex-col space-y-3">
         <div className="flex items-center justify-between">
           <label className="text-xs font-bold font-mono tracking-wider uppercase text-slate-700 dark:text-slate-300 flex items-center gap-2">
-            <span>HOW ARE YOU FEELING TODAY?</span>
+            <span>OR TELL US: HOW ARE YOU FEELING TODAY?</span>
           </label>
           <span className="text-[10px] font-mono text-[#f15a24] font-semibold">1-Tap Voice or Text</span>
         </div>
@@ -258,7 +335,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
           <textarea
             value={userStory}
             onChange={(e) => setUserStory(e.target.value)}
-            placeholder="Tell us what happened today or how you feel... (e.g. 'Exhausting day at work, stuck in traffic in the rain, just want to decompress and play something peaceful...')"
+            placeholder="Tell us what happened today or how you feel... Speak freely as much as you want. When you're finished, tap 'Find My Raag' below."
             rows={3}
             className="w-full p-3.5 pr-14 rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-white/[0.08] text-xs sm:text-sm text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-[#f15a24] transition resize-none leading-relaxed"
           />
@@ -271,48 +348,58 @@ export const RasaView: React.FC<RasaViewProps> = () => {
                 ? 'bg-rose-500 text-white animate-pulse shadow-[0_0_15px_rgba(244,63,94,0.6)]'
                 : 'bg-[#f15a24] text-white hover:bg-orange-600 shadow-[0_0_12px_rgba(241,90,36,0.35)]'
             }`}
-            title={isRecordingVoice ? 'Recording... Tap to stop' : 'Tap to speak your thoughts'}
+            title={isRecordingVoice ? 'Recording... Tap to stop speaking' : 'Tap to speak your thoughts'}
           >
             {isRecordingVoice ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
           </button>
         </div>
 
-        {/* Quick Mood Chips */}
+        {isRecordingVoice && (
+          <div className="flex items-center gap-2 text-xs font-mono text-rose-500 animate-pulse px-1">
+            <span className="w-2 h-2 rounded-full bg-rose-500" />
+            <span>Listening... Speak freely. Words will accumulate here. Tap mic again when finished.</span>
+          </div>
+        )}
+
+        {/* Quick Mood Chips with "+ More Moods" button on the right */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-[11px] font-mono">
           <span className="text-slate-400 shrink-0 text-[10px] font-bold">QUICK:</span>
+          {ALL_CURATED_MOODS.slice(0, 4).map((m, idx) => (
+            <button
+              key={idx}
+              onClick={() => handleSelectQuickChip(m.text)}
+              className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-white/[0.05] border border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-slate-300 hover:text-[#f15a24] hover:border-[#f15a24]/40 transition shrink-0 cursor-pointer"
+            >
+              {m.label}
+            </button>
+          ))}
+
+          {/* Small button on right to see more moods */}
           <button
-            onClick={() => handleSelectQuickChip('peaceful evening sunset unwind grateful')}
-            className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-white/[0.05] border border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-slate-300 hover:text-[#f15a24] hover:border-[#f15a24]/40 transition shrink-0 cursor-pointer"
+            onClick={() => setShowAllMoods(!showAllMoods)}
+            className="px-2.5 py-1 rounded-xl bg-slate-200 dark:bg-white/[0.1] text-slate-800 dark:text-slate-200 font-bold hover:text-[#f15a24] transition shrink-0 cursor-pointer flex items-center gap-1 border border-slate-300 dark:border-white/20"
           >
-            🧘 Peaceful Sunset
-          </button>
-          <button
-            onClick={() => handleSelectQuickChip('exhausted tired stressed heavy heart solace burnout')}
-            className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-white/[0.05] border border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-slate-300 hover:text-[#f15a24] hover:border-[#f15a24]/40 transition shrink-0 cursor-pointer"
-          >
-            🌧️ Heavy & Exhausted
-          </button>
-          <button
-            onClick={() => handleSelectQuickChip('midnight insomnia overthinking dark quiet thoughts')}
-            className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-white/[0.05] border border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-slate-300 hover:text-[#f15a24] hover:border-[#f15a24]/40 transition shrink-0 cursor-pointer"
-          >
-            🌌 Midnight Thoughts
-          </button>
-          <button
-            onClick={() => handleSelectQuickChip('rain monsoon cozy blues coffee chill')}
-            className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-white/[0.05] border border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-slate-300 hover:text-[#f15a24] hover:border-[#f15a24]/40 transition shrink-0 cursor-pointer"
-          >
-            ☕ Rainy Groove
-          </button>
-          <button
-            onClick={() => handleSelectQuickChip('fresh start morning sun clarity optimistic bright')}
-            className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-white/[0.05] border border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-slate-300 hover:text-[#f15a24] hover:border-[#f15a24]/40 transition shrink-0 cursor-pointer"
-          >
-            🌅 Morning Light
+            <span>{showAllMoods ? 'Less' : '+ More Moods'}</span>
+            {showAllMoods ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
           </button>
         </div>
 
-        {/* Action Button */}
+        {/* Expanded Moods Drawer */}
+        {showAllMoods && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 p-3 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] text-xs font-mono">
+            {ALL_CURATED_MOODS.map((m, idx) => (
+              <button
+                key={idx}
+                onClick={() => handleSelectQuickChip(m.text)}
+                className="py-1.5 px-2 rounded-xl text-left bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] text-slate-700 dark:text-slate-300 hover:text-[#f15a24] hover:border-[#f15a24]/40 transition truncate cursor-pointer"
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Action Button: Analyses at the end */}
         <button
           onClick={() => handleAnalyzeStory()}
           className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#f15a24] to-orange-500 hover:to-orange-600 text-white font-extrabold text-xs font-mono tracking-wider uppercase transition active:scale-[0.98] shadow-md flex items-center justify-center gap-2 cursor-pointer"
@@ -322,14 +409,14 @@ export const RasaView: React.FC<RasaViewProps> = () => {
         </button>
       </div>
 
-      {/* 3. Matched Raag Hero Card */}
+      {/* 4. Matched Raag Hero Card */}
       <div className="w-full p-4 sm:p-5 rounded-3xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-sm flex flex-col space-y-3 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-48 h-48 bg-[#f15a24]/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="flex items-start justify-between">
           <div>
             <div className="text-[10px] font-mono uppercase text-[#f15a24] font-extrabold tracking-wider mb-0.5">
-              YOUR HARMONIC MATCH
+              CURRENT ACTIVE RAAG
             </div>
             <div className="flex items-baseline gap-2.5">
               <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
@@ -358,7 +445,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
         </div>
       </div>
 
-      {/* 4. Acoustic Tanpura Bed Engine (Miraj Sound Model) */}
+      {/* 5. Acoustic Tanpura Bed Engine (Miraj Sound Model) */}
       <div className="w-full p-4 sm:p-5 rounded-3xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-sm flex flex-col space-y-3">
         <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-white/[0.08]">
           <div className="flex items-center gap-2">
@@ -453,7 +540,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
         </div>
       </div>
 
-      {/* 5. The Guitarist's Demystified Formula Card */}
+      {/* 6. The Guitarist's Demystified Formula Card */}
       <div className="w-full p-4 sm:p-5 rounded-3xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-sm flex flex-col space-y-3">
         <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-white/[0.08]">
           <span className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 uppercase">
@@ -504,7 +591,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
         </div>
       </div>
 
-      {/* 6. The 3-Note Magic Riff (Pakad) */}
+      {/* 7. The 3-Note Magic Riff (Pakad) */}
       <div className="w-full p-4 sm:p-5 rounded-3xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-sm flex flex-col space-y-3">
         <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-white/[0.08]">
           <div>
@@ -543,7 +630,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
         </div>
       </div>
 
-      {/* 7. FULL 12-FRET INTERACTIVE GUITAR FRETBOARD (Zero Wobble, Complete Scale Map) */}
+      {/* 8. FULL 12-FRET INTERACTIVE GUITAR FRETBOARD (Zero Wobble, Complete Scale Map) */}
       <div className="w-full p-4 sm:p-5 rounded-3xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-sm flex flex-col space-y-3">
         <div className="flex items-center justify-between pb-1 border-b border-slate-200 dark:border-white/[0.08]">
           <div>
