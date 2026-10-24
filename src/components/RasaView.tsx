@@ -40,6 +40,7 @@ import {
   getTransposedRiffFrequencies
 } from '../data/ragas';
 import { tanpura } from '../audio/tanpuraEngine';
+import { SwaraKeyboard } from './SwaraKeyboard';
 import {
   speechService,
   analyzeMoodAndMatchRaag,
@@ -713,7 +714,13 @@ export const RasaView: React.FC<RasaViewProps> = () => {
         </div>
       </div>
 
-      {/* 8. The Guitarist's Demystified Formula Card with Western Roman Degrees */}
+            {/* 7.5 Interactive Acoustic Swara Keyboard (QWERTY & Touch Meend) */}
+      <SwaraKeyboard
+        raga={currentRaga}
+        rootKey={tanpuraKey}
+      />
+
+{/* 8. The Guitarist's Demystified Formula Card with Western Roman Degrees */}
       <div className="w-full p-4 sm:p-5 rounded-3xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-sm flex flex-col space-y-3">
         <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-white/[0.08]">
           <span className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 uppercase">
