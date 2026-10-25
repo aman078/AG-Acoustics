@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { 
   X, 
   Search, 
@@ -121,6 +121,68 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
   const [isLoadingSong, setIsLoadingSong] = useState<boolean>(false);
   const [transposeOffset, setTransposeOffset] = useState<number>(0);
   const [isAutoScrolling, setIsAutoScrolling] = useState<boolean>(false);
+  const [scrollDelaySec, setScrollDelaySec] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('agsoft_scroll_delay');
+      if (saved) {
+        const val = Number(saved);
+        if (!isNaN(val) && val >= 0 && val <= 15) return val;
+      }
+    } catch {}
+    return 3;
+  });
+  const [countdownRemaining, setCountdownRemaining] = useState<number | null>(null);
+  const countdownTimerRef = useRef<any>(null);
+
+  const stopAutoScrollAndCountdown = useCallback(() => {
+    setIsAutoScrolling(false);
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+    setCountdownRemaining(null);
+  }, []);
+
+  // Cleanup countdown timer on component unmount
+  useEffect(() => {
+    return () => {
+      if (countdownTimerRef.current) {
+        clearInterval(countdownTimerRef.current);
+        countdownTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  const toggleAutoScrollWithDelay = useCallback(() => {
+    if (isAutoScrolling) {
+      stopAutoScrollAndCountdown();
+      return;
+    }
+    if (countdownRemaining !== null) {
+      stopAutoScrollAndCountdown();
+      return;
+    }
+    if (scrollDelaySec === 0) {
+      setIsAutoScrolling(true);
+      return;
+    }
+    setCountdownRemaining(scrollDelaySec);
+    let timeLeft = scrollDelaySec;
+    countdownTimerRef.current = setInterval(() => {
+      timeLeft -= 1;
+      if (timeLeft <= 0) {
+        if (countdownTimerRef.current) {
+          clearInterval(countdownTimerRef.current);
+          countdownTimerRef.current = null;
+        }
+        setCountdownRemaining(null);
+        setIsAutoScrolling(true);
+      } else {
+        setCountdownRemaining(timeLeft);
+      }
+    }, 1000);
+  }, [isAutoScrolling, countdownRemaining, scrollDelaySec, stopAutoScrollAndCountdown]);
+
   const [scrollSpeed, setScrollSpeed] = useState<number>(() => {
     try {
       const saved = localStorage.getItem('agsoft_scroll_speed');
@@ -902,7 +964,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
         setInspectChord(null);
       } else if (selectedSong) {
         setSelectedSong(null);
-        setIsAutoScrolling(false);
+        stopAutoScrollAndCountdown();
         setTransposeOffset(0);
       } else if (sectionTab !== 'search') {
         setSectionTab('search');
@@ -921,7 +983,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
           setInspectChord(null);
         } else {
           setSelectedSong(null);
-          setIsAutoScrolling(false);
+          stopAutoScrollAndCountdown();
           setTransposeOffset(0);
         }
       };
@@ -945,7 +1007,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
 
       if (e.code === 'Space' || e.key === ' ') {
         e.preventDefault();
-        setIsAutoScrolling((prev) => !prev);
+        toggleAutoScrollWithDelay();
       } else if (e.key === '-' || e.key === '_' || e.key === '[' || e.key === 'ArrowDown') {
         e.preventDefault();
         decreaseSpeed();
@@ -964,7 +1026,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
           setInspectChord(null);
         } else {
           setSelectedSong(null);
-          setIsAutoScrolling(false);
+          stopAutoScrollAndCountdown();
           setTransposeOffset(0);
         }
       }
@@ -984,7 +1046,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
             <button
               onClick={() => {
                 setSelectedSong(null);
-                setIsAutoScrolling(false);
+                stopAutoScrollAndCountdown();
                 setTransposeOffset(0);
                 setInspectChord(null);
               }}
@@ -1406,81 +1468,113 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
             </div>
           )}
 
-          {/* Main Playback Bar */}
-          <div className="max-w-3xl mx-auto w-full flex items-center justify-between gap-1.5 sm:gap-3 flex-wrap sm:flex-nowrap">
+          {/* Main Playback Bar (Strict Single-Row on All Devices including 375px iPhone SE) */}
+          <div className="max-w-3xl mx-auto w-full flex items-center justify-between gap-1 sm:gap-2 flex-nowrap py-0.5 select-none overflow-x-auto scrollbar-none">
             {/* Auto Scroll Button */}
             <button
-              onClick={() => setIsAutoScrolling(!isAutoScrolling)}
-              className={`flex-1 sm:flex-initial px-3 sm:px-4 py-2.5 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-lg shrink-0 ${
-                isAutoScrolling
+              onClick={toggleAutoScrollWithDelay}
+              className={`px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl font-bold text-[11px] sm:text-xs flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-md shrink-0 ${
+                countdownRemaining !== null
+                  ? 'bg-amber-500 text-slate-950 font-black animate-pulse shadow-amber-500/30'
+                  : isAutoScrolling
                   ? 'bg-rose-500 text-white shadow-rose-500/30'
                   : 'bg-[#f15a24] text-white shadow-[#f15a24]/30 font-extrabold hover:bg-[#d94816]'
               }`}
               title="Toggle Auto-Scroll (Desktop Shortcut: Spacebar)"
             >
-              {isAutoScrolling ? (
+              {countdownRemaining !== null ? (
                 <>
-                  <Pause className="w-4 h-4 fill-white" />
+                  <Clock className="w-3.5 h-3.5 animate-spin" />
+                  <span>IN {countdownRemaining}s</span>
+                </>
+              ) : isAutoScrolling ? (
+                <>
+                  <Pause className="w-3.5 h-3.5 fill-white" />
                   <span>PAUSE</span>
-                  <span className="hidden sm:inline-block px-1.5 py-0.5 text-[9px] font-mono bg-white/20 rounded text-white ml-0.5">Space</span>
+                  <span className="hidden md:inline-block px-1 py-0.2 text-[8px] font-mono bg-white/20 rounded text-white ml-0.5">Space</span>
                 </>
               ) : (
                 <>
-                  <Play className="w-4 h-4 fill-white" />
-                  <span>AUTO SCROLL</span>
-                  <span className="hidden sm:inline-block px-1.5 py-0.5 text-[9px] font-mono bg-white/20 rounded text-white font-extrabold ml-0.5">Space</span>
+                  <Play className="w-3.5 h-3.5 fill-white" />
+                  <span className="hidden xs:inline">AUTO SCROLL</span>
+                  <span className="xs:hidden">SCROLL</span>
+                  <span className="hidden md:inline-block px-1 py-0.2 text-[8px] font-mono bg-white/20 rounded text-white font-extrabold ml-0.5">Space</span>
                 </>
               )}
             </button>
 
-            {/* Granular Auto-Scroll Speed Steppers (down to 0.05x!) */}
-            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl px-1.5 sm:px-2 py-1 shrink-0">
-              <span className="text-[10px] font-mono text-slate-600 dark:text-slate-400 uppercase hidden sm:inline font-bold">SPEED:</span>
+            {/* Compact Delay Selector */}
+            <div 
+              className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-1.5 py-1 shrink-0"
+              title="Countdown delay before auto-scroll starts"
+            >
+              <span className="text-[9px] font-mono text-slate-500 dark:text-slate-400 uppercase hidden sm:inline font-bold">DELAY:</span>
+              <select
+                value={scrollDelaySec}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setScrollDelaySec(val);
+                  try { localStorage.setItem('agsoft_scroll_delay', String(val)); } catch {}
+                }}
+                disabled={isAutoScrolling || countdownRemaining !== null}
+                className="bg-transparent text-[#f15a24] dark:text-[#ff7a45] font-mono font-black text-[11px] sm:text-xs cursor-pointer outline-hidden pr-0.5"
+              >
+                <option value={0} className="bg-slate-900 text-white font-mono">0s</option>
+                <option value={3} className="bg-slate-900 text-white font-mono">3s</option>
+                <option value={5} className="bg-slate-900 text-white font-mono">5s</option>
+                <option value={8} className="bg-slate-900 text-white font-mono">8s</option>
+                <option value={10} className="bg-slate-900 text-white font-mono">10s</option>
+              </select>
+            </div>
+
+            {/* Granular Auto-Scroll Speed Steppers */}
+            <div className="flex items-center gap-0.5 sm:gap-1 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-1 sm:px-1.5 py-1 shrink-0">
+              <span className="text-[9px] font-mono text-slate-500 dark:text-slate-400 uppercase hidden md:inline font-bold">SPEED:</span>
               <button
                 onClick={decreaseSpeed}
-                className="w-7 h-7 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold flex items-center justify-center transition active:scale-95 cursor-pointer text-sm border border-slate-300 dark:border-transparent shadow-xs"
-                title="Slower scroll (Down to 0.05x) (Shortcut: - or [ or ↓)"
+                className="w-6 h-6 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold flex items-center justify-center transition active:scale-95 cursor-pointer text-xs border border-slate-300 dark:border-transparent shadow-xs"
+                title="Slower scroll (Down to 0.05x)"
               >
                 -
               </button>
-              <span className="font-mono font-extrabold text-[#f15a24] dark:text-[#ff7a45] text-xs sm:text-sm min-w-[42px] text-center">
+              <span className="font-mono font-extrabold text-[#f15a24] dark:text-[#ff7a45] text-[11px] sm:text-xs min-w-[34px] text-center">
                 {scrollSpeed < 0.2 ? scrollSpeed.toFixed(2) : scrollSpeed.toFixed(1)}x
               </span>
               <button
                 onClick={increaseSpeed}
-                className="w-7 h-7 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold flex items-center justify-center transition active:scale-95 cursor-pointer text-sm border border-slate-300 dark:border-transparent shadow-xs"
-                title="Faster scroll (Shortcut: + or = or ↑)"
+                className="w-6 h-6 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold flex items-center justify-center transition active:scale-95 cursor-pointer text-xs border border-slate-300 dark:border-transparent shadow-xs"
+                title="Faster scroll"
               >
                 +
               </button>
             </div>
 
             {/* Key Transpose Steppers */}
-            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl px-1.5 sm:px-2 py-1 shrink-0">
-              <span className="text-[10px] font-mono text-slate-600 dark:text-slate-400 uppercase hidden sm:inline font-bold">KEY:</span>
+            <div className="flex items-center gap-0.5 sm:gap-1 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-1 sm:px-1.5 py-1 shrink-0">
+              <span className="text-[9px] font-mono text-slate-500 dark:text-slate-400 uppercase hidden md:inline font-bold">KEY:</span>
               <button
                 onClick={() => setTransposeOffset((prev) => prev - 1)}
-                className="w-7 h-7 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold flex items-center justify-center transition active:scale-95 cursor-pointer text-sm border border-slate-300 dark:border-transparent shadow-xs"
-                title="Transpose down (Shortcut: ←)"
+                className="w-6 h-6 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold flex items-center justify-center transition active:scale-95 cursor-pointer text-xs border border-slate-300 dark:border-transparent shadow-xs"
+                title="Transpose down"
               >
                 -
               </button>
-              <span className="font-mono font-bold text-slate-900 dark:text-white text-xs min-w-[34px] text-center">
+              <span className="font-mono font-bold text-slate-900 dark:text-white text-[11px] sm:text-xs min-w-[28px] text-center">
                 {transposeOffset === 0 ? 'ORIG' : `${transposeOffset > 0 ? '+' : ''}${transposeOffset}`}
               </span>
               <button
                 onClick={() => setTransposeOffset((prev) => prev + 1)}
-                className="w-7 h-7 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold flex items-center justify-center transition active:scale-95 cursor-pointer text-sm border border-slate-300 dark:border-transparent shadow-xs"
-                title="Transpose up (Shortcut: →)"
+                className="w-6 h-6 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold flex items-center justify-center transition active:scale-95 cursor-pointer text-xs border border-slate-300 dark:border-transparent shadow-xs"
+                title="Transpose up"
               >
                 +
               </button>
             </div>
 
-            {/* Practice Accompaniment Toggle Button */}
+            {/* Practice Accompaniment Toggle Button (Compact) */}
             <button
               onClick={() => setIsPracticeBarOpen(!isPracticeBarOpen)}
-              className={`px-3 py-2 rounded-2xl text-xs font-bold font-mono transition flex items-center gap-1.5 cursor-pointer shadow-sm border shrink-0 ${
+              className={`px-2 sm:px-2.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold font-mono transition flex items-center gap-1 cursor-pointer shadow-xs border shrink-0 ${
                 isPracticing
                   ? 'bg-[#f15a24] text-white border-orange-400 font-extrabold ring-2 ring-orange-300/50 animate-pulse'
                   : isPracticeBarOpen
@@ -1489,9 +1583,9 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
               }`}
               title="Practice Accompaniment & Tempo Engine"
             >
-              <Clock className="w-3.5 h-3.5" />
-              <span>{practiceBpm} BPM</span>
-              {isPracticing && <span className="w-1.5 h-1.5 rounded-full bg-white"></span>}
+              <Clock className="w-3 h-3 shrink-0" />
+              <span>{practiceBpm} <span className="hidden xs:inline">BPM</span></span>
+              {isPracticing && <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0"></span>}
             </button>
           </div>
         </div>
@@ -1658,7 +1752,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
         {!isEmbedded && onClose && (
           <button
             onClick={() => {
-              setIsAutoScrolling(false);
+              stopAutoScrollAndCountdown();
               onClose();
             }}
             className="text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition cursor-pointer"
