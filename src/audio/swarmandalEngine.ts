@@ -4,6 +4,8 @@
  * sitarists use for melodic ambiance, vocal warmup, and establishing the Raga aura.
  */
 
+import { getSharedAudioContext } from './audioContext';
+
 // Semitone map relative to root note Sa (0)
 const SWARA_SEMITONES: Record<string, number> = {
   'S': 0, 'Sa': 0,
@@ -46,14 +48,7 @@ class SwarmandalEngine {
   private activeOscillators: OscillatorNode[] = [];
 
   private getAudioContext(): AudioContext {
-    if (!this.ctx) {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      this.ctx = new AudioCtx();
-    }
-    if (this.ctx.state === 'suspended') {
-      this.ctx.resume().catch(() => {});
-    }
-    return this.ctx;
+    return getSharedAudioContext();
   }
 
   /**

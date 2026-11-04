@@ -17,6 +17,7 @@ import {
 import { Raga, CHROMATIC_NOTES, SEMITONES_MAP } from '../data/ragas';
 import { swarmandal } from '../audio/swarmandalEngine';
 import { detectPitchMPM, calculateCents, getRMSVolume } from '../audio/pitchDetection';
+import { getSharedAudioContext } from '../audio/audioContext';
 import { 
   swaraAudio, 
   InstrumentSoundType, 
@@ -82,6 +83,7 @@ export const SwaraKeyboard: React.FC<SwaraKeyboardProps> = ({ raga, rootKey, onP
   const [liveCentsOffset, setLiveCentsOffset] = useState<number>(0);
   const liveAudioCtxRef = useRef<AudioContext | null>(null);
   const liveMediaStreamRef = useRef<MediaStream | null>(null);
+  const liveMediaStreamSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const liveAnimFrameRef = useRef<number | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -237,10 +239,19 @@ export const SwaraKeyboard: React.FC<SwaraKeyboardProps> = ({ raga, rootKey, onP
     setIsGuidedCompleted(false);
   }, [raga.id, rootKey]);
 
-  // Live Swara Pitch Tracker Loop
+  // Live Swara Pitch Tracker Loop (Vocal & Instrument Real-time Pitch Visualizer)
+  const keysListRef = useRef<SwaraKeyItem[]>(keysList);
+  keysListRef.current = keysList;
+
   useEffect(() => {
     if (!isLivePitchTrackerActive) {
       if (liveAnimFrameRef.current) cancelAnimationFrame(liveAnimFrameRef.current);
+      if (liveMediaStreamSourceRef.current) {
+        try {
+          liveMediaStreamSourceRef.current.disconnect();
+        } catch {}
+        liveMediaStreamSourceRef.current = null;
+      }
       if (liveMediaStreamRef.current) {
         liveMediaStreamRef.current.getTracks().forEach((t) => t.stop());
         liveMediaStreamRef.current = null;
@@ -252,28 +263,44 @@ export const SwaraKeyboard: React.FC<SwaraKeyboardProps> = ({ raga, rootKey, onP
     let isMounted = true;
     const startTracker = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        // Explicitly disable Echo Cancellation & Noise Suppression so OS does NOT duck audio output (Tanpura & instruments)
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+          },
+        });
+
         if (!isMounted) {
           stream.getTracks().forEach((t) => t.stop());
           return;
         }
+
         liveMediaStreamRef.current = stream;
-        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-        const ctx = new AudioCtx();
-        liveAudioCtxRef.current = ctx;
+        const ctx = getSharedAudioContext();
+        if (ctx.state === 'suspended') {
+          await ctx.resume().catch(() => {});
+        }
+
         const source = ctx.createMediaStreamSource(stream);
+        liveMediaStreamSourceRef.current = source;
         const analyser = ctx.createAnalyser();
         analyser.fftSize = 2048;
         source.connect(analyser);
 
         const buffer = new Float32Array(analyser.fftSize);
+        let lastDetectedId: string | null = null;
+        let lastCents = 0;
+        let lastStateUpdateTime = 0;
 
         const loop = () => {
           if (!isMounted || !isLivePitchTrackerActive) return;
           analyser.getFloatTimeDomainData(buffer);
           const volume = getRMSVolume(buffer);
 
-          if (volume > 0.008) {
+          const now = performance.now();
+          if (volume > 0.012) {
             const pitch = detectPitchMPM(buffer, ctx.sampleRate, 0.65, 65, 1200);
             if (pitch) {
               const freq = pitch.frequency;
@@ -281,7 +308,8 @@ export const SwaraKeyboard: React.FC<SwaraKeyboardProps> = ({ raga, rootKey, onP
               let minAbsCents = Infinity;
               let bestCents = 0;
 
-              keysList.forEach((k) => {
+              const currentKeys = keysListRef.current;
+              currentKeys.forEach((k) => {
                 [k.freq * 0.5, k.freq, k.freq * 2].forEach((targetF) => {
                   const cents = calculateCents(freq, targetF);
                   if (Math.abs(cents) < minAbsCents) {
@@ -293,16 +321,35 @@ export const SwaraKeyboard: React.FC<SwaraKeyboardProps> = ({ raga, rootKey, onP
               });
 
               if (bestItem && minAbsCents <= 50) {
-                setLiveDetectedSwaraId((bestItem as SwaraKeyItem).id);
-                setLiveCentsOffset(Number(bestCents.toFixed(1)));
+                const detectedId = (bestItem as SwaraKeyItem).id;
+                const roundedCents = Math.round(bestCents);
+                if (detectedId !== lastDetectedId || Math.abs(roundedCents - lastCents) >= 2 || now - lastStateUpdateTime > 100) {
+                  lastDetectedId = detectedId;
+                  lastCents = roundedCents;
+                  lastStateUpdateTime = now;
+                  setLiveDetectedSwaraId(detectedId);
+                  setLiveCentsOffset(roundedCents);
+                }
               } else {
-                setLiveDetectedSwaraId(null);
+                if (lastDetectedId !== null && now - lastStateUpdateTime > 150) {
+                  lastDetectedId = null;
+                  lastStateUpdateTime = now;
+                  setLiveDetectedSwaraId(null);
+                }
               }
             } else {
-              setLiveDetectedSwaraId(null);
+              if (lastDetectedId !== null && now - lastStateUpdateTime > 150) {
+                lastDetectedId = null;
+                lastStateUpdateTime = now;
+                setLiveDetectedSwaraId(null);
+              }
             }
           } else {
-            setLiveDetectedSwaraId(null);
+            if (lastDetectedId !== null && now - lastStateUpdateTime > 150) {
+              lastDetectedId = null;
+              lastStateUpdateTime = now;
+              setLiveDetectedSwaraId(null);
+            }
           }
           liveAnimFrameRef.current = requestAnimationFrame(loop);
         };
@@ -317,12 +364,18 @@ export const SwaraKeyboard: React.FC<SwaraKeyboardProps> = ({ raga, rootKey, onP
     return () => {
       isMounted = false;
       if (liveAnimFrameRef.current) cancelAnimationFrame(liveAnimFrameRef.current);
+      if (liveMediaStreamSourceRef.current) {
+        try {
+          liveMediaStreamSourceRef.current.disconnect();
+        } catch {}
+        liveMediaStreamSourceRef.current = null;
+      }
       if (liveMediaStreamRef.current) {
         liveMediaStreamRef.current.getTracks().forEach((t) => t.stop());
         liveMediaStreamRef.current = null;
       }
     };
-  }, [isLivePitchTrackerActive, keysList]);
+  }, [isLivePitchTrackerActive]);
 
   const activePreset = INSTRUMENT_PRESETS.find((p) => p.id === selectedInstrument) || INSTRUMENT_PRESETS[0];
 
@@ -431,6 +484,21 @@ export const SwaraKeyboard: React.FC<SwaraKeyboardProps> = ({ raga, rootKey, onP
           </button>
         </div>
       </div>
+
+      {/* Live Pitch Tracker Status Banner */}
+      {isLivePitchTrackerActive && (
+        <div className="py-2 px-3 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-between text-xs font-mono animate-fadeIn">
+          <div className="flex items-center gap-2 text-rose-300">
+            <span className="w-2.5 h-2.5 rounded-full bg-rose-400 animate-ping" />
+            <span className="font-bold">
+              {liveDetectedSwaraId ? 'PITCH DETECTED • SWARA LIT ON KEYBOARD' : 'SING OR PLAY: LISTENING TO YOUR VOICE...'}
+            </span>
+          </div>
+          <span className="text-[10px] text-slate-300 italic">
+            🎧 Use headphones for cleanest vocal tracking
+          </span>
+        </div>
+      )}
 
       {/* 2. Guided Game HUD Banner (When active) */}
       {isGuidedMode && (

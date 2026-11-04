@@ -41,6 +41,7 @@ import {
 } from '../data/ragas';
 import { tanpura } from '../audio/tanpuraEngine';
 import { riyaazEnsemble } from '../audio/riyaazEnsemble';
+import { TAAL_PRESETS } from '../audio/taalEngine';
 import { swarmandal } from '../audio/swarmandalEngine';
 import { SwaraKeyboard } from './SwaraKeyboard';
 import {
@@ -157,11 +158,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
 
   // Tanpura state
   const [isTanpuraPlaying, setIsTanpuraPlaying] = useState<boolean>(false);
-  const [ensembleState, setEnsembleState] = useState(() => ({
-    isPlaying: riyaazEnsemble.getIsPlaying(),
-    currentBeat: 0,
-    bpm: riyaazEnsemble.getBpm()
-  }));
+  const [ensembleState, setEnsembleState] = useState(() => riyaazEnsemble.getState());
 
   useEffect(() => {
     const unsub = riyaazEnsemble.subscribe((st) => setEnsembleState(st));
@@ -169,6 +166,11 @@ export const RasaView: React.FC<RasaViewProps> = () => {
       unsub();
     };
   }, []);
+
+  // Synchronize Root Key with ensemble
+  useEffect(() => {
+    riyaazEnsemble.setRootKey(tanpuraKey);
+  }, [tanpuraKey]);
   const [tanpuraStep, setTanpuraStep] = useState<number>(0);
   const [tanpuraVolume, setTanpuraVolume] = useState<number>(0.8);
   const [isRiffPlaying, setIsRiffPlaying] = useState<boolean>(false);
@@ -403,9 +405,48 @@ export const RasaView: React.FC<RasaViewProps> = () => {
                 <span>ALL-IN-ONE RIYAAZ ENSEMBLE</span>
                 <span className="text-[9px] px-1.5 py-0.2 rounded bg-[#f15a24] text-white font-bold">PRO</span>
               </span>
-              <p className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
-                Tanpura Drone + Tabla ({riyaazEnsemble.getSelectedTaal().name.split(' ')[0]}) + Harmonium Lehra
-              </p>
+              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                {/* Taal Dropdown */}
+                <select
+                  value={ensembleState.selectedTaal.id}
+                  onChange={(e) => {
+                    const found = TAAL_PRESETS.find((t) => t.id === e.target.value);
+                    if (found) {
+                      riyaazEnsemble.setSelectedTaal(found);
+                      riyaazEnsemble.setBpm(found.defaultBpm);
+                    }
+                  }}
+                  className="bg-orange-500/10 dark:bg-slate-800 border border-orange-500/30 rounded-lg px-2 py-0.5 text-slate-800 dark:text-amber-300 font-mono font-bold text-[11px] cursor-pointer outline-hidden"
+                  title="Choose Indian Classical Taal (Synchronized with Metronome)"
+                >
+                  {TAAL_PRESETS.map((t) => (
+                    <option key={t.id} value={t.id} className="bg-slate-900 text-white font-mono">
+                      {t.name.split(' ')[0]} ({t.totalMatras}M)
+                    </option>
+                  ))}
+                </select>
+
+                {/* BPM Steppers */}
+                <div className="flex items-center gap-1 font-mono text-[11px] bg-orange-500/10 dark:bg-slate-800 border border-orange-500/30 rounded-lg px-1.5 py-0.5">
+                  <button
+                    onClick={() => riyaazEnsemble.setBpm(ensembleState.bpm - 5)}
+                    className="w-4 h-4 rounded text-[#f15a24] hover:bg-orange-500/20 font-bold flex items-center justify-center cursor-pointer"
+                    title="Decrease 5 BPM"
+                  >
+                    -
+                  </button>
+                  <span className="font-extrabold text-slate-900 dark:text-white px-1">
+                    {ensembleState.bpm} BPM
+                  </span>
+                  <button
+                    onClick={() => riyaazEnsemble.setBpm(ensembleState.bpm + 5)}
+                    className="w-4 h-4 rounded text-[#f15a24] hover:bg-orange-500/20 font-bold flex items-center justify-center cursor-pointer"
+                    title="Increase 5 BPM"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -449,8 +490,8 @@ export const RasaView: React.FC<RasaViewProps> = () => {
           <div className="flex items-center justify-between text-xs font-mono pt-1 border-t border-orange-500/20 text-[#f15a24] dark:text-[#ff7a45]">
             <span className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#f15a24] animate-ping" />
-              <span className="font-bold">BEAT {ensembleState.currentBeat + 1}/{riyaazEnsemble.getSelectedTaal().totalMatras}</span>
-              <span className="text-slate-500 dark:text-slate-400">• {riyaazEnsemble.getSelectedTaal().matras[ensembleState.currentBeat]?.bol}</span>
+              <span className="font-bold">BEAT {ensembleState.currentBeat + 1}/{ensembleState.selectedTaal.totalMatras}</span>
+              <span className="text-slate-500 dark:text-slate-400">• {ensembleState.selectedTaal.matras[ensembleState.currentBeat]?.bol}</span>
             </span>
             <span className="font-bold">{ensembleState.bpm} BPM</span>
           </div>

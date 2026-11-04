@@ -8,6 +8,8 @@
  * matching Tanpura Droid.
  */
 
+import { getSharedAudioContext } from './audioContext';
+
 export interface TanpuraConfig {
   rootKey: string; // e.g. 'C', 'C#', 'D', 'E', 'G', 'A'
   firstString: 'Pa' | 'Ma' | 'Ni'; // Tuning for the 1st string
@@ -87,10 +89,7 @@ class TanpuraEngine {
   }
 
   private initAudioContext() {
-    if (!this.ctx) {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      this.ctx = new AudioCtx();
-    }
+    this.ctx = getSharedAudioContext();
     if (this.ctx && this.ctx.state === 'suspended') {
       this.ctx.resume().catch(() => {});
     }

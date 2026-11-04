@@ -8,6 +8,8 @@
  * 5. Kashmiri Santoor (Delicate wooden hammer strike & crystalline ringing overtones)
  */
 
+import { getSharedAudioContext } from './audioContext';
+
 export type InstrumentSoundType = 'flute' | 'sitar' | 'guitar' | 'harmonium' | 'santoor';
 
 export interface InstrumentPreset {
@@ -80,10 +82,7 @@ class SwaraKeyboardEngine {
   private santoorWave: PeriodicWave | null = null;
 
   private initContext() {
-    if (!this.ctx) {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      this.ctx = new AudioCtx();
-    }
+    this.ctx = getSharedAudioContext();
     if (this.ctx && this.ctx.state === 'suspended') {
       this.ctx.resume().catch(() => {});
     }
