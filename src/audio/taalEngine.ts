@@ -1,7 +1,7 @@
 /**
- * Indian Classical Taal Definitions & Synthetic Tabla Sound Engine
+ * Indian Classical Taal Definitions & Multi-Layer Acoustic Tabla Sound Engine
  * Provides authentic rhythmic cycles (Matras, Vibhags, Bols, Sam, Tali, Khali)
- * and multi-tonal acoustic Tabla synthesis using Web Audio API.
+ * and physical leather-skin synthesis with palm-slide Ghumki and Syahi harmonics.
  */
 
 export type BolType = 'dha' | 'dhin' | 'tin' | 'ta' | 'ge' | 'ke' | 'na';
@@ -164,11 +164,27 @@ export const TAAL_PRESETS: TaalPreset[] = [
   },
 ];
 
+// Pre-generated leather slap noise buffer for realistic fingertip parchment strike
+let cachedNoiseBuffer: AudioBuffer | null = null;
+function getLeatherNoiseBuffer(ctx: AudioContext): AudioBuffer {
+  if (cachedNoiseBuffer && cachedNoiseBuffer.sampleRate === ctx.sampleRate) {
+    return cachedNoiseBuffer;
+  }
+  const bufferSize = Math.floor(ctx.sampleRate * 0.05); // 50ms transient
+  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    // Pinkish filtered noise
+    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.2));
+  }
+  cachedNoiseBuffer = buffer;
+  return buffer;
+}
+
 /**
- * High-fidelity synthetic Tabla sound generator using Web Audio API nodes.
- * Accurately models the dual-drum acoustic properties:
- * - Dayān (treble wooden drum): tuned metallic ring, crisp rim slap
- * - Bayān (bass copper drum): deep resonant boom with modulatory pitch glide (Ghumki)
+ * High-fidelity synthetic Tabla sound generator with authentic physical modeling:
+ * - Dayān (Treble wooden drum with black iron Syahi patch)
+ * - Bayān (Bass copper/clay kettle drum with wrist Ghumki glide)
  */
 export function playSyntheticTablaStroke(
   ctx: AudioContext,
@@ -178,35 +194,40 @@ export function playSyntheticTablaStroke(
 ) {
   switch (bolType) {
     case 'dha': {
-      // Dha = Dayān (Ta/Na) + Bayān (Ge resonant bass)
-      playBayanBass(ctx, time, 75, 52, 0.32, 0.85);
-      playDayanTreble(ctx, time, basePitchHz * 2, 0.18, 0.65, true);
+      // Dha = Dayān (Ta/Na rim) + Bayān (deep resonant Ghumki slide)
+      playBayanGhumki(ctx, time, 72, 46, 0.42, 0.95);
+      playDayanKinar(ctx, time, basePitchHz * 2, 0.22, 0.75);
+      playLeatherSlap(ctx, time, 0.15);
       break;
     }
     case 'dhin': {
-      // Dhin = Open Dayān ring + soft deep Bayān resonance
-      playBayanBass(ctx, time, 82, 60, 0.38, 0.75);
-      playDayanTreble(ctx, time, basePitchHz * 2, 0.30, 0.70, false);
+      // Dhin = Open Dayān ring (Sur) + soft Bayān resonance
+      playBayanGhumki(ctx, time, 78, 56, 0.48, 0.85);
+      playDayanSur(ctx, time, basePitchHz * 2, 0.38, 0.80);
+      playLeatherSlap(ctx, time, 0.08);
       break;
     }
     case 'ge': {
-      // Ge = Deep open Bayān bass glide alone
-      playBayanBass(ctx, time, 72, 48, 0.35, 0.90);
+      // Ge = Deep open Bayān bass glide alone with deep resonant warmth
+      playBayanGhumki(ctx, time, 74, 48, 0.45, 0.95);
+      playLeatherSlap(ctx, time, 0.10);
       break;
     }
     case 'tin': {
-      // Tin = Open ringing Dayān resonant tone (no bass)
-      playDayanTreble(ctx, time, basePitchHz * 2, 0.28, 0.65, false);
+      // Tin = Open ringing Dayān resonant tone on Syahi (no bass)
+      playDayanSur(ctx, time, basePitchHz * 2, 0.35, 0.70);
+      playLeatherSlap(ctx, time, 0.06);
       break;
     }
     case 'ta':
     case 'na': {
-      // Ta / Na = Crisp high-pitched metallic rim strike (Kinar)
-      playDayanTreble(ctx, time, basePitchHz * 2.2, 0.14, 0.75, true);
+      // Ta / Na = Crisp, high-pitched metallic rim strike on the Kinar border
+      playDayanKinar(ctx, time, basePitchHz * 2.25, 0.18, 0.85);
+      playLeatherSlap(ctx, time, 0.18);
       break;
     }
     case 'ke': {
-      // Ke = Flat, muted flat hand slap on Bayān
+      // Ke = Flat, muted flat-hand slap on Bayān skin
       playMutedSlap(ctx, time);
       break;
     }
@@ -214,10 +235,10 @@ export function playSyntheticTablaStroke(
 }
 
 /**
- * Bayān (Bass kettle drum) acoustic simulation:
- * Low-frequency sine with pitch modulation envelope + sub-bass resonance filter
+ * Bayān (Bass Kettle Drum) with Authentic Ghumki Palm-Modulated Glide:
+ * Dual-harmonic low-end body with exponential frequency drop imitating palm pressure release
  */
-function playBayanBass(
+function playBayanGhumki(
   ctx: AudioContext,
   time: number,
   startFreq: number,
@@ -225,56 +246,110 @@ function playBayanBass(
   duration: number,
   gainLevel: number
 ) {
-  const osc = ctx.createOscillator();
+  const osc1 = ctx.createOscillator();
+  const osc2 = ctx.createOscillator();
   const gain = ctx.createGain();
   const filter = ctx.createBiquadFilter();
 
+  // Lowpass filter modeling the wooden/copper resonator body
   filter.type = 'lowpass';
-  filter.frequency.setValueAtTime(220, time);
+  filter.frequency.setValueAtTime(260, time);
+  filter.frequency.exponentialRampToValueAtTime(110, time + duration);
 
-  osc.type = 'sine';
-  osc.frequency.setValueAtTime(startFreq, time);
-  // Gentle pitch dip mimicking finger slide on dough skin
-  osc.frequency.exponentialRampToValueAtTime(endFreq, time + duration * 0.7);
+  // Fundamental frequency
+  osc1.type = 'sine';
+  osc1.frequency.setValueAtTime(startFreq, time);
+  osc1.frequency.exponentialRampToValueAtTime(endFreq, time + duration * 0.85);
 
+  // Subtle 2nd harmonic sub-body tone
+  osc2.type = 'triangle';
+  osc2.frequency.setValueAtTime(startFreq * 1.5, time);
+  osc2.frequency.exponentialRampToValueAtTime(endFreq * 1.5, time + duration * 0.85);
+
+  // Natural acoustic volume decay
   gain.gain.setValueAtTime(gainLevel, time);
   gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
 
-  osc.connect(filter);
+  osc1.connect(filter);
+  osc2.connect(filter);
   filter.connect(gain);
   gain.connect(ctx.destination);
 
-  osc.start(time);
-  osc.stop(time + duration + 0.02);
+  osc1.start(time);
+  osc2.start(time);
+  osc1.stop(time + duration + 0.02);
+  osc2.stop(time + duration + 0.02);
 }
 
 /**
- * Dayān (Right treble drum) acoustic simulation:
- * Dual harmonic oscillator mimicking the black iron-powder paste (Syahi) resonance
+ * Dayān Open Ring (Sur / Syahi Strike):
+ * Produces the ringing, singing bell-like resonance characteristic of concert Tablas
  */
-function playDayanTreble(
+function playDayanSur(
   ctx: AudioContext,
   time: number,
   freq: number,
   duration: number,
-  gainLevel: number,
-  isRim: boolean
+  gainLevel: number
+) {
+  const oscFundamental = ctx.createOscillator();
+  const oscSyahiHarmonic = ctx.createOscillator();
+  const gain = ctx.createGain();
+  const filter = ctx.createBiquadFilter();
+
+  // Syahi metallic resonance band
+  filter.type = 'bandpass';
+  filter.frequency.setValueAtTime(freq * 1.25, time);
+  filter.Q.setValueAtTime(4.2, time);
+
+  // Pure fundamental note
+  oscFundamental.type = 'sine';
+  oscFundamental.frequency.setValueAtTime(freq, time);
+
+  // Over-harmonic from the iron-paste center
+  oscSyahiHarmonic.type = 'triangle';
+  oscSyahiHarmonic.frequency.setValueAtTime(freq * 1.58, time);
+
+  gain.gain.setValueAtTime(gainLevel, time);
+  // Slower natural ringing decay for singing tone
+  gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+
+  oscFundamental.connect(gain);
+  oscSyahiHarmonic.connect(filter);
+  filter.connect(gain);
+  gain.connect(ctx.destination);
+
+  oscFundamental.start(time);
+  oscSyahiHarmonic.start(time);
+  oscFundamental.stop(time + duration + 0.02);
+  oscSyahiHarmonic.stop(time + duration + 0.02);
+}
+
+/**
+ * Dayān Rim Strike (Kinar / Na / Ta):
+ * Piercing, snappy acoustic rim slap with rapid metallic decay
+ */
+function playDayanKinar(
+  ctx: AudioContext,
+  time: number,
+  freq: number,
+  duration: number,
+  gainLevel: number
 ) {
   const osc1 = ctx.createOscillator();
   const osc2 = ctx.createOscillator();
   const gain = ctx.createGain();
   const filter = ctx.createBiquadFilter();
 
-  osc1.type = 'sine';
+  filter.type = 'bandpass';
+  filter.frequency.setValueAtTime(freq * 1.45, time);
+  filter.Q.setValueAtTime(6.0, time);
+
+  osc1.type = 'triangle';
   osc1.frequency.setValueAtTime(freq, time);
 
-  // High metallic harmonic
-  osc2.type = 'triangle';
-  osc2.frequency.setValueAtTime(freq * (isRim ? 2.76 : 1.58), time);
-
-  filter.type = 'bandpass';
-  filter.frequency.setValueAtTime(freq * 1.2, time);
-  filter.Q.setValueAtTime(isRim ? 6 : 4, time);
+  osc2.type = 'sine';
+  osc2.frequency.setValueAtTime(freq * 2.85, time);
 
   gain.gain.setValueAtTime(gainLevel, time);
   gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
@@ -291,21 +366,54 @@ function playDayanTreble(
 }
 
 /**
- * Muted 'Ke' slap simulation: short noise burst + low thud
+ * Finger Slap Transient on Goat Skin (Removes robotic synth feel)
+ */
+function playLeatherSlap(ctx: AudioContext, time: number, level: number) {
+  try {
+    const noise = ctx.createBufferSource();
+    noise.buffer = getLeatherNoiseBuffer(ctx);
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(1800, time);
+    filter.Q.setValueAtTime(2.0, time);
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(level, time);
+    gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.025);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+
+    noise.start(time);
+    noise.stop(time + 0.03);
+  } catch {}
+}
+
+/**
+ * Muted 'Ke' slap simulation: flat hand striking dough skin with zero ring
  */
 function playMutedSlap(ctx: AudioContext, time: number) {
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
+  const filter = ctx.createBiquadFilter();
+
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(140, time);
 
   osc.type = 'triangle';
-  osc.frequency.setValueAtTime(110, time);
+  osc.frequency.setValueAtTime(120, time);
   osc.frequency.exponentialRampToValueAtTime(45, time + 0.06);
 
-  gain.gain.setValueAtTime(0.4, time);
+  gain.gain.setValueAtTime(0.55, time);
   gain.gain.exponentialRampToValueAtTime(0.001, time + 0.06);
 
-  osc.connect(gain);
+  osc.connect(filter);
+  filter.connect(gain);
   gain.connect(ctx.destination);
+
+  playLeatherSlap(ctx, time, 0.22);
 
   osc.start(time);
   osc.stop(time + 0.07);

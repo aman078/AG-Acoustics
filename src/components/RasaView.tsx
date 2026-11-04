@@ -137,6 +137,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
   const [userStory, setUserStory] = useState<string>('');
   const [isRecordingVoice, setIsRecordingVoice] = useState<boolean>(false);
   const [showAllMoods, setShowAllMoods] = useState<boolean>(false);
+  const [isMoodExplorerOpen, setIsMoodExplorerOpen] = useState<boolean>(false);
 
   const [analysis, setAnalysis] = useState<RasaAnalysisResult>(() => ({
     primaryRaga: defaultRaga,
@@ -159,7 +160,7 @@ export const RasaView: React.FC<RasaViewProps> = () => {
   const [isRiffPlaying, setIsRiffPlaying] = useState<boolean>(false);
   const [showForbiddenFrets, setShowForbiddenFrets] = useState<boolean>(true);
 
-  // Subscribe to Tanpura cycles
+  // Subscribe to Tanpura cycles (Does not stop Tanpura on unmount so drone persists smoothly to Metronome/Tuner)
   useEffect(() => {
     const unsubscribe = tanpura.subscribe((step, playing) => {
       setTanpuraStep(step);
@@ -167,7 +168,6 @@ export const RasaView: React.FC<RasaViewProps> = () => {
     });
     return () => {
       unsubscribe();
-      tanpura.stop();
     };
   }, []);
 
@@ -448,8 +448,36 @@ export const RasaView: React.FC<RasaViewProps> = () => {
         </div>
       </div>
 
-      {/* 4. "How are you feeling today?" Interactive Story Card */}
-      <div className="w-full p-4 sm:p-5 rounded-3xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-sm flex flex-col space-y-3">
+      {/* 4. Collapsible Mood & Raag Explorer Accordion */}
+      <div className="w-full rounded-3xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-sm overflow-hidden transition-all">
+        <button
+          onClick={() => setIsMoodExplorerOpen(!isMoodExplorerOpen)}
+          className="w-full p-3.5 sm:p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition cursor-pointer select-none"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-orange-500/10 dark:bg-orange-500/20 text-[#f15a24] flex items-center justify-center shrink-0 font-bold">
+              🎭
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-mono font-extrabold uppercase text-slate-800 dark:text-slate-200 tracking-wider flex items-center gap-2">
+                <span>HOW ARE YOU FEELING TODAY?</span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#f15a24]/10 text-[#f15a24] font-bold">
+                  MOOD & SUGGESTED RAAGS
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono truncate">
+                {isMoodExplorerOpen ? 'Tap to collapse mood question' : 'Tap to speak your thoughts or explore 12 emotional moods & recommendations'}
+              </p>
+            </div>
+          </div>
+          <div className="w-7 h-7 rounded-xl bg-slate-100 dark:bg-white/[0.06] text-slate-500 flex items-center justify-center shrink-0 ml-2">
+            {isMoodExplorerOpen ? <ChevronUp className="w-4 h-4 text-[#f15a24]" /> : <ChevronDown className="w-4 h-4 text-[#f15a24]" />}
+          </div>
+        </button>
+
+        {isMoodExplorerOpen && (
+          <div className="p-4 sm:p-5 pt-0 border-t border-slate-100 dark:border-white/[0.06] flex flex-col space-y-4 animate-fadeIn">
+            <div className="flex flex-col space-y-3 pt-3">
         <div className="flex items-center justify-between">
           <label className="text-xs font-bold font-mono tracking-wider uppercase text-slate-700 dark:text-slate-300 flex items-center gap-2">
             <span>OR TELL US: HOW ARE YOU FEELING TODAY?</span>
@@ -594,6 +622,9 @@ export const RasaView: React.FC<RasaViewProps> = () => {
             );
           })}
         </div>
+      </div>
+          </div>
+        )}
       </div>
 
       {/* 6. Current Active Raag Hero Card */}

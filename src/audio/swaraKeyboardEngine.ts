@@ -492,8 +492,28 @@ class SwaraKeyboardEngine {
     voice.gainNode.gain.cancelScheduledValues(now);
     voice.gainNode.gain.setValueAtTime(voice.gainNode.gain.value, now);
 
-    // Flute & Harmonium stop smoothly when key released; strings linger with natural decay
-    const releaseTime = voice.instrument === 'flute' || voice.instrument === 'harmonium' ? 0.22 : 0.45;
+    // Rich acoustic resonant tails:
+    // Sitar & Santoor linger with long shimmering natural string reverberation (2.2s - 2.5s)
+    // Guitar has a natural wooden soundboard decay (1.8s)
+    // Flute has breath room resonance (0.85s); Harmonium has free-reed chamber decay (0.75s)
+    let releaseTime = 1.8;
+    switch (voice.instrument) {
+      case 'sitar':
+        releaseTime = 2.4;
+        break;
+      case 'santoor':
+        releaseTime = 2.6;
+        break;
+      case 'guitar':
+        releaseTime = 1.9;
+        break;
+      case 'flute':
+        releaseTime = 0.85;
+        break;
+      case 'harmonium':
+        releaseTime = 0.75;
+        break;
+    }
     voice.gainNode.gain.exponentialRampToValueAtTime(0.0001, now + releaseTime);
 
     setTimeout(() => {

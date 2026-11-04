@@ -79,7 +79,18 @@ export const MetronomeModal: React.FC<MetronomeModalProps> = ({ isOpen = true, o
     try {
       localStorage.setItem('agsoft_metronome_bpm', String(bpm));
     } catch {}
-  }, [bpm]);
+
+    // When BPM changes on the fly while playing, recalculate next note deadline immediately
+    if (isPlaying && audioCtxRef.current) {
+      const ctx = audioCtxRef.current;
+      const currentBpm = Math.max(30, bpm);
+      const secondsPerBeat = 60.0 / currentBpm;
+      // If nextNoteTime is scheduled further out than one full new beat duration, pull it in
+      if (nextNoteTimeRef.current > ctx.currentTime + secondsPerBeat) {
+        nextNoteTimeRef.current = ctx.currentTime + secondsPerBeat * 0.5;
+      }
+    }
+  }, [bpm, isPlaying]);
 
   useEffect(() => {
     try {
@@ -101,6 +112,8 @@ export const MetronomeModal: React.FC<MetronomeModalProps> = ({ isOpen = true, o
   const currentBeatRef = useRef<number>(0);
 
   // Sync ref for access inside audio callback
+  const bpmRef = useRef<number>(bpm);
+  bpmRef.current = bpm;
   const rhythmModeRef = useRef<'western' | 'taal'>(rhythmMode);
   rhythmModeRef.current = rhythmMode;
   const selectedTaalRef = useRef<TaalPreset>(selectedTaal);
@@ -180,8 +193,9 @@ export const MetronomeModal: React.FC<MetronomeModalProps> = ({ isOpen = true, o
       const beatToUpdate = currentBeatRef.current;
       setCurrentBeat(beatToUpdate);
 
-      // Advance beat
-      const secondsPerBeat = 60.0 / bpm;
+      // Advance beat dynamically using bpmRef (ensures instantaneous tempo response on the fly)
+      const currentBpm = Math.max(30, bpmRef.current);
+      const secondsPerBeat = 60.0 / currentBpm;
       nextNoteTimeRef.current += secondsPerBeat;
       currentBeatRef.current = (currentBeatRef.current + 1) % cycleLength;
     }

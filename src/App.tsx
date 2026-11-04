@@ -23,6 +23,7 @@ import {
   Waves
 } from 'lucide-react';
 import { detectPitchMPM, frequencyToNote, calculateCents, getRMSVolume, findMatchingString } from './audio/pitchDetection';
+import { tanpura } from './audio/tanpuraEngine';
 import { playGuitarStringTone, playInTuneChime, stopToneDrone } from './audio/toneGenerator';
 import { TUNINGS, TuningPreset } from './data/tunings';
 import { StrobeTuner } from './components/StrobeTuner';
@@ -114,6 +115,16 @@ export const App: React.FC = () => {
 
   // Navigation Dock
   const [activeTab, setActiveTab] = useState<ActiveTab>('tuner');
+  const [globalTanpuraPlaying, setGlobalTanpuraPlaying] = useState<boolean>(() => tanpura.getIsPlaying());
+
+  useEffect(() => {
+    const unsub = tanpura.subscribe((_step, playing) => {
+      setGlobalTanpuraPlaying(playing);
+    });
+    return () => {
+      unsub();
+    };
+  }, []);
 
   // Tuner Modes: 'studio' (GuitarTuna visual headstock) vs 'strobe' (Peterson 0.1c Strobe)
   const [tunerMode, setTunerMode] = useState<'studio' | 'strobe'>(() => {
@@ -670,6 +681,36 @@ export const App: React.FC = () => {
           </div>
         </div>
       </header>
+
+      {/* Global Tanpura Persistent Background Floating Bar (Visible when playing outside Rasa tab) */}
+      {globalTanpuraPlaying && activeTab !== 'rasa' && (
+        <div className="max-w-4xl w-full mx-auto px-4 pt-2 -mb-2 z-30 animate-fadeIn">
+          <div className="w-full py-2 px-3.5 rounded-2xl bg-gradient-to-r from-orange-500/15 via-amber-500/15 to-orange-500/15 border border-[#f15a24]/40 backdrop-blur-md flex items-center justify-between shadow-md">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#f15a24] animate-ping shrink-0"></span>
+              <span className="text-xs font-mono font-black text-[#f15a24] dark:text-[#ff7a45] flex items-center gap-1.5 truncate">
+                <span>🪕 TANPURA DRONE ACTIVE</span>
+                <span className="text-[10px] opacity-80 font-normal hidden sm:inline">(Playing across Metronome, Tuner & Songs)</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => setActiveTab('rasa')}
+                className="px-2.5 py-1 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-[11px] font-mono font-bold text-slate-800 dark:text-slate-200 hover:text-[#f15a24] transition cursor-pointer"
+              >
+                Open Rasa
+              </button>
+              <button
+                onClick={() => tanpura.stop()}
+                className="px-2.5 py-1 rounded-xl bg-[#f15a24] hover:bg-[#d94816] text-white text-[11px] font-mono font-black shadow-xs transition cursor-pointer flex items-center gap-1"
+              >
+                <span>STOP</span>
+                <span>✕</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main App Body Depending on Active Tab */}
       <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-4 flex flex-col items-center justify-start">
