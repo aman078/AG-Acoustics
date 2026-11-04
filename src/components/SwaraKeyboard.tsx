@@ -15,6 +15,8 @@ import {
   Sliders
 } from 'lucide-react';
 import { Raga, CHROMATIC_NOTES, SEMITONES_MAP } from '../data/ragas';
+import { swarmandal } from '../audio/swarmandalEngine';
+import { detectPitchMPM, calculateCents, getRMSVolume } from '../audio/pitchDetection';
 import { 
   swaraAudio, 
   InstrumentSoundType, 
@@ -74,6 +76,13 @@ export const SwaraKeyboard: React.FC<SwaraKeyboardProps> = ({ raga, rootKey, onP
   const [guidedStepIndex, setGuidedStepIndex] = useState<number>(0);
   const [guidedCombo, setGuidedCombo] = useState<number>(0);
   const [isGuidedCompleted, setIsGuidedCompleted] = useState<boolean>(false);
+  // Live Swara Pitch Tracker (Mic listening to detect which Swara the musician is playing)
+  const [isLivePitchTrackerActive, setIsLivePitchTrackerActive] = useState<boolean>(false);
+  const [liveDetectedSwaraId, setLiveDetectedSwaraId] = useState<string | null>(null);
+  const [liveCentsOffset, setLiveCentsOffset] = useState<number>(0);
+  const liveAudioCtxRef = useRef<AudioContext | null>(null);
+  const liveMediaStreamRef = useRef<MediaStream | null>(null);
+  const liveAnimFrameRef = useRef<number | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const touchingKeyIdRef = useRef<string | null>(null);
@@ -228,6 +237,93 @@ export const SwaraKeyboard: React.FC<SwaraKeyboardProps> = ({ raga, rootKey, onP
     setIsGuidedCompleted(false);
   }, [raga.id, rootKey]);
 
+  // Live Swara Pitch Tracker Loop
+  useEffect(() => {
+    if (!isLivePitchTrackerActive) {
+      if (liveAnimFrameRef.current) cancelAnimationFrame(liveAnimFrameRef.current);
+      if (liveMediaStreamRef.current) {
+        liveMediaStreamRef.current.getTracks().forEach((t) => t.stop());
+        liveMediaStreamRef.current = null;
+      }
+      setLiveDetectedSwaraId(null);
+      return;
+    }
+
+    let isMounted = true;
+    const startTracker = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        if (!isMounted) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        liveMediaStreamRef.current = stream;
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        const ctx = new AudioCtx();
+        liveAudioCtxRef.current = ctx;
+        const source = ctx.createMediaStreamSource(stream);
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 2048;
+        source.connect(analyser);
+
+        const buffer = new Float32Array(analyser.fftSize);
+
+        const loop = () => {
+          if (!isMounted || !isLivePitchTrackerActive) return;
+          analyser.getFloatTimeDomainData(buffer);
+          const volume = getRMSVolume(buffer);
+
+          if (volume > 0.008) {
+            const pitch = detectPitchMPM(buffer, ctx.sampleRate, 0.65, 65, 1200);
+            if (pitch) {
+              const freq = pitch.frequency;
+              let bestItem: SwaraKeyItem | null = null;
+              let minAbsCents = Infinity;
+              let bestCents = 0;
+
+              keysList.forEach((k) => {
+                [k.freq * 0.5, k.freq, k.freq * 2].forEach((targetF) => {
+                  const cents = calculateCents(freq, targetF);
+                  if (Math.abs(cents) < minAbsCents) {
+                    minAbsCents = Math.abs(cents);
+                    bestCents = cents;
+                    bestItem = k;
+                  }
+                });
+              });
+
+              if (bestItem && minAbsCents <= 50) {
+                setLiveDetectedSwaraId((bestItem as SwaraKeyItem).id);
+                setLiveCentsOffset(Number(bestCents.toFixed(1)));
+              } else {
+                setLiveDetectedSwaraId(null);
+              }
+            } else {
+              setLiveDetectedSwaraId(null);
+            }
+          } else {
+            setLiveDetectedSwaraId(null);
+          }
+          liveAnimFrameRef.current = requestAnimationFrame(loop);
+        };
+        liveAnimFrameRef.current = requestAnimationFrame(loop);
+      } catch {
+        setIsLivePitchTrackerActive(false);
+      }
+    };
+
+    startTracker();
+
+    return () => {
+      isMounted = false;
+      if (liveAnimFrameRef.current) cancelAnimationFrame(liveAnimFrameRef.current);
+      if (liveMediaStreamRef.current) {
+        liveMediaStreamRef.current.getTracks().forEach((t) => t.stop());
+        liveMediaStreamRef.current = null;
+      }
+    };
+  }, [isLivePitchTrackerActive, keysList]);
+
   const activePreset = INSTRUMENT_PRESETS.find((p) => p.id === selectedInstrument) || INSTRUMENT_PRESETS[0];
 
   return (
@@ -270,6 +366,30 @@ export const SwaraKeyboard: React.FC<SwaraKeyboardProps> = ({ raga, rootKey, onP
               ))}
             </select>
           </div>
+
+          {/* Swarmandal Modal Harp Cascade Button (Adapted from iShala) */}
+          <button
+            onClick={() => swarmandal.cascade(rootKey, raga.scaleNotesAtC, 'up')}
+            className="px-2.5 py-1 rounded-xl text-xs font-mono font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs border bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 text-amber-300 border-amber-500/40 active:scale-95"
+            title="Cascade an acoustic Swarmandal modal harp strum in this Raga"
+          >
+            <span>✨</span>
+            <span>STRUM HARP</span>
+          </button>
+
+          {/* Live Mic Swara Tracker (iShala Pro Pitch Detection) */}
+          <button
+            onClick={() => setIsLivePitchTrackerActive(!isLivePitchTrackerActive)}
+            className={`px-2.5 py-1 rounded-xl text-xs font-mono font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs border ${
+              isLivePitchTrackerActive
+                ? 'bg-rose-500 text-white border-rose-400 animate-pulse'
+                : 'bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 border-white/10'
+            }`}
+            title="Sing or play your instrument; highlights the exact Swara on screen in real time"
+          >
+            <span>🎙️</span>
+            <span>LIVE TRACKER: {isLivePitchTrackerActive ? 'ON' : 'OFF'}</span>
+          </button>
 
           {/* Ambient Drone Mode Toggle */}
           <button
@@ -374,6 +494,7 @@ export const SwaraKeyboard: React.FC<SwaraKeyboardProps> = ({ raga, rootKey, onP
         {keysList.map((item) => {
           const isActive = activeKeyIds.has(item.id);
           const isDroneActive = droneKeyId === item.id;
+          const isLiveDetected = liveDetectedSwaraId === item.id;
           const isGuidedTarget = isGuidedMode && !isGuidedCompleted && currentGuidedTarget?.id === item.id;
 
           // Badges and styles
@@ -488,6 +609,13 @@ export const SwaraKeyboard: React.FC<SwaraKeyboardProps> = ({ raga, rootKey, onP
                   {item.keyChar}
                 </kbd>
               </div>
+
+              {/* Live Swara Pitch Meter Badge */}
+              {isLiveDetected && (
+                <div className="absolute -bottom-2 px-2 py-0.5 rounded-full bg-emerald-500 text-slate-950 text-[9px] font-black font-mono shadow-lg border border-emerald-300 animate-bounce">
+                  {liveCentsOffset > 0 ? `+${liveCentsOffset}¢` : `${liveCentsOffset}¢`}
+                </div>
+              )}
 
               {/* Latch Indicator for Drone Mode */}
               {isDroneActive && (

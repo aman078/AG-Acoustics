@@ -40,6 +40,8 @@ import {
   getTransposedRiffFrequencies
 } from '../data/ragas';
 import { tanpura } from '../audio/tanpuraEngine';
+import { riyaazEnsemble } from '../audio/riyaazEnsemble';
+import { swarmandal } from '../audio/swarmandalEngine';
 import { SwaraKeyboard } from './SwaraKeyboard';
 import {
   speechService,
@@ -155,6 +157,18 @@ export const RasaView: React.FC<RasaViewProps> = () => {
 
   // Tanpura state
   const [isTanpuraPlaying, setIsTanpuraPlaying] = useState<boolean>(false);
+  const [ensembleState, setEnsembleState] = useState(() => ({
+    isPlaying: riyaazEnsemble.getIsPlaying(),
+    currentBeat: 0,
+    bpm: riyaazEnsemble.getBpm()
+  }));
+
+  useEffect(() => {
+    const unsub = riyaazEnsemble.subscribe((st) => setEnsembleState(st));
+    return () => {
+      unsub();
+    };
+  }, []);
   const [tanpuraStep, setTanpuraStep] = useState<number>(0);
   const [tanpuraVolume, setTanpuraVolume] = useState<number>(0.8);
   const [isRiffPlaying, setIsRiffPlaying] = useState<boolean>(false);
@@ -375,6 +389,72 @@ export const RasaView: React.FC<RasaViewProps> = () => {
             {timeContext.label}
           </div>
         </div>
+      </div>
+
+      {/* 1.5. UNIFIED RIYAAZ ENSEMBLE BAR (Tanpura + Tabla + Lehra in 1-Click - Adapted from iShala) */}
+      <div className="w-full p-4 rounded-3xl bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-orange-500/10 border border-[#f15a24]/30 shadow-md flex flex-col space-y-3">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-[#f15a24] text-white flex items-center justify-center font-bold text-xs shadow-xs">
+              🪕
+            </div>
+            <div>
+              <span className="text-xs font-mono font-black uppercase text-slate-900 dark:text-white tracking-wider flex items-center gap-1.5">
+                <span>ALL-IN-ONE RIYAAZ ENSEMBLE</span>
+                <span className="text-[9px] px-1.5 py-0.2 rounded bg-[#f15a24] text-white font-bold">PRO</span>
+              </span>
+              <p className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
+                Tanpura Drone + Tabla ({riyaazEnsemble.getSelectedTaal().name.split(' ')[0]}) + Harmonium Lehra
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => swarmandal.cascade(tanpuraKey, currentRaga.scaleNotesAtC, 'up')}
+              className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-amber-500/40 hover:bg-amber-50 dark:hover:bg-slate-800 text-amber-600 dark:text-amber-400 font-mono font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 transition"
+              title="Strum Swarmandal Harp Cascade in this Raga"
+            >
+              <span>✨</span>
+              <span>Strum Harp</span>
+            </button>
+
+            <button
+              onClick={() => {
+                riyaazEnsemble.togglePlay(tanpuraKey, currentRaga.tanpuraTuning);
+              }}
+              className={`px-4 py-2 rounded-xl font-mono font-black text-xs tracking-wider uppercase flex items-center gap-2 transition cursor-pointer shadow-md ${
+                ensembleState.isPlaying
+                  ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/30'
+                  : 'bg-[#f15a24] hover:bg-[#d94816] text-white shadow-orange-500/30'
+              }`}
+            >
+              {ensembleState.isPlaying ? (
+                <>
+                  <Pause className="w-4 h-4 fill-white" />
+                  <span>STOP ENSEMBLE</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4 fill-white" />
+                  <span>START ENSEMBLE</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Live Rhythm Cycle Progress Bar when playing */}
+        {ensembleState.isPlaying && (
+          <div className="flex items-center justify-between text-xs font-mono pt-1 border-t border-orange-500/20 text-[#f15a24] dark:text-[#ff7a45]">
+            <span className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#f15a24] animate-ping" />
+              <span className="font-bold">BEAT {ensembleState.currentBeat + 1}/{riyaazEnsemble.getSelectedTaal().totalMatras}</span>
+              <span className="text-slate-500 dark:text-slate-400">• {riyaazEnsemble.getSelectedTaal().matras[ensembleState.currentBeat]?.bol}</span>
+            </span>
+            <span className="font-bold">{ensembleState.bpm} BPM</span>
+          </div>
+        )}
       </div>
 
       {/* 2. PROMINENT ROOT KEY SELECTOR (Sa) */}

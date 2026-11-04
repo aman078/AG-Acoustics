@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, X, Plus, Minus, RotateCcw, Volume2 } from 'lucide-react';
 import { TAAL_PRESETS, TaalPreset, playSyntheticTablaStroke } from '../audio/taalEngine';
+import { playLehraNote } from '../audio/lehraEngine';
 
 interface MetronomeModalProps {
   isOpen?: boolean;
@@ -41,6 +42,25 @@ export const MetronomeModal: React.FC<MetronomeModalProps> = ({ isOpen = true, o
   });
 
   // Selected Indian Taal preset (Teentaal, Keherwa, Dadra, Rupak, Ektaal, Jhaptal)
+  // Lehra (Harmonium Nagma) state
+  const [isLehraEnabled, setIsLehraEnabled] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('agsoft_lehra_enabled');
+      return saved !== null ? JSON.parse(saved) : true;
+    } catch {
+      return true;
+    }
+  });
+
+  // Root Key for Lehra
+  const [lehraRootKey, setLehraRootKey] = useState<string>(() => {
+    try {
+      return localStorage.getItem('agsoft_lehra_key') || 'C';
+    } catch {
+      return 'C';
+    }
+  });
+
   const [selectedTaal, setSelectedTaal] = useState<TaalPreset>(() => {
     try {
       const savedId = localStorage.getItem('agsoft_selected_taal_id');
@@ -74,6 +94,18 @@ export const MetronomeModal: React.FC<MetronomeModalProps> = ({ isOpen = true, o
       localStorage.setItem('agsoft_selected_taal_id', selectedTaal.id);
     } catch {}
   }, [selectedTaal]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('agsoft_lehra_enabled', JSON.stringify(isLehraEnabled));
+    } catch {}
+  }, [isLehraEnabled]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('agsoft_lehra_key', lehraRootKey);
+    } catch {}
+  }, [lehraRootKey]);
 
   useEffect(() => {
     try {
@@ -122,6 +154,10 @@ export const MetronomeModal: React.FC<MetronomeModalProps> = ({ isOpen = true, o
   beatsPerMeasureRef.current = beatsPerMeasure;
   const isHapticEnabledRef = useRef<boolean>(isHapticEnabled);
   isHapticEnabledRef.current = isHapticEnabled;
+  const isLehraEnabledRef = useRef<boolean>(isLehraEnabled);
+  isLehraEnabledRef.current = isLehraEnabled;
+  const lehraRootKeyRef = useRef<string>(lehraRootKey);
+  lehraRootKeyRef.current = lehraRootKey;
 
   const getAudioContext = () => {
     if (!audioCtxRef.current) {
@@ -143,6 +179,12 @@ export const MetronomeModal: React.FC<MetronomeModalProps> = ({ isOpen = true, o
       const matra = taal.matras[beatIndex % taal.matras.length];
       if (matra) {
         playSyntheticTablaStroke(ctx, matra.type, time);
+
+        // Play Lehra (Harmonium Nagma) in sync with the beat
+        if (isLehraEnabledRef.current) {
+          const beatDuration = 60.0 / Math.max(30, bpmRef.current);
+          playLehraNote(ctx, lehraRootKeyRef.current, taal.id, beatIndex % taal.matras.length, time, beatDuration);
+        }
 
         // Haptic pulse: strong on Sam (Beat 1), medium on Tali, subtle on others
         if (isHapticEnabledRef.current && typeof navigator !== 'undefined' && 'vibrate' in navigator) {
@@ -327,6 +369,37 @@ export const MetronomeModal: React.FC<MetronomeModalProps> = ({ isOpen = true, o
                 <span className="text-[9px] font-mono opacity-70">{taal.totalMatras} Matras</span>
               </button>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Lehra (Harmonium Melodic Accompaniment) Control Strip */}
+      {rhythmMode === 'taal' && (
+        <div className="w-full p-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 mb-2 flex items-center justify-between text-xs">
+          <button
+            onClick={() => setIsLehraEnabled(!isLehraEnabled)}
+            className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition cursor-pointer border ${
+              isLehraEnabled
+                ? 'bg-[#f15a24] text-white border-orange-400 font-extrabold shadow-xs'
+                : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400'
+            }`}
+          >
+            <span>🎹</span>
+            <span>Lehra (Harmonium): {isLehraEnabled ? 'ON' : 'MUTED'}</span>
+          </button>
+
+          {/* Root Key for Lehra */}
+          <div className="flex items-center gap-1.5 font-mono text-[11px]">
+            <span className="text-slate-500 font-bold hidden sm:inline">KEY:</span>
+            <select
+              value={lehraRootKey}
+              onChange={(e) => setLehraRootKey(e.target.value)}
+              className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-2 py-1 text-slate-800 dark:text-slate-200 font-bold outline-none cursor-pointer"
+            >
+              {['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'].map((k) => (
+                <option key={k} value={k}>{k}</option>
+              ))}
+            </select>
           </div>
         </div>
       )}
