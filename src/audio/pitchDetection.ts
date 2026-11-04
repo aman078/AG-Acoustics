@@ -159,3 +159,52 @@ export function calculateCents(currentFreq: number, targetFreq: number): number 
   if (targetFreq <= 0 || currentFreq <= 0) return 0;
   return 1200 * Math.log2(currentFreq / targetFreq);
 }
+
+/**
+ * Finds the closest string in the chosen tuning preset only if it falls within
+ * an intelligent musical catch window (GuitarTuna-style noise isolation).
+ *
+ * Spoken voices, room chatter, and random noise that fall in "no-man's land"
+ * between guitar strings are cleanly rejected.
+ *
+ * @param freq Detected fundamental frequency (Hz)
+ * @param strings Array of target strings in the current tuning
+ * @param maxCentsTolerance Maximum cents deviation allowed (default: 85 cents)
+ */
+export function findMatchingString(
+  freq: number,
+  strings: { targetFreq: number }[],
+  maxCentsTolerance = 85
+): { index: number; targetFreq: number; cents: number } | null {
+  if (!strings || strings.length === 0 || freq <= 0) return null;
+
+  let bestIndex = -1;
+  let bestTarget = 0;
+  let minAbsCents = Infinity;
+  let bestCents = 0;
+
+  for (let i = 0; i < strings.length; i++) {
+    const target = strings[i].targetFreq;
+    const cents = calculateCents(freq, target);
+    const absCents = Math.abs(cents);
+
+    if (absCents < minAbsCents) {
+      minAbsCents = absCents;
+      bestIndex = i;
+      bestTarget = target;
+      bestCents = cents;
+    }
+  }
+
+  // Reject sound if outside tolerance (prevents speech or background noise from snapping to strings)
+  if (minAbsCents > maxCentsTolerance) {
+    return null;
+  }
+
+  return {
+    index: bestIndex,
+    targetFreq: bestTarget,
+    cents: bestCents,
+  };
+}
+

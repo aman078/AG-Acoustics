@@ -22,7 +22,7 @@ import {
   Flower2,
   Waves
 } from 'lucide-react';
-import { detectPitchMPM, frequencyToNote, calculateCents, getRMSVolume } from './audio/pitchDetection';
+import { detectPitchMPM, frequencyToNote, calculateCents, getRMSVolume, findMatchingString } from './audio/pitchDetection';
 import { playGuitarStringTone, playInTuneChime, stopToneDrone } from './audio/toneGenerator';
 import { TUNINGS, TuningPreset } from './data/tunings';
 import { StrobeTuner } from './components/StrobeTuner';
@@ -413,8 +413,8 @@ export const App: React.FC = () => {
     const volume = getRMSVolume(buffer);
     setRmsVolume(volume);
 
-    // Noise gate threshold
-    const NOISE_GATE = 0.005;
+    // Dynamic noise gate: adapts to prevent room noise & chatter from triggering detection
+    const NOISE_GATE = 0.007;
     if (volume < NOISE_GATE) {
       setDetectedClarity(0);
       inTuneDurationRef.current = 0;
@@ -422,67 +422,81 @@ export const App: React.FC = () => {
       return;
     }
 
-    // Run MPM (McLeod Pitch Method) with clarity 0.60, minFreq 50, maxFreq 1200
-    const pitchResult = detectPitchMPM(buffer, sampleRate, 0.60, 50, 1200);
+    // Tuning-Aware Frequency Range Bounding (GuitarTuna-style noise isolation):
+    // Bound detection limits strictly around the chosen tuning's strings rather than generic 50-1200Hz.
+    const allStringFreqs = currentTuning.strings.map((s) => s.targetFreq);
+    const minTarget = Math.min(...allStringFreqs);
+    const maxTarget = Math.max(...allStringFreqs);
+    // Allow generous +/- 35% margin around the extreme strings to catch severely out-of-tune pegs
+    const tuningMinFreq = Math.max(30, Math.floor(minTarget * 0.65));
+    const tuningMaxFreq = Math.min(2000, Math.ceil(maxTarget * 1.35));
+
+    // Run MPM (McLeod Pitch Method) with clarity 0.62 bounded by instrument frequency limits
+    const pitchResult = detectPitchMPM(buffer, sampleRate, 0.62, tuningMinFreq, tuningMaxFreq);
 
     if (pitchResult) {
       const { frequency, clarity } = pitchResult;
-      setDetectedFreq(frequency);
-      setDetectedClarity(clarity);
 
       if (isAutoMode) {
-        // Auto-detect closest string in the current tuning
-        let closestIndex = 0;
-        let minDiff = Infinity;
+        // GuitarTuna-style Catch Window:
+        // Match string only if within +/- 85 cents of a valid string in the preset.
+        // Background speech, laughing, or room rumble falling in between strings are silently rejected.
+        const match = findMatchingString(frequency, currentTuning.strings, 85);
 
-        currentTuning.strings.forEach((str, idx) => {
-          const diff = Math.abs(frequency - str.targetFreq);
-          if (diff < minDiff) {
-            minDiff = diff;
-            closestIndex = idx;
-          }
-        });
+        if (match) {
+          setDetectedFreq(frequency);
+          setDetectedClarity(clarity);
+          setActiveStringIndex(match.index);
+          setTargetFreq(match.targetFreq);
 
-        setActiveStringIndex(closestIndex);
-        const currentTarget = currentTuning.strings[closestIndex].targetFreq;
-        setTargetFreq(currentTarget);
+          const rawCents = match.cents;
+          setCentsOffset((prev) => Number((prev * 0.3 + rawCents * 0.7).toFixed(1)));
 
-        const rawCents = calculateCents(frequency, currentTarget);
-        setCentsOffset((prev) => Number((prev * 0.3 + rawCents * 0.7).toFixed(1)));
+          const { noteName, octave } = frequencyToNote(frequency, referenceA4);
+          setDetectedNote(noteName);
+          setDetectedOctave(octave);
 
-        const { noteName, octave } = frequencyToNote(frequency, referenceA4);
-        setDetectedNote(noteName);
-        setDetectedOctave(octave);
-
-        // Check if string is in tune (within +/- 3 cents)
-        if (Math.abs(rawCents) <= 3) {
-          inTuneDurationRef.current += 1;
-          const now = Date.now();
-          if (inTuneDurationRef.current > 8 && now - lastChimeTimeRef.current > 2500) {
-            playInTuneChime();
-            lastChimeTimeRef.current = now;
+          // Check if string is in tune (within +/- 3 cents)
+          if (Math.abs(rawCents) <= 3) {
+            inTuneDurationRef.current += 1;
+            const now = Date.now();
+            if (inTuneDurationRef.current > 8 && now - lastChimeTimeRef.current > 2500) {
+              playInTuneChime();
+              lastChimeTimeRef.current = now;
+            }
+          } else {
+            inTuneDurationRef.current = 0;
           }
         } else {
+          // Pitch was detected, but it doesn't match any guitar string (likely background speech/noise)
+          // Keep tuner calm and prevent jitter
           inTuneDurationRef.current = 0;
         }
       } else {
         // Manual mode: locked to activeStringIndex
         const currentTarget = currentTuning.strings[activeStringIndex].targetFreq;
-        setTargetFreq(currentTarget);
-
         const rawCents = calculateCents(frequency, currentTarget);
-        setCentsOffset((prev) => Number((prev * 0.3 + rawCents * 0.7).toFixed(1)));
 
-        const { noteName, octave } = frequencyToNote(frequency, referenceA4);
-        setDetectedNote(noteName);
-        setDetectedOctave(octave);
+        // In manual mode, reject notes that are vastly off (> 160 cents, i.e., completely different note/voice)
+        if (Math.abs(rawCents) <= 160) {
+          setDetectedFreq(frequency);
+          setDetectedClarity(clarity);
+          setTargetFreq(currentTarget);
+          setCentsOffset((prev) => Number((prev * 0.3 + rawCents * 0.7).toFixed(1)));
 
-        if (Math.abs(rawCents) <= 3) {
-          inTuneDurationRef.current += 1;
-          const now = Date.now();
-          if (inTuneDurationRef.current > 8 && now - lastChimeTimeRef.current > 2500) {
-            playInTuneChime();
-            lastChimeTimeRef.current = now;
+          const { noteName, octave } = frequencyToNote(frequency, referenceA4);
+          setDetectedNote(noteName);
+          setDetectedOctave(octave);
+
+          if (Math.abs(rawCents) <= 3) {
+            inTuneDurationRef.current += 1;
+            const now = Date.now();
+            if (inTuneDurationRef.current > 8 && now - lastChimeTimeRef.current > 2500) {
+              playInTuneChime();
+              lastChimeTimeRef.current = now;
+            }
+          } else {
+            inTuneDurationRef.current = 0;
           }
         } else {
           inTuneDurationRef.current = 0;
