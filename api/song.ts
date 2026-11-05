@@ -52,22 +52,16 @@ export interface SongChordSection {
   }[];
 }
 
-// Multi-Tier Anti-Blocking Stealth Headers & User-Agent Rotation
-const ROTATING_USER_AGENTS = [
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15',
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0',
-  'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-];
+// Multi-Tier Anti-Blocking Stealth Headers with aligned Chrome 131 Client Hints
+const CHROME_USER_AGENT =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
 function getStealthHeaders() {
-  const ua = ROTATING_USER_AGENTS[Math.floor(Math.random() * ROTATING_USER_AGENTS.length)];
   return {
-    'User-Agent': ua,
+    'User-Agent': CHROME_USER_AGENT,
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
     'Accept-Language': 'en-US,en;q=0.9',
-    'Sec-Ch-Ua': '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+    'Sec-Ch-Ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
     'Sec-Ch-Ua-Mobile': '?0',
     'Sec-Ch-Ua-Platform': '"Windows"',
     'Sec-Fetch-Dest': 'document',
@@ -81,7 +75,14 @@ function getStealthHeaders() {
 async function fetchWithStealth(url: string, retries = 2): Promise<string | null> {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const res = await fetch(url, { headers: getStealthHeaders() });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      const res = await fetch(url, {
+        headers: getStealthHeaders(),
+        signal: controller.signal,
+      }).finally(() => clearTimeout(timeoutId));
+
       if (res.status === 429 || res.status === 503) {
         if (attempt < retries) {
           await new Promise((r) => setTimeout(r, 400 + Math.random() * 400));
@@ -105,10 +106,13 @@ async function fetchWithStealth(url: string, retries = 2): Promise<string | null
 async function parseUltimateGuitarTab(tabUrl: string) {
   const html = await fetchWithStealth(tabUrl);
   if (!html) throw new Error('Could not fetch tab content');
-  const match = html.match(/class="js-store"\s+data-content="(.*?)"/);
+  const match = html.match(/class="js-store"\s+data-content="(.*?)"/s) || html.match(/data-content="([^"]+)"/s);
   if (!match) throw new Error('Could not parse UG tab store');
 
-  const raw = match[1].replace(/&quot;/g, '"').replace(/&amp;/g, '&');
+  let raw = match[1];
+  if (raw.includes('&quot;') || raw.includes('&amp;') || raw.includes('&#039;')) {
+    raw = raw.replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&#039;/g, "'");
+  }
   const data = JSON.parse(raw);
   const tabContent = (data.store?.page?.data?.tab_view?.wiki_tab?.content || '') as string;
   const songName = decodeHtmlEntities(data.store?.page?.data?.tab?.song_name || 'Song');

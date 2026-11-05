@@ -21,7 +21,7 @@ import {
   Film
 } from 'lucide-react';
 import { SongData, transposeChord, calculateSmartCapo, CapoRecommendation } from '../data/popularSongs';
-import { searchOnlineSongs, fetchCompleteSong, SearchSongItem } from '../services/chordService';
+import { searchOnlineSongs, searchLocalSongs, fetchCompleteSong, SearchSongItem } from '../services/chordService';
 import { REPERTOIRE_PIECES, RepertoirePiece } from '../data/repertoire';
 import { playGuitarStringTone } from '../audio/toneGenerator';
 import { TablatureViewer } from './TablatureViewer';
@@ -608,7 +608,53 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
     }
   }, [recentSongs]);
 
-  // Search Debounce with In-Flight Request Cancellation & Sequence Safety
+  // Immediate search execution for enter key / mobile search submission
+  const handleExecuteImmediateSearch = useCallback(async (queryToSearch: string) => {
+    const q = queryToSearch.trim();
+    if (!q) return;
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Instantly display local matches (POPULAR_SONGS + REPERTOIRE_PIECES)
+    const instantLocal = searchLocalSongs(q);
+    if (instantLocal.length > 0) {
+      setSearchResults(instantLocal);
+    }
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    activeQueryRef.current = q;
+    setIsLoadingResults(true);
+
+    try {
+      const results = await searchOnlineSongs(q, controller.signal);
+      if (activeQueryRef.current === q && !controller.signal.aborted) {
+        setSearchResults(results);
+        if (q.length >= 3 && results.length > 0) {
+          setSearchHistory((prev) => {
+            const filtered = prev.filter((item) => item.toLowerCase() !== q.toLowerCase());
+            return [q, ...filtered].slice(0, 10);
+          });
+        }
+      }
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') {
+        console.error('Immediate search error:', err);
+      }
+    } finally {
+      if (activeQueryRef.current === q) {
+        setIsLoadingResults(false);
+      }
+    }
+  }, []);
+
+  // Search Debounce with Instant Local Display & In-Flight Request Cancellation
   useEffect(() => {
     if (!isOpen) return;
 
@@ -623,6 +669,12 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
       setSearchResults([]);
       setIsLoadingResults(false);
       return;
+    }
+
+    // Zero-latency instant feedback: match local repertoire immediately
+    const instantLocal = searchLocalSongs(currentQuery);
+    if (instantLocal.length > 0) {
+      setSearchResults(instantLocal);
     }
 
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
@@ -1814,6 +1866,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                   if (document.activeElement instanceof HTMLElement) {
                     document.activeElement.blur();
                   }
+                  handleExecuteImmediateSearch(searchQuery);
                 }}
                 className="relative mb-3"
               >
@@ -1828,6 +1881,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.currentTarget.blur();
+                      handleExecuteImmediateSearch(searchQuery);
                     }
                   }}
                   className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-2xl pl-11 pr-20 py-3 text-sm text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:border-[#f15a24] shadow-inner"
@@ -1920,8 +1974,36 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                         <span>Searching Acoustic Studio Cloud...</span>
                       </div>
                     ) : searchResults.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-16 text-slate-500 text-xs">
-                        <span>No songs found for "{searchQuery}". Try different keywords or check spelling.</span>
+                      <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                        <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mb-3 text-slate-500">
+                          <Search className="w-5 h-5 text-slate-400" />
+                        </div>
+                        <p className="text-slate-300 font-medium text-xs mb-1">
+                          No direct match found for &ldquo;{searchQuery}&rdquo;
+                        </p>
+                        <p className="text-slate-500 text-[11px] max-w-xs mb-4">
+                          Try searching by artist name, or explore our curated collection of fingerstyle and classical masterpieces.
+                        </p>
+                        <div className="flex flex-wrap items-center justify-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSectionTab('repertoire');
+                              setDiscoverSearchQuery('');
+                            }}
+                            className="px-3.5 py-1.5 rounded-xl bg-[#f15a24]/15 hover:bg-[#f15a24]/25 text-[#f15a24] text-xs font-semibold border border-[#f15a24]/30 transition flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>Browse 29 Masterpieces</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSearchQuery('')}
+                            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700 transition cursor-pointer"
+                          >
+                            Clear Search
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       <div className="space-y-2">

@@ -91,22 +91,16 @@ function generateSearchVariants(query: string): string[] {
 /**
  * Searches Ultimate Guitar for complete human-verified chords & lyrics sheets
  */
-// Multi-Tier Anti-Blocking Stealth Headers & User-Agent Rotation
-const ROTATING_USER_AGENTS = [
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15',
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0',
-  'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-];
+// Multi-Tier Anti-Blocking Stealth Headers with aligned Chrome 131 Client Hints
+const CHROME_USER_AGENT =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
 function getStealthHeaders() {
-  const ua = ROTATING_USER_AGENTS[Math.floor(Math.random() * ROTATING_USER_AGENTS.length)];
   return {
-    'User-Agent': ua,
+    'User-Agent': CHROME_USER_AGENT,
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
     'Accept-Language': 'en-US,en;q=0.9',
-    'Sec-Ch-Ua': '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+    'Sec-Ch-Ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
     'Sec-Ch-Ua-Mobile': '?0',
     'Sec-Ch-Ua-Platform': '"Windows"',
     'Sec-Fetch-Dest': 'document',
@@ -120,7 +114,14 @@ function getStealthHeaders() {
 async function fetchWithStealth(url: string, retries = 2): Promise<string | null> {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const res = await fetch(url, { headers: getStealthHeaders() });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4500);
+
+      const res = await fetch(url, {
+        headers: getStealthHeaders(),
+        signal: controller.signal,
+      }).finally(() => clearTimeout(timeoutId));
+
       if (res.status === 429 || res.status === 503) {
         if (attempt < retries) {
           await new Promise((r) => setTimeout(r, 400 + Math.random() * 400));
@@ -151,11 +152,19 @@ async function searchUltimateGuitar(query: string) {
       try {
         const html = await fetchWithStealth(url);
         if (!html) continue;
-        const match = html.match(/class="js-store"\s+data-content="(.*?)"/);
+        const match = html.match(/class="js-store"\s+data-content="(.*?)"/s) || html.match(/data-content="([^"]+)"/s);
         if (!match) continue;
 
-        const raw = match[1].replace(/&quot;/g, '"').replace(/&amp;/g, '&');
-        const data = JSON.parse(raw);
+        let raw = match[1];
+        if (raw.includes('&quot;') || raw.includes('&amp;') || raw.includes('&#039;')) {
+          raw = raw.replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&#039;/g, "'");
+        }
+        let data: any;
+        try {
+          data = JSON.parse(raw);
+        } catch {
+          continue;
+        }
         const results = data.store?.page?.data?.results || [];
 
         interface UGRawItem {
@@ -321,16 +330,23 @@ export default async function handler(req: any, res: any) {
         if (combined.length === 0) {
           combined = await searchGuitarTuna(query);
         }
-        SEARCH_CACHE.set(cacheKey, { timestamp: Date.now(), data: combined });
+        // Only cache positive results so transient network drops or WAF rate limits don't poison cache
+        if (combined && combined.length > 0) {
+          SEARCH_CACHE.set(cacheKey, { timestamp: Date.now(), data: combined });
+        }
         IN_FLIGHT_SEARCHES.delete(cacheKey);
-        return combined;
+        return combined || [];
       })();
       IN_FLIGHT_SEARCHES.set(cacheKey, searchPromise);
     }
 
     const combined = await searchPromise;
     res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800');
+    if (combined && combined.length > 0) {
+      res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800');
+    } else {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
     return res.status(200).json({ songs: combined });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Search failed';
