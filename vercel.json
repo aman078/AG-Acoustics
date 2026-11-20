@@ -4,11 +4,15 @@
   "framework": "vite",
   "rewrites": [
     {
+      "source": "/ads.txt",
+      "destination": "/ads.txt"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/$1"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!api/|ads\\.txt).*)",
       "destination": "/index.html"
     }
   ]
